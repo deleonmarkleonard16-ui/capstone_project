@@ -30,9 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Handle any remaining CSRF / session-expiry (419 Page Expired) gracefully.
-        // In Laravel 11/12, TokenMismatchException is converted to HttpException(419)
-        // prior to render callbacks, so we must intercept HttpException with status 419.
+        // Handle CSRF / session-expiry (419 Page Expired) gracefully.
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
             if ($e->getStatusCode() === 419) {
                 $previous = $request->headers->get('referer', '/portal');

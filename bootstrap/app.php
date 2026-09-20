@@ -51,17 +51,5 @@ return Application::configure(basePath: dirname(__DIR__))
                 return redirect($previous ?: '/portal')
                     ->with('portal_notice', 'Your session expired. Please try again.');
             }
-
-            // Convert 409 Conflict and 422 Unprocessable Content into a graceful
-            // redirect-back with a flash error message for admin/staff pages.
-            // On Render's ephemeral file system a container restart can wipe uploaded
-            // receipts; these codes previously surfaced as a bare Symfony error page.
-            if (in_array($status, [409, 422], true) && ! $request->expectsJson()) {
-                return back()
-                    ->withInput()
-                    ->with('error', $e->getMessage() ?: ($status === 409
-                        ? 'This action cannot be performed because the record is in a conflicting state. Please refresh and try again.'
-                        : 'The request could not be processed. Please check all required fields and try again.'));
-            }
         });
     })->create();

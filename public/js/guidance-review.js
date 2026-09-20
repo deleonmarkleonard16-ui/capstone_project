@@ -78,7 +78,7 @@
         try {
             // Give Bootstrap and the loading status a paint before fetching/parsing.
             await nextFrame(signal);
-            const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', signal });
+            const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store', signal });
             if (!response.ok || response.redirected) throw new Error('Unable to load this request. Refresh or sign in again.');
             const data = await response.json();
             if (version !== generation || !visible) return;
@@ -179,7 +179,7 @@
         button.disabled = true;
         message.textContent = 'Verifying receipt and generating QR...';
         try {
-            const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' }, signal: verificationController.signal });
+            const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, signal: verificationController.signal });
             const data = await response.json();
             if (!response.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Verification failed.');
             if (version !== generation || !visible) return;

@@ -12,6 +12,14 @@ class GuidanceNotificationController extends Controller
 {
     public function index(Request $request)
     {
+        if (! $request->expectsJson() && ! $request->ajax()) {
+            $previous = url()->previous();
+            if (! empty($previous) && ! str_contains($previous, '/notifications')) {
+                return redirect()->to($previous);
+            }
+            return redirect()->route($request->user()->role.'.dashboard');
+        }
+
         $data = $request->validate(['after' => 'nullable|integer|min:0']);
         $userId = $request->user()->getKey();
         $base = GuidanceRequestNotification::query();
@@ -32,6 +40,15 @@ class GuidanceNotificationController extends Controller
         DB::table('guidance_notification_reads')->insertOrIgnore([
             'notification_id' => $notification->getKey(), 'user_id' => $request->user()->getKey(), 'read_at' => now(),
         ]);
+        if (! $request->expectsJson() && ! $request->ajax()) {
+            $entry = $notification->request;
+            $module = $notification->module;
+            $route = match($module) {
+                'psychological', 'personality', 'career' => $request->user()->role.'.'.$module.'.index',
+                default => $request->user()->role.'.'.$module,
+            };
+            return redirect()->route($route);
+        }
         return response()->json(['ok' => true, 'unread' => $this->unread($request->user()->getKey())]);
     }
 

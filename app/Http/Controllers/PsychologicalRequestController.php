@@ -173,7 +173,23 @@ class PsychologicalRequestController extends Controller
             $entry->update($update);
         });
 
-        return back()->with('success', 'Psychological request updated.');
+        $moduleKey = $request->route('module', 'psychological');
+        if (! array_key_exists($moduleKey, self::MODULES)) {
+            $moduleKey = 'psychological';
+        }
+        $fallback = route(auth()->user()->role.'.'.$moduleKey.'.index');
+        $previous = url()->previous();
+        $redirectUrl = (! empty($previous) && ! str_contains($previous, '/notifications')) ? $previous : $fallback;
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Request updated successfully.',
+                'redirect' => $redirectUrl,
+            ]);
+        }
+
+        return redirect()->to($redirectUrl)->with('success', 'Request updated successfully.');
     }
 
     public function upload(Request $request)

@@ -93,14 +93,37 @@ class AdminGuidanceController extends Controller
                 }
             }
 
-            // Trust the DB-recorded receipt path; skip the hard filesystem abort on Render.
-            // The stub restore above ensures the receipt endpoint won't 404 immediately after.
+            abort_unless(Storage::disk('local')->exists($receiptPath), 422, 'Receipt has not been uploaded.');
             $locked->qrCode()->create(['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
             $locked->update(['test_type' => $test, 'payment_slip_path' => $receiptPath, 'status' => 'Approved', 'verified_by' => $request->user()->id, 'verified_at' => now()]);
             $locked->serviceRequest?->update(['status' => 'processing']);
         });
-        if ($request->expectsJson()) return response()->json(['message' => 'Receipt verified. The QR pass is now available.']);
-        return back()->with('success', 'Receipt verified. The QR pass is available in student tracking.');
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            $role = $request->user()->role;
+            $fallback = match ($appointment->test_category) {
+                'career', 'psychological', 'personality' => route($role.'.'.$appointment->test_category.'.index'),
+                default => route($role.'.guidance.index'),
+            };
+            $previous = url()->previous();
+            $redirectUrl = (! empty($previous) && ! str_contains($previous, '/notifications')) ? $previous : $fallback;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Receipt verified. The QR pass is now available.',
+                'redirect' => $redirectUrl,
+            ]);
+        }
+
+        $role = $request->user()->role;
+        $fallback = match ($appointment->test_category) {
+            'career', 'psychological', 'personality' => route($role.'.'.$appointment->test_category.'.index'),
+            default => route($role.'.guidance.index'),
+        };
+        $previous = url()->previous();
+        $redirectUrl = (! empty($previous) && ! str_contains($previous, '/notifications')) ? $previous : $fallback;
+
+        return redirect()->to($redirectUrl)->with('success', 'Receipt verified. The QR pass is available in student tracking.');
     }
 
     public function review(GuidanceAppointment $appointment, \App\Services\GuidanceQrService $qr)

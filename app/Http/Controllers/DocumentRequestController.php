@@ -145,9 +145,7 @@ class DocumentRequestController extends Controller
 
                 // Require proof_review status and a recorded proof path.
                 // On Render the file may have been wiped; the stub restore above handles that.
-                // Treat a missing file after restore as a non-fatal cloud storage quirk —
-                // if the DB says a path exists we allow verification to proceed.
-                abort_unless($entry->status === 'proof_review' && $entry->proof_path, 409, 'A submitted receipt is required for verification.');
+                abort_unless($entry->status === 'proof_review' && $entry->proof_path && Storage::disk('local')->exists($entry->proof_path), 409, 'A submitted receipt is required for verification.');
                 $entry->update(['status' => 'ready', 'staff_message' => $data['staff_message'] ?? 'Approved / Ready for Pickup']);
             } else {
                 // Guard: If already claimed/completed, treat as idempotent success
@@ -165,7 +163,21 @@ class DocumentRequestController extends Controller
                 }
             }
         }, 3);
-        return back()->with('success', 'Document request updated.');
+
+        $module = $serviceRequest->service;
+        $fallback = route(auth()->user()->role.'.'.$module);
+        $previous = url()->previous();
+        $redirectUrl = (! empty($previous) && ! str_contains($previous, '/notifications')) ? $previous : $fallback;
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Document request updated.',
+                'redirect' => $redirectUrl,
+            ]);
+        }
+
+        return redirect()->to($redirectUrl)->with('success', 'Document request updated.');
     }
 
     public function join(Request $request, string $token)

@@ -77,7 +77,7 @@
         reviewBody.textContent = 'Loading request...';
         bootstrap.Modal.getOrCreateInstance(reviewModal).show();
         try {
-            const response = await fetch(item.review_url, {headers: {Accept: 'text/html'}, cache: 'no-store'});
+            const response = await fetch(item.review_url, {headers: {Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest'}, cache: 'no-store'});
             if (!response.ok) throw new Error('Could not load this request.');
             reviewBody.innerHTML = await response.text();
             const queueLink = document.createElement('a');
@@ -93,7 +93,7 @@
         const target = table && items.find(item => item.module_type === table.dataset.module);
         if (!target) return;
         try {
-            const response = await fetch(target.url || location.href, {headers: {Accept: 'text/html'}, cache: 'no-store'});
+            const response = await fetch(target.url || location.href, {headers: {Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest'}, cache: 'no-store'});
             if (!response.ok || response.redirected) return;
             const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
             const source = doc.querySelector('[data-individual-queue]');
@@ -115,7 +115,7 @@
         try {
             const url = new URL(bell.dataset.feedUrl, location.href);
             if (cursor !== null) url.searchParams.set('after', cursor);
-            const response = await fetch(url, {headers: {Accept: 'application/json'}, cache: 'no-store'});
+            const response = await fetch(url, {headers: {Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest'}, cache: 'no-store'});
             if (!response.ok || response.redirected) return;
             const data = await response.json();
             const first = cursor === null;
@@ -154,7 +154,7 @@
             link.dataset.unread = '0'; link.classList.remove('fw-semibold');
         });
         try {
-            const response = await fetch(anchor.dataset.readUrl, {method: 'POST', headers: {'X-CSRF-TOKEN': bell.dataset.csrf, Accept: 'application/json'}});
+            const response = await fetch(anchor.dataset.readUrl, {method: 'POST', headers: {'X-CSRF-TOKEN': bell.dataset.csrf, Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest'}});
             if (!response.ok) throw new Error('Could not mark notification read.');
             setCount((await response.json()).unread);
         } catch (_) { poll(); }
@@ -170,7 +170,7 @@
         try {
             const url = new URL(bell.dataset.clearUrl, location.href);
             url.searchParams.set('module', module);
-            const response = await fetch(url, {method: 'POST', keepalive: navigation, headers: {'X-CSRF-TOKEN': bell.dataset.csrf, Accept: 'application/json'}});
+            const response = await fetch(url, {method: 'POST', keepalive: navigation, headers: {'X-CSRF-TOKEN': bell.dataset.csrf, Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest'}});
             if (!response.ok) throw new Error('Could not clear module notifications.');
             setCount((await response.json()).unread);
         } catch (_) { if (!navigation) poll(); }

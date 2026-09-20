@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Digital Management System for Guidance Testing and Admission
 
 Laravel-based admission test management system for Pangasinan State University - San Carlos Campus.
@@ -123,3 +124,7 @@ php artisan config:clear
 - `php artisan route:list`
 - `php vendor/bin/phpunit --do-not-cache-result`
 - `php artisan view:cache`
+=======
+# cap_project
+For Capstone Project
+>>>>>>> c9e97e6b501cafe003d4a2ba3d8575eee2b016ef

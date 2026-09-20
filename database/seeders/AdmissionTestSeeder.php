@@ -16,21 +16,29 @@ class AdmissionTestSeeder extends Seeder
 {
     public function run(): void
     {
+        $adminEmail = env('ADMIN_EMAIL', 'admin@psu-scc.test');
+        $adminPassword = env('ADMIN_PASSWORD', 'password');
+
         User::updateOrCreate(
-            ['email' => 'admin@psu-scc.test'],
+            ['email' => $adminEmail],
             [
-                'name' => 'Admission Admin',
-                'password' => Hash::make('password'),
+                'name' => env('ADMIN_NAME', 'Admission Admin'),
+                'password' => Hash::make($adminPassword),
                 'role' => 'admin',
+                'is_active' => true,
             ]
         );
 
+        $staffEmail = env('STAFF_EMAIL', 'staff@psu-scc.test');
+        $staffPassword = env('STAFF_PASSWORD', 'password');
+
         User::updateOrCreate(
-            ['email' => 'staff@psu-scc.test'],
+            ['email' => $staffEmail],
             [
-                'name' => 'Admission Staff',
-                'password' => Hash::make('password'),
+                'name' => env('STAFF_NAME', 'Admission Staff'),
+                'password' => Hash::make($staffPassword),
                 'role' => 'staff',
+                'is_active' => true,
             ]
         );
 

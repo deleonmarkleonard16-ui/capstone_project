@@ -42,4 +42,4 @@ EXPOSE 80
 # CMD service nginx start && php-fpm
 
 # With this updated startup command:
-CMD php artisan migrate --force && php artisan storage:link && php artisan config:cache && php artisan route:cache && service nginx start && php-fpm
+CMD php artisan migrate --force && php artisan db:seed --force && php artisan storage:link && php artisan config:cache && php artisan route:cache && service nginx start && php-fpm

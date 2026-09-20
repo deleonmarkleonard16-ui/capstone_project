@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Digital Management System for Guidance Testing and Admission
 
 Laravel-based admission test management system for Pangasinan State University - San Carlos Campus.
@@ -124,7 +123,25 @@ php artisan config:clear
 - `php artisan route:list`
 - `php vendor/bin/phpunit --do-not-cache-result`
 - `php artisan view:cache`
-=======
-# cap_project
-For Capstone Project
->>>>>>> c9e97e6b501cafe003d4a2ba3d8575eee2b016ef
+
+## Render Deployment (https://dmsgta-system.onrender.com)
+
+When deployed on Render, the database starts empty. To enable Admin and Staff login:
+
+### Option 1: Automatic on Startup (via Dockerfile)
+The `Dockerfile` runs `php artisan migrate --force && php artisan db:seed --force` on container startup, which automatically creates the default accounts:
+- **Admin**: `admin@psu-scc.test` / `password`
+- **Staff**: `staff@psu-scc.test` / `password`
+
+### Option 2: Run directly in Render Shell
+1. Go to your Render Dashboard -> Click your Web Service (**dmsgta-system**).
+2. Click the **Shell** tab on the left.
+3. Run:
+   ```bash
+   php artisan db:seed --force
+   ```
+4. Or create a custom administrator account:
+   ```bash
+   php artisan user:create your-email@psu.edu.ph yourpassword admin
+   ```
+

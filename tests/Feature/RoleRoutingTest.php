@@ -37,4 +37,35 @@ class RoleRoutingTest extends TestCase
         $this->get('/admin/good-moral')->assertForbidden();
         $this->get('/admin/system-settings')->assertForbidden();
     }
+
+    public function test_seeder_creates_login_ready_users(): void
+    {
+        $this->seed(\Database\Seeders\AdmissionTestSeeder::class);
+
+        $this->post(route('login.store'), [
+            'email' => 'admin@psu-scc.test',
+            'password' => 'password',
+        ])->assertRedirect(route('admin.psychological.index'));
+
+        $this->post(route('logout'));
+
+        $this->post(route('login.store'), [
+            'email' => 'staff@psu-scc.test',
+            'password' => 'password',
+        ])->assertRedirect(route('staff.psychological.index'));
+    }
+
+    public function test_user_create_artisan_command(): void
+    {
+        $this->artisan('user:create', [
+            'email' => 'custom-admin@psu.edu.ph',
+            'password' => 'MySecurePass123',
+            'role' => 'admin',
+        ])->assertSuccessful();
+
+        $this->post(route('login.store'), [
+            'email' => 'custom-admin@psu.edu.ph',
+            'password' => 'MySecurePass123',
+        ])->assertRedirect(route('admin.psychological.index'));
+    }
 }

@@ -1,0 +1,9 @@
+<div class="modal fade" id="document-batch-modal" tabindex="-1" aria-labelledby="document-batch-title"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h2 id="document-batch-title" class="h5 modal-title">Create {{ \App\Http\Controllers\DocumentRequestController::MODULES[$moduleKey] }} Batch</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <form method="post" enctype="multipart/form-data" action="{{ route(auth()->user()->role.'.'.$moduleKey.'.batches.store') }}">@csrf<div class="modal-body">
+        <label class="form-label" for="batch-name">Batch name</label><input id="batch-name" class="form-control mb-3" name="batch_name" required maxlength="255">
+        <label class="form-label" for="batch-course">Course / program</label><select id="batch-course" class="form-select mb-3" name="course" required><option value="">Select a program</option>@foreach(\App\Support\CourseCatalog::activeOptions() as $code=>$title)<option value="{{ $code }}" @selected(old('course') === $code)>{{ $title }} ({{ $code }})</option>@endforeach</select>
+        <label class="form-label" for="batch-section">Section name</label><input id="batch-section" class="form-control mb-3" name="year_section" value="{{ old('year_section') }}" maxlength="50">
+        <label class="form-label" for="batch-reason">Reason for request</label><input id="batch-reason" class="form-control mb-3" name="reason_for_request" required maxlength="255">
+        <label class="form-label" for="batch-roster">CSV roster</label><input id="batch-roster" class="form-control" type="file" name="roster" accept=".csv,text/csv" required><p class="small text-muted mt-2">Columns: student_id, first_name, middle_name (optional), last_name. fname, mname, and lname are accepted.</p>
+    </div><div class="modal-footer"><button class="btn btn-primary">Import batch</button></div></form>
+</div></div></div>

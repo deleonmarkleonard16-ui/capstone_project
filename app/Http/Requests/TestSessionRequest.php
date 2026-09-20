@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class TestSessionRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'title' => ['required', 'string', 'max:255'],
+            'exam_date' => ['required', 'date'],
+            'start_time' => ['required', 'date_format:H:i'],
+            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'duration_minutes' => ['required', 'integer', 'min:1', 'max:240'],
+            'room' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', Rule::exists('test_session_statuses', 'slug')],
+        ];
+    }
+}

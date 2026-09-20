@@ -31,7 +31,12 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Cache\RateLimiting\Limit::perMinute(600)->by('ip:'.$request->ip()),
         ]);
 
-        if ($this->app->environment('production') || config('app.env') === 'production') {
+        if (
+            $this->app->environment('production')
+            || config('app.env') === 'production'
+            || str_starts_with((string) config('app.url'), 'https://')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        ) {
             URL::forceScheme('https');
         }
     }

@@ -38,5 +38,8 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 80
 
-# Start Nginx and PHP-FPM
-CMD service nginx start && php-fpm
+# Replace the old CMD line:
+# CMD service nginx start && php-fpm
+
+# With this updated startup command:
+CMD php artisan migrate --force && php artisan storage:link && php artisan config:cache && php artisan route:cache && service nginx start && php-fpm

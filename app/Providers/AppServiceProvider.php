@@ -29,5 +29,9 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Cache\RateLimiting\Limit::perMinute(10)->by('session:'.$request->session()->getId()),
             \Illuminate\Cache\RateLimiting\Limit::perMinute(600)->by('ip:'.$request->ip()),
         ]);
+
+        if ($this->app->environment('production') || config('app.env') === 'production') {
+            URL::forceScheme('https');
+        }
     }
 }

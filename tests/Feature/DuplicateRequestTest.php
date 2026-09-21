@@ -180,4 +180,25 @@ class DuplicateRequestTest extends TestCase
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-8888')->count());
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-9999')->count());
     }
+
+    public function test_migration_up_and_down_are_safe_and_idempotent(): void
+    {
+        $migration = require database_path('migrations/2026_09_21_000001_add_active_request_unique_guard.php');
+
+        // Calling up() when columns already exist should not throw exceptions
+        $migration->up();
+        $this->assertTrue(true);
+
+        // Calling down() should cleanly drop columns
+        $migration->down();
+        $this->assertTrue(true);
+
+        // Calling down() again when columns are already dropped should safely pass without error
+        $migration->down();
+        $this->assertTrue(true);
+
+        // Calling up() again after drop should safely re-create
+        $migration->up();
+        $this->assertTrue(true);
+    }
 }

@@ -197,8 +197,15 @@ class PsychologicalRequestController extends Controller
     public function upload(Request $request)
     {
         $request->merge(['reference' => is_string($request->input('reference')) ? strtoupper(trim($request->input('reference'))) : $request->input('reference')]);
-        $data = $request->validate(['reference' => ServiceRequest::referenceRules(),
-            'proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120']);
+        if ($request->hasFile('payment_slip') && ! $request->hasFile('proof')) {
+            $request->files->set('proof', $request->file('payment_slip'));
+        }
+        $data = $request->validate([
+            'reference' => ServiceRequest::referenceRules(),
+            'or_number' => 'required|string|max:50',
+            'or_date'   => 'required|date|before_or_equal:today',
+            'proof'     => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
         $isPrefixRef = (bool) preg_match('/^(?:G|TR|GM|EF)-/i', $data['reference']);
         $data['reference'] = $isPrefixRef ? strtoupper($data['reference']) : strtolower($data['reference']);
         DB::transaction(function () use ($request, $data) {
@@ -213,7 +220,12 @@ class PsychologicalRequestController extends Controller
             if (! in_array($entry->status, ['pending', 'approved'], true)) throw ValidationException::withMessages(['proof' => 'A stub can only be uploaded while awaiting payment or a replacement stub.']);
             $path = $request->file('proof')->store('receipts', 'local');
             abort_unless($path, 500, 'Unable to save receipt. Please try again.');
-            $entry->update(['proof_path' => $path, 'status' => 'proof_review']);
+            $entry->update([
+                'proof_path' => $path,
+                'or_number' => $data['or_number'],
+                'or_date' => $data['or_date'],
+                'status' => 'proof_review',
+            ]);
         });
         $request->session()->put('portal_request_reference', $data['reference']);
         return redirect()->route('portal.index')->with('portal_notice', 'Paid stub or receipt uploaded. The guidance office will verify it and process your request.');

@@ -1,6 +1,5 @@
 @extends('portal.layout')
 @section('content')
-<p class="notice">Official fees: Good Moral Certificate, Personality Test, Psychological Assessment, and Career Test &mdash; Php 60.00 each.</p>
 @php($selectedService = old('service', request('service', 'testing')))
 @php($selectedService = array_key_exists($selectedService, \App\Models\ServiceRequest::SERVICES) ? $selectedService : 'testing')
 @if(session('portal_notice'))

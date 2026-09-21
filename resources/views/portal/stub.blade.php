@@ -57,7 +57,23 @@
 @endif
 
 @if(in_array($entry->status, ['pending','approved']) && ($tracking ?? false))
-<form method="POST" action="{{ route('portal.receipt') }}" enctype="multipart/form-data">@csrf<input type="hidden" name="reference" value="{{ $entry->reference }}"><label for="proof">Upload paid/stamped stub or receipt (JPG, PNG, PDF; up to 5 MB)</label><input id="proof" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required><button style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button></form>
+<form method="POST" action="{{ route('portal.receipt') }}" enctype="multipart/form-data">
+    @csrf
+    <input type="hidden" name="reference" value="{{ $entry->reference }}">
+    <div style="margin-bottom:12px">
+        <label for="portal-or_number-{{ $entry->id }}">Official Receipt Number</label>
+        <input id="portal-or_number-{{ $entry->id }}" name="or_number" type="text" maxlength="50" placeholder="Official Receipt Number" required>
+    </div>
+    <div style="margin-bottom:12px">
+        <label for="portal-or_date-{{ $entry->id }}">Receipt Date</label>
+        <input id="portal-or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
+    </div>
+    <div style="margin-bottom:12px">
+        <label for="proof">Upload paid/stamped stub or receipt (JPG, PNG, PDF; up to 5 MB)</label>
+        <input id="proof" name="payment_slip" type="file" accept=".jpg,.jpeg,.png,.pdf,image/*" required>
+    </div>
+    <button style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button>
+</form>
 @elseif(in_array($entry->status, ['pending','approved']))
 <a class="button" href="/portal?service={{ $entry->service }}#track">Track Existing Request / Upload Receipt</a>
 @endif

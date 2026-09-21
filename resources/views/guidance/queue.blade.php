@@ -1,4 +1,4 @@
-@if($archived)
+﻿@if($archived)
 <div class="d-flex gap-2 mb-3">
     <a class="btn btn-outline-secondary" href="{{ route(auth()->user()->role.'.guidance-appointments.export', array_merge($filters, ['format' => 'csv'])) }}">Export CSV</a>
     <a class="btn btn-outline-secondary" href="{{ route(auth()->user()->role.'.guidance-appointments.export', array_merge($filters, ['format' => 'pdf'])) }}">Export PDF</a>
@@ -18,7 +18,17 @@
     <td><span class="badge text-bg-primary mb-2">{{ $appointment->request_code }}</span><br><strong>{{ mb_strtoupper($appointment->applicant->full_name) }}</strong><div>{{ $appointment->testLabel() }}</div>
         @if($appointment->serviceRequest)<div class="small mt-2">Student ID: {{ mb_strtoupper($appointment->serviceRequest->student_number ?: 'Not provided') }} / {{ mb_strtoupper($appointment->serviceRequest->course) }}<br>Purpose: {{ $appointment->serviceRequest->purpose }}</div>@endif
     </td>
-    <td>@if($appointment->payment_slip_path)<button type="button" class="btn btn-outline-primary btn-sm" data-receipt="{{ route(auth()->user()->role.'.guidance-appointments.receipt', $appointment) }}">Show receipt</button>@else<span class="text-muted">Awaiting receipt upload</span>@endif</td>
+    <td>
+        @if($appointment->payment_slip_path)
+            <button type="button" class="btn btn-outline-primary btn-sm" data-receipt="{{ route(auth()->user()->role.'.guidance-appointments.receipt', $appointment) }}">Show receipt</button>
+            @if($appointment->or_number || $appointment->serviceRequest?->or_number)
+                <div class="small text-muted mt-1">O.R. # <strong>{{ $appointment->or_number ?: $appointment->serviceRequest?->or_number }}</strong></div>
+            @endif
+            @if($appointment->or_date || $appointment->serviceRequest?->or_date)
+                <div class="small text-muted">{{ \Illuminate\Support\Carbon::parse($appointment->or_date ?: $appointment->serviceRequest?->or_date)->format('M d, Y') }}</div>
+            @endif
+        @else<span class="text-muted">Awaiting receipt upload</span>@endif
+    </td>
     <td><div data-status-badge><strong>{{ $appointment->status }}</strong></div>@include('guidance.security-controls')
         @if($appointment->appointment_at)<p class="small">Appointment: {{ $appointment->appointment_at->timezone('Asia/Manila')->format('M d, Y g:i A') }} (Philippine time)</p>@endif
         @if($appointment->status === 'Receipt Uploaded' && !$archived)

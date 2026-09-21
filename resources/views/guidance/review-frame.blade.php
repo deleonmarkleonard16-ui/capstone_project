@@ -1,4 +1,4 @@
-<div class="row g-4" data-review-state="{{ $appointment->status }}">
+﻿<div class="row g-4" data-review-state="{{ $appointment->status }}">
     <section class="col-lg-6" aria-label="Student profile and receipt">
         <span class="badge text-bg-primary fs-5 mb-3">{{ $appointment->request_code }}</span>
         <h3 class="h5">Student profile</h3>
@@ -14,6 +14,14 @@
         </dl>
         @if($appointment->batch || $appointment->sourceBatch)<p><strong>Reason:</strong> {{ ($appointment->batch ?? $appointment->sourceBatch)->reason_for_request }}</p>@endif
         <h3 class="h5">Payment receipt</h3>
+        @php($receiptOrNum = $appointment->or_number ?: $appointment->serviceRequest?->or_number)
+        @php($receiptOrDate = $appointment->or_date ?: $appointment->serviceRequest?->or_date)
+        @if($receiptOrNum || $receiptOrDate)
+            <dl class="row mb-2">
+                @if($receiptOrNum)<dt class="col-sm-4">O.R. Number</dt><dd class="col-sm-8"><span class="badge text-bg-light border text-dark fs-6">{{ $receiptOrNum }}</span></dd>@endif
+                @if($receiptOrDate)<dt class="col-sm-4">O.R. Date</dt><dd class="col-sm-8">{{ \Illuminate\Support\Carbon::parse($receiptOrDate)->format('M d, Y') }}</dd>@endif
+            </dl>
+        @endif
         @if($appointment->payment_slip_path)
             <a href="{{ route(auth()->user()->role.'.guidance-appointments.receipt', $appointment) }}" target="_blank" rel="noopener">Open original receipt</a>
             <div class="border rounded mt-2 p-2 text-center" data-review-preview aria-busy="true">

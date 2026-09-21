@@ -51,13 +51,18 @@ class GuidanceTrackingController extends Controller
     {
         if (!$request->has('reference')) $request->merge(['reference' => $request->input('request_code')]);
         if (is_string($request->input('reference'))) $request->merge(['reference' => strtoupper(trim($request->input('reference')))]);
+        if ($request->hasFile('proof') && !$request->hasFile('payment_slip')) {
+            $request->files->set('payment_slip', $request->file('proof'));
+        }
         $data = $request->validate([
             'reference' => ['required', 'string', 'regex:/^(?:G-[A-Z0-9]{4}|(?:TR|GT)-[A-F0-9]{32})$/D'],
-            'proof' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=8000,max_height=8000',
+            'or_number' => 'required|string|max:50',
+            'or_date'   => 'required|date|before_or_equal:today',
+            'payment_slip' => 'required|image|max:5120',
         ]);
         $reference = strtoupper($data['reference']);
         $reference = GuidanceAppointment::whereNull('batch_id')->where('request_code', $reference)->first()?->serviceRequest?->reference ?? $reference;
-        $portal->uploadReceipt($reference, $request->file('proof'));
+        $portal->uploadReceipt($reference, $request->file('payment_slip'), $data['or_number'], $data['or_date']);
         if ($request->expectsJson()) return response()->json(['status' => 'Receipt Uploaded', 'message' => 'Receipt uploaded. Please wait for staff verification.']);
         return redirect('/portal?service=testing#track')->with('tracking_reference', $reference)->with('portal_notice', 'Receipt uploaded. Please wait for staff verification.');
     }

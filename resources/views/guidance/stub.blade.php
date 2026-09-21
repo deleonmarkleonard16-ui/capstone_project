@@ -25,8 +25,18 @@
         @if($tracking)
         <form method="post" action="{{ route('guidance.receipt') }}" enctype="multipart/form-data" data-guidance-receipt>@csrf
             <input type="hidden" name="reference" value="{{ $entry->reference }}">
-            <label for="receipt-{{ $entry->id }}">Upload payment receipt (JPG, PNG, WebP; up to 5 MB)</label>
-            <input id="receipt-{{ $entry->id }}" name="proof" type="file" accept="image/jpeg,image/png,image/webp" required>
+            <div style="margin-bottom:12px">
+                <label for="or_number-{{ $entry->id }}">Official Receipt Number</label>
+                <input id="or_number-{{ $entry->id }}" name="or_number" type="text" maxlength="50" placeholder="Official Receipt Number" required>
+            </div>
+            <div style="margin-bottom:12px">
+                <label for="or_date-{{ $entry->id }}">Receipt Date</label>
+                <input id="or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
+            </div>
+            <div style="margin-bottom:12px">
+                <label for="receipt-{{ $entry->id }}">Upload payment receipt (JPG, PNG, WebP; up to 5 MB)</label>
+                <input id="receipt-{{ $entry->id }}" name="payment_slip" type="file" accept="image/jpeg,image/png,image/webp" required>
+            </div>
             <button style="margin-top:16px">Upload Receipt for Verification</button>
             <p data-upload-message role="status"></p>
         </form>

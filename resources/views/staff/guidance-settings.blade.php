@@ -7,37 +7,7 @@
 </ul>
 
 @if(request('tab', 'courses') === 'courses')
-<div class="card p-4">
-    <h2 class="h5">Add program</h2>
-    <p class="text-muted">Disabling a program prevents new selections and keeps existing records.</p>
-    <form method="post" action="{{ route(auth()->user()->role.'.settings.course') }}" class="row g-2 align-items-end mb-4">@csrf
-        <div class="col-lg-3"><label for="new-course-code" class="form-label">Code</label><input id="new-course-code" name="code" class="form-control" required maxlength="30" pattern="[A-Za-z0-9-]+" value="{{ old('code') }}" placeholder="e.g. BSIT"></div>
-        <div class="col-lg-6"><label for="new-course-name" class="form-label">Program name</label><input id="new-course-name" name="name" class="form-control" maxlength="255" required value="{{ old('name') }}"></div>
-        <input type="hidden" name="is_active" value="1"><div class="col-lg-3"><button class="btn btn-primary w-100">Add program</button></div>
-    </form>
-    <h2 class="h5 mb-2">Existing programs</h2>
-    <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0" style="min-width:650px">
-            <thead><tr><th scope="col" style="width:13%">Code</th><th scope="col">Program Title</th><th scope="col" style="width:16%">Status</th><th scope="col" style="width:10%">Actions</th></tr></thead>
-            <tbody>
-            @foreach($courses as $course)
-                <tr>
-                    <th scope="row" class="fw-semibold">{{ $course->code }}</th>
-                    <td>
-                        <form id="course-form-{{ $course->id }}" method="post" action="{{ route(auth()->user()->role.'.settings.course', $course) }}">@csrf
-                            <input type="hidden" name="code" value="{{ $course->code }}"><input type="hidden" name="is_active" value="0">
-                        </form>
-                        <label class="visually-hidden" for="course-name-{{ $course->id }}">Program title for {{ $course->code }}</label>
-                        <input id="course-name-{{ $course->id }}" form="course-form-{{ $course->id }}" name="name" value="{{ $course->name }}" class="form-control form-control-sm" required maxlength="255">
-                    </td>
-                    <td><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" role="switch" form="course-form-{{ $course->id }}" name="is_active" value="1" id="course-active-{{ $course->id }}" @checked($course->is_active) onchange="this.nextElementSibling.textContent = this.checked ? 'Active' : 'Inactive'"><label class="form-check-label" for="course-active-{{ $course->id }}">{{ $course->is_active ? 'Active' : 'Inactive' }}</label></div></td>
-                    <td><button type="submit" form="course-form-{{ $course->id }}" class="btn btn-outline-primary btn-sm">Save</button></td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
+<div class="card p-4"><h2 class="h5">Official programs</h2><p>The ten official program options are standardized for all modules.</p><table class="table"><thead><tr><th>Code</th><th>Program Title</th></tr></thead><tbody>@foreach(\App\Support\CourseCatalog::OPTIONS as $code => $title)<tr><td>{{ $code }}</td><td>{{ $title }}</td></tr>@endforeach</tbody></table></div>
 @elseif(request('tab') === 'staff')
 <div class="card p-4">
     <h2 class="h5">Create guidance staff account</h2>

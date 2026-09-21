@@ -21,10 +21,11 @@ class GuidanceSettingsController extends Controller
     public function course(Request $request, ?Course $course = null)
     {
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/D'],
+            'code' => ['required', Rule::in(array_keys(CourseCatalog::OPTIONS))],
             'name' => 'required|string|max:255',
             'is_active' => 'required|boolean',
         ]);
+        abort_unless($data['name'] === CourseCatalog::OPTIONS[$data['code']] && $data['is_active'], 422, 'The official program names and availability are fixed.');
         if ($course) abort_unless($course->code === $data['code'], 422, 'Course codes cannot be changed.');
         if (! $course && Course::where('code', $data['code'])->exists()) return back()->withErrors(['code' => 'This program already exists. Edit its existing row.'])->withInput();
         Course::updateOrCreate(['code' => $data['code']], ['name' => $data['name'], 'is_active' => $data['is_active']]);

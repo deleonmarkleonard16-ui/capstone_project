@@ -173,10 +173,12 @@ class PsychologicalRequestController extends Controller
             $entry->update($update);
         });
 
+        $serviceRequest->refresh();
         $moduleKey = $request->route('module', 'psychological');
         if (! array_key_exists($moduleKey, self::MODULES)) {
             $moduleKey = 'psychological';
         }
+        event(new \App\Events\ServiceRequestStatusChanged($serviceRequest, $moduleKey));
         $fallback = route(auth()->user()->role.'.'.$moduleKey.'.index');
         $previous = url()->previous();
         $redirectUrl = (! empty($previous) && ! str_contains($previous, '/notifications')) ? $previous : $fallback;

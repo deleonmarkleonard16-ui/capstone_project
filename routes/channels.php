@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Broadcast;
 
+Broadcast::channel('admission.cycle.{cycleId}', fn ($user, $cycleId) => $user->role === 'admin'
+    && \App\Models\AdmissionCycle::whereKey($cycleId)->exists());
+
 Broadcast::channel('guidance.batch.{batchId}', function ($user, $batchId) {
     return in_array($user->role, ['admin', 'staff'], true)
         && \App\Models\GuidanceTestBatch::whereKey($batchId)->exists();

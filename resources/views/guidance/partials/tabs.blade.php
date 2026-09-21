@@ -1,51 +1,95 @@
 @php
+    $role = auth()->user()?->role ?? 'staff';
+
+    // Identify the active module
     $currentModule = $moduleKey ?? (
-        request()->routeIs(auth()->user()->role.'.personality.*', auth()->user()->role.'.personality') ? 'personality' : (
-            request()->routeIs(auth()->user()->role.'.career.*', auth()->user()->role.'.career') ? 'career' : 'psychological'
+        request()->routeIs($role.'.personality.*', $role.'.personality') ? 'personality' : (
+            request()->routeIs($role.'.career.*', $role.'.career') ? 'career' : (
+                request()->routeIs($role.'.good-moral', $role.'.good-moral.*') ? 'good-moral' : (
+                    request()->routeIs($role.'.exit-form', $role.'.exit-form.*') ? 'exit-form' : 'psychological'
+                )
+            )
         )
     );
-    $individualRoute = match($currentModule) {
-        'personality' => route(auth()->user()->role.'.personality.index'),
-        'career'      => route(auth()->user()->role.'.career.index'),
-        default       => route(auth()->user()->role.'.psychological.index'),
-    };
-    $archiveRoute = match($currentModule) {
-        'personality' => route(auth()->user()->role.'.personality.archive'),
-        'career'      => route(auth()->user()->role.'.career.archive'),
-        default       => route(auth()->user()->role.'.psychological.archive'),
-    };
+
+    // Route mappings
+    $isDocumentModule = in_array($currentModule, ['good-moral', 'exit-form'], true);
+
     $analyticsRoute = match($currentModule) {
-        'personality' => route(auth()->user()->role.'.personality.analytics'),
-        'career'      => route(auth()->user()->role.'.career.analytics'),
-        default       => route(auth()->user()->role.'.psychological.analytics'),
+        'good-moral', 'exit-form' => route("{$role}.{$currentModule}.analytics"),
+        'personality', 'career'   => route("{$role}.{$currentModule}.analytics"),
+        default                   => route("{$role}.psychological.analytics"),
     };
 
-    $isQueue    = request()->routeIs(auth()->user()->role.'.guidance.index', auth()->user()->role.'.guidance-appointments.index', auth()->user()->role.'.psychological.index', auth()->user()->role.'.personality.index', auth()->user()->role.'.career.index')
-                  && !request()->routeIs(auth()->user()->role.'.psychological.archive', auth()->user()->role.'.personality.archive', auth()->user()->role.'.career.archive');
-    $isBatch    = (request()->routeIs(auth()->user()->role.'.guidance-batches.*', auth()->user()->role.'.psychological.batches', auth()->user()->role.'.personality.batches', auth()->user()->role.'.career.batches')) && !request()->boolean('archived');
-    $isArchive  = request()->routeIs(auth()->user()->role.'.psychological.archive', auth()->user()->role.'.personality.archive', auth()->user()->role.'.career.archive', auth()->user()->role.'.guidance-appointments.archive')
-                  || (request()->routeIs(auth()->user()->role.'.guidance-batches.*', auth()->user()->role.'.psychological.batches', auth()->user()->role.'.personality.batches', auth()->user()->role.'.career.batches') && request()->boolean('archived'));
-    $isAnalytics = request()->routeIs(auth()->user()->role.'.guidance-appointments.analytics', auth()->user()->role.'.psychological.analytics', auth()->user()->role.'.personality.analytics', auth()->user()->role.'.career.analytics');
+    $individualRoute = match($currentModule) {
+        'good-moral', 'exit-form' => route("{$role}.{$currentModule}"),
+        'personality', 'career'   => route("{$role}.{$currentModule}.index"),
+        default                   => route("{$role}.psychological.index"),
+    };
+
+    $batchRoute = route("{$role}.{$currentModule}.batches");
+
+    $archiveRoute = match($currentModule) {
+        'good-moral', 'exit-form' => route("{$role}.{$currentModule}.archive"),
+        'personality', 'career'   => route("{$role}.{$currentModule}.archive"),
+        default                   => route("{$role}.psychological.archive"),
+    };
+
+    // State detection
+    $isAnalytics = request()->routeIs("{$role}.*.analytics")
+                   || request()->routeIs("{$role}.guidance-appointments.analytics")
+                   || ($mode ?? null) === 'analytics';
+
+    $isArchive   = request()->routeIs("{$role}.*.archive")
+                   || request()->routeIs("{$role}.guidance-appointments.archive")
+                   || ($mode ?? null) === 'archive'
+                   || request()->boolean('archived');
+
+    $isBatch     = request()->routeIs("{$role}.*.batches", "{$role}.guidance-batches.*")
+                   && !$isArchive;
+
+    $isQueue     = !$isAnalytics && !$isBatch && !$isArchive;
 @endphp
-<ul class="nav nav-tabs mb-4" role="tablist">
+
+{{-- ═══ 4-TAB BAR ORDERED PER SPEC: Analytics, Individual Queue, Bundled/Batch Queue, Archives ═══ --}}
+<ul class="nav nav-tabs mb-4 module-tabs" role="tablist">
+    {{-- Tab 1: Analytics --}}
     <li class="nav-item" role="presentation">
-        <a class="nav-link {{ $isQueue && !$isBatch && !$isArchive && !$isAnalytics ? 'active fw-bold' : '' }}" href="{{ $individualRoute }}">
-            Individual Request Queue
+        <a class="nav-link {{ $isAnalytics ? 'active fw-bold' : '' }}"
+           href="{{ $analyticsRoute }}"
+           role="tab"
+           aria-selected="{{ $isAnalytics ? 'true' : 'false' }}">
+            <i class="bi bi-graph-up me-1"></i> Analytics
         </a>
     </li>
+
+    {{-- Tab 2: Individual Request Queue --}}
     <li class="nav-item" role="presentation">
-        <a class="nav-link {{ $isBatch ? 'active fw-bold' : '' }}" href="{{ route(auth()->user()->role.'.'.$currentModule.'.batches') }}">
-            Bundled / Batch Queue
+        <a class="nav-link {{ $isQueue ? 'active fw-bold' : '' }}"
+           href="{{ $individualRoute }}"
+           role="tab"
+           aria-selected="{{ $isQueue ? 'true' : 'false' }}">
+            <i class="bi bi-person me-1"></i> Individual Request Queue
         </a>
     </li>
+
+    {{-- Tab 3: Bundled / Batch Queue --}}
     <li class="nav-item" role="presentation">
-        <a class="nav-link {{ $isArchive ? 'active fw-bold' : '' }}" href="{{ $archiveRoute }}">
-            Archives
+        <a class="nav-link {{ $isBatch ? 'active fw-bold' : '' }}"
+           href="{{ $batchRoute }}"
+           role="tab"
+           aria-selected="{{ $isBatch ? 'true' : 'false' }}">
+            <i class="bi bi-people me-1"></i> Bundled / Batch Queue
         </a>
     </li>
+
+    {{-- Tab 4: Archives --}}
     <li class="nav-item" role="presentation">
-        <a class="nav-link {{ $isAnalytics ? 'active fw-bold' : '' }}" href="{{ $analyticsRoute }}">
-            Analytics
+        <a class="nav-link {{ $isArchive ? 'active fw-bold' : '' }}"
+           href="{{ $archiveRoute }}"
+           role="tab"
+           aria-selected="{{ $isArchive ? 'true' : 'false' }}">
+            <i class="bi bi-archive me-1"></i> Archives
         </a>
     </li>
 </ul>

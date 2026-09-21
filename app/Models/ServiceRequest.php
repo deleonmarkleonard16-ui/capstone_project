@@ -16,6 +16,8 @@ class ServiceRequest extends Model
             'scheduled_at' => 'datetime',
             'expires_at' => 'datetime',
             'archived_at' => 'datetime',
+            'or_date' => 'date',
+            'claimed_at' => 'datetime',
         ];
     }
 

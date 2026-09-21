@@ -12,7 +12,7 @@ class AdmissionExamController extends Controller
 {
     private function applicant(string $token): AdmissionApplicant
     {
-        return AdmissionApplicant::where('exam_token', $token)->whereNull('submitted_at')->firstOrFail();
+        return AdmissionApplicant::where('exam_token', $token)->whereNull('submitted_at')->whereHas('cycle', fn ($q) => $q->where('is_active', true)->where('is_archived', false))->firstOrFail();
     }
 
     public function take(string $token)
@@ -26,22 +26,23 @@ class AdmissionExamController extends Controller
     public function submit(Request $request, string $token, AdmissionScoringService $scoring)
     {
         $applicant = $this->applicant($token);
-        $data = $request->validate(['answers' => 'nullable|array', 'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])]]);
+        $data = $request->validate(['answers' => 'nullable|array:'.implode(',', range(1, 80)), 'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])]]);
         $scoring->submit($applicant, $data['answers'] ?? []);
         return $request->expectsJson() ? response()->json(['done' => true]) : view('admin.admission.complete');
     }
 
     public function strike(Request $request, string $token, AdmissionScoringService $scoring)
     {
-        $data = $request->validate(['incident_type' => ['required', Rule::in(['back_button', 'print_screen', 'print', 'focus_loss'])]]);
-        $applicant = DB::transaction(function () use ($token, $data) {
+        $data = $request->validate(['incident_type' => ['required', Rule::in(['back_button', 'print_screen', 'print', 'focus_loss', 'fullscreen_exit'])], 'answers' => 'nullable|array:'.implode(',', range(1, 80)), 'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])]]);
+        $this->applicant($token);
+        $applicant = DB::transaction(function () use ($token, $data, $scoring) {
             $applicant = AdmissionApplicant::where('exam_token', $token)->lockForUpdate()->firstOrFail();
             if ($applicant->submitted_at) return $applicant;
             $applicant->increment('strike_count');
             DB::table('guidance_test_security_logs')->insert(['applicant_id' => $applicant->id, 'incident_type' => $data['incident_type'], 'strike_number' => $applicant->strike_count, 'created_at' => now(), 'updated_at' => now()]);
+            if ($applicant->strike_count >= 3) $scoring->submit($applicant, $data['answers'] ?? []);
             return $applicant->fresh();
         });
-        if ($applicant->strike_count >= 3 && ! $applicant->submitted_at) $scoring->submit($applicant, $request->input('answers', []));
         return response()->json(['strikes' => $applicant->strike_count, 'terminated' => $applicant->strike_count >= 3]);
     }
 

@@ -51,27 +51,27 @@ class GuidanceSettingsTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('replacement-secret-123', $staff->fresh()->password));
     }
 
-    public function test_course_toggle_preserves_course_and_rejects_it_for_new_requests(): void
+    public function test_official_program_cannot_be_disabled(): void
     {
         $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
         $course = Course::where('code', 'BSIT')->firstOrFail();
         $this->actingAs($admin)->post(route('admin.settings.course', $course), [
             'code' => 'BSIT', 'name' => $course->name, 'is_active' => '0',
-        ])->assertRedirect();
-        $this->assertFalse($course->fresh()->is_active);
+        ])->assertUnprocessable();
+        $this->assertTrue($course->fresh()->is_active);
         $this->assertDatabaseHas('courses', ['id' => $course->id, 'code' => 'BSIT']);
         $validator = validator(['course' => 'BSIT'], ['course' => \App\Support\CourseCatalog::rule()]);
-        $this->assertTrue($validator->fails());
+        $this->assertFalse($validator->fails());
     }
 
-    public function test_new_program_becomes_available_to_requests(): void
+    public function test_unofficial_program_is_rejected(): void
     {
         $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
         $this->actingAs($admin)->post(route('admin.settings.course'), [
             'code' => 'BSN', 'name' => 'Bachelor of Science in Nursing', 'is_active' => '1',
         ])->assertRedirect();
-        $this->assertDatabaseHas('courses', ['code' => 'BSN', 'is_active' => 1]);
-        $this->assertSame('Bachelor of Science in Nursing', \App\Support\CourseCatalog::activeOptions()['BSN']);
-        $this->assertFalse(validator(['course' => 'BSN'], ['course' => \App\Support\CourseCatalog::rule()])->fails());
+        $this->assertDatabaseMissing('courses', ['code' => 'BSN']);
+        $this->assertCount(10, \App\Support\CourseCatalog::activeOptions());
+        $this->assertTrue(validator(['course' => 'BSN'], ['course' => \App\Support\CourseCatalog::rule()])->fails());
     }
 }

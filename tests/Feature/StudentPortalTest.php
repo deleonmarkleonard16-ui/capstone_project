@@ -261,7 +261,7 @@ class StudentPortalTest extends TestCase
             $this->assertSame('proof_review', $entry->fresh()->status);
             $this->actingAs($this->staff())->patch('/staff/requests/'.$entry->id, ['action'=>'verify'])->assertSessionHasNoErrors();
             $this->assertSame('ready', $entry->fresh()->status);
-            $this->patch('/staff/requests/'.$entry->id, ['action'=>'claim'])->assertSessionHasNoErrors();
+            $this->patch('/staff/requests/'.$entry->id, ['action'=>'claim', 'or_number'=>'OR-123', 'or_date'=>now()->toDateString()])->assertSessionHasNoErrors();
             $this->assertSame('completed', $entry->fresh()->status);
             $this->assertNotNull($entry->fresh()->archived_at);
         }

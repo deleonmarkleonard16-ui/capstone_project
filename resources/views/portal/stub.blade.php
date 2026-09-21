@@ -1,3 +1,5 @@
+@php($officialFee = \App\Support\RequestFees::total($entry->service, $entry->tests ?? [], $entry->copies ?? 1))
+@if($officialFee !== null)<p class="notice"><strong>Official fee: Php {{ number_format($officialFee, 2) }}</strong></p>@endif
 @if($entry->guidanceAppointments()->exists())
 @include('guidance.stub', ['tracking' => $tracking ?? false])
 @else

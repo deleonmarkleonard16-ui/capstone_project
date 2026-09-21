@@ -27,7 +27,7 @@ class AdmissionScoringService
             $applicant = AdmissionApplicant::query()->lockForUpdate()->findOrFail($applicant->id);
             abort_if($applicant->submitted_at, 409, 'The exam has already been submitted.');
             $key = DB::table('admission_answer_keys')->where('admission_cycle_id', $applicant->admission_cycle_id)->pluck('correct_answer', 'item_number');
-            abort_if($key->isEmpty(), 409, 'The answer key has not been configured.');
+            abort_unless($key->count() === 80 && $key->keys()->sort()->values()->all() === range(1, 80), 409, 'A complete 80-item answer key is required.');
             $correct = $key->filter(fn ($answer, $item) => strtoupper((string) ($answers[$item] ?? '')) === $answer)->count();
             $percent = round($correct / $key->count() * 100, 2);
             $applicant->forceFill([
@@ -38,6 +38,7 @@ class AdmissionScoringService
                 'exam_token' => null,
             ])->save();
             $this->evaluate($applicant->cycle);
+            \App\Events\AdmissionSubmissionRecorded::dispatch($applicant->admission_cycle_id, $applicant->id);
         });
     }
 
@@ -60,7 +61,8 @@ class AdmissionScoringService
                 $eligible = $applicant->total_score !== null && $applicant->stanine_score >= $cycle->passing_stanine;
                 $status = $applicant->total_score === null ? 'Pending' : ($eligible && $qualified < (int) ($quotas[$course] ?? 0) ? 'Qualified' : 'Not Qualified');
                 if ($status === 'Qualified') $qualified++;
-                $applicant->forceFill(['qualification_status' => $status])->save();
+                $applicant->forceFill(['qualification_status' => $status]);
+                if ($applicant->isDirty()) $applicant->save();
             }
         }
     }

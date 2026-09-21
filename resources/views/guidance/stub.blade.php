@@ -1,3 +1,5 @@
+@php($officialFee = \App\Support\RequestFees::total($entry->service, $entry->tests ?? [], $entry->copies ?? 1))
+@if($officialFee !== null)<p class="notice"><strong>Official fee: Php {{ number_format($officialFee, 2) }}</strong></p>@endif
 <section class="card payment-stub">
     <div class="request-banner">TESTING REQUEST STUB</div>
     <h2>Pangasinan State University – San Carlos Campus</h2>

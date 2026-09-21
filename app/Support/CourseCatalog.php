@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\CourseProgram;
 use Illuminate\Validation\Rule;
 
 final class CourseCatalog
@@ -28,14 +29,12 @@ final class CourseCatalog
 
     public static function activeOptions(): array
     {
-        if (!\Illuminate\Support\Facades\Schema::hasTable('courses')) return self::OPTIONS;
-        return \App\Models\Course::where('is_active', true)->orderBy('name')->pluck('name', 'code')->all();
+        return CourseProgram::options();
     }
 
     public static function allOptions(): array
     {
-        if (!\Illuminate\Support\Facades\Schema::hasTable('courses')) return self::OPTIONS;
-        return \App\Models\Course::orderBy('name')->pluck('name', 'code')->all();
+        return CourseProgram::options();
     }
 
     public static function label(?string $code, ?string $legacy = null): string
@@ -49,9 +48,9 @@ final class CourseCatalog
     {
         $value = trim((string) $value);
         if (isset(self::OPTIONS[$value])) return $value;
-        foreach (self::OPTIONS as $code => $title) {
-            if (strcasecmp($value, $title) === 0 || strcasecmp($value, $title.' ('.$code.')') === 0) return $code;
-        }
+        $fromEnum = CourseProgram::fromCode($value);
+        if ($fromEnum !== null) return $fromEnum->value;
+
         return match (strtoupper($value)) {
             'BS INFORMATION TECHNOLOGY', 'BSIT 3-A', 'BSIT 3A' => 'BSIT',
             default => null,

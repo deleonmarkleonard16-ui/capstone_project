@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@if($appointment->test_category === 'career')<a class="btn btn-primary mb-3" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}">Career assessment report / PDF</a>@endif
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     <div>
         <h1 class="h3 mb-1">Psychological Assessment Results</h1>

@@ -63,7 +63,7 @@ class DocumentWorkflowTest extends TestCase
             $this->patch(route('staff.'.$module.'.update', $entry), ['action' => 'verify'])->assertSessionHasNoErrors();
             $this->assertSame('ready', $entry->fresh()->status);
             $this->get(route('staff.'.$module.'.batches'))->assertSee('Approved / Ready for Pickup')->assertSee('Mark as Claimed / Completed');
-            $this->patch(route('staff.'.$module.'.update', $entry), ['action' => 'claim'])->assertSessionHasNoErrors();
+            $this->patch(route('staff.'.$module.'.update', $entry), ['action' => 'claim', 'or_number' => 'OR-123', 'or_date' => now()->toDateString()])->assertSessionHasNoErrors();
             $this->assertSame('completed', $entry->fresh()->status);
             $this->assertNotNull($batch->fresh()->archived_at);
             $this->get(route('staff.'.$module.'.archive'))->assertOk()->assertSee(strtoupper($module).'-BATCH');

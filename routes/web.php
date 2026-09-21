@@ -82,6 +82,7 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->group(fu
         Route::get('/security-incidents', [\App\Http\Controllers\GuidanceSecurityController::class, 'feed'])->name('security-incidents');
         Route::post('/{appointment}/terminate', [\App\Http\Controllers\GuidanceSecurityController::class, 'terminate'])->name('terminate');
         Route::get('/{appointment}/results', [$controller, 'showResults'])->name('show-results');
+        Route::get('/{appointment}/career-report', \App\Http\Controllers\CareerReportController::class)->name('career-report');
         Route::get('/{appointment}/review', [$controller, 'review'])->name('review');
         Route::post('/{appointment}/verify', [$controller, 'verify'])->name('verify');
         Route::get('/{appointment}/receipt', [$controller, 'receipt'])->name('receipt');
@@ -175,6 +176,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/quotas', [$c, 'quota'])->name('quotas.save');
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
+        Route::get('/encoding-sheet', [$c, 'encodingSheet'])->name('encoding-sheet');
+        Route::post('/encoding-sheet', [$c, 'saveEncodingSheet'])->name('encoding-sheet.save');
         Route::post('/applicants/import', [$c, 'import'])->name('applicants.import');
         Route::post('/applicants/{applicant?}', [$c, 'saveApplicant'])->name('applicants.save');
         Route::post('/applicants/{applicant}/token', [$c, 'issueToken'])->name('applicants.token');
@@ -191,6 +194,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/system-settings', [$settings, 'index'])->name('settings.index');
     Route::post('/system-settings/courses/{course?}', [$settings, 'course'])->name('settings.course');
     Route::post('/system-settings/users/{user?}', [$settings, 'user'])->name('settings.user');
+    Route::get('/archive', [\App\Http\Controllers\AdminArchiveController::class, 'index'])->name('archive');
     Route::view('/admission-cycle', 'staff.admission-cycle')->name('admission-cycle');
     Route::get('/admission-evaluation', [AdmissionEvaluationController::class, 'index'])->name('admission-evaluation.index');
     Route::post('/admission-evaluation', [AdmissionEvaluationController::class, 'store'])->name('admission-evaluation.store');

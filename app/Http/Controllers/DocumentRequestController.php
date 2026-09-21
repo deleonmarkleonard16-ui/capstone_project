@@ -120,6 +120,8 @@ class DocumentRequestController extends Controller
         abort_if($request->route('module') && $request->route('module') !== $serviceRequest->service, 404);
         $data = $request->validate([
             'action' => ['required', Rule::in(['verify', 'claim'])],
+            'or_number' => 'required_if:action,claim|nullable|string|max:100',
+            'or_date' => 'required_if:action,claim|nullable|date_format:Y-m-d|before_or_equal:today',
             'staff_message' => 'nullable|string|max:2000',
         ]);
         DB::transaction(function () use ($serviceRequest, $data) {
@@ -130,21 +132,6 @@ class DocumentRequestController extends Controller
                     return;
                 }
 
-                // Render / cloud ephemeral disk: a container restart wipes /storage/app.
-                // Restore a 1×1 placeholder so the filesystem check passes, then proceed.
-                // We trust the DB proof_path column as the source of truth — if it is set,
-                // the admin previously confirmed receipt upload and we must not block them.
-                if ($entry->proof_path && ! Storage::disk('local')->exists($entry->proof_path)) {
-                    if (! app()->environment('testing')) {
-                        Storage::disk('local')->put(
-                            $entry->proof_path,
-                            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aHfoAAAAASUVORK5CYII=')
-                        );
-                    }
-                }
-
-                // Require proof_review status and a recorded proof path.
-                // On Render the file may have been wiped; the stub restore above handles that.
                 abort_unless($entry->status === 'proof_review' && $entry->proof_path && Storage::disk('local')->exists($entry->proof_path), 409, 'A submitted receipt is required for verification.');
                 $entry->update(['status' => 'ready', 'staff_message' => $data['staff_message'] ?? 'Approved / Ready for Pickup']);
             } else {
@@ -154,7 +141,8 @@ class DocumentRequestController extends Controller
                 }
 
                 abort_unless($entry->status === 'ready', 409, 'Verify the receipt before marking this document claimed.');
-                $entry->update(['status' => 'completed', 'archived_at' => now(), 'staff_message' => $data['staff_message'] ?? 'Document claimed at the Guidance Office.']);
+                abort_unless($entry->proof_path && Storage::disk('local')->exists($entry->proof_path), 409, 'The verified receipt must be available before claiming.');
+                $entry->update(['or_number' => $data['or_number'], 'or_date' => $data['or_date'], 'claimed_at' => now(), 'status' => 'completed', 'archived_at' => now(), 'staff_message' => $data['staff_message'] ?? 'Document claimed at the Guidance Office.']);
                 if ($entry->batch_id) {
                     $batch = GuidanceTestBatch::whereKey($entry->batch_id)->lockForUpdate()->firstOrFail();
                     if (! $batch->documentRequests()->where('status', '!=', 'completed')->exists()) {
@@ -165,6 +153,12 @@ class DocumentRequestController extends Controller
         }, 3);
 
         $module = $serviceRequest->service;
+        $serviceRequest->refresh();
+        if (($data['action'] ?? null) === 'claim') {
+            event(new \App\Events\DocumentRequestClaimed($serviceRequest, $module));
+        }
+        event(new \App\Events\ServiceRequestStatusChanged($serviceRequest, $module));
+
         $fallback = route(auth()->user()->role.'.'.$module);
         $previous = url()->previous();
         $redirectUrl = (! empty($previous) && ! str_contains($previous, '/notifications')) ? $previous : $fallback;

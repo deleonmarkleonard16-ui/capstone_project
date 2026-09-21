@@ -173,6 +173,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/cycles/{cycle?}', [$c, 'cycle'])->name('cycles.save');
         Route::post('/cycles/{cycle}/activate', [$c, 'activate'])->name('cycles.activate');
         Route::post('/cycles/{cycle}/archive', [$c, 'archive'])->name('cycles.archive');
+        Route::post('/cycles/{cycle}/complete', [$c, 'complete'])->name('cycles.complete');
         Route::post('/quotas', [$c, 'quota'])->name('quotas.save');
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
@@ -193,6 +194,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     $settings = \App\Http\Controllers\GuidanceSettingsController::class;
     Route::get('/system-settings', [$settings, 'index'])->name('settings.index');
     Route::post('/system-settings/courses/{course?}', [$settings, 'course'])->name('settings.course');
+    Route::post('/system-settings/courses/{course}/toggle', [$settings, 'toggleCourse'])->name('settings.course.toggle');
     Route::post('/system-settings/users/{user?}', [$settings, 'user'])->name('settings.user');
     Route::get('/archive', [\App\Http\Controllers\AdminArchiveController::class, 'index'])->name('archive');
     Route::view('/admission-cycle', 'staff.admission-cycle')->name('admission-cycle');

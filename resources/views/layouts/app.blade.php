@@ -229,9 +229,13 @@
                     </span>
                 </summary>
                 <div class="sb-sub">
-                    <a class="sidebar-link {{ request()->routeIs('admin.admission.index') && !$admissionActive ? 'active' : (request()->is('admin/admission') ? 'active' : '') }}"
+                    <a class="sidebar-link {{ request()->routeIs('admin.admission.index') ? 'active' : '' }}"
                        href="{{ route('admin.admission.index') }}">
-                        <i class="bi bi-gear-fill"></i> Cycle Setup
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                    <a class="sidebar-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}"
+                       href="{{ route('admin.sessions.index') }}">
+                        <i class="bi bi-calendar3"></i> Sessions
                     </a>
                     <a class="sidebar-link {{ request()->routeIs('admin.admission.masterlist') ? 'active' : '' }}"
                        href="{{ route('admin.admission.masterlist') }}">

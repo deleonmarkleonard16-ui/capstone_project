@@ -12,6 +12,13 @@ class GuidanceSettingsController extends Controller
 {
     public function index()
     {
+        // Seed standard courses if table is empty
+        if (Course::count() === 0) {
+            foreach (CourseCatalog::OPTIONS as $code => $name) {
+                Course::firstOrCreate(['code' => $code], ['name' => $name, 'is_active' => true]);
+            }
+        }
+
         return view('staff.guidance-settings', [
             'courses' => Course::orderBy('code')->get(),
             'users' => User::whereHas('roleLookup', fn ($query) => $query->where('slug', 'staff'))->orderBy('name')->get(),
@@ -21,15 +28,52 @@ class GuidanceSettingsController extends Controller
     public function course(Request $request, ?Course $course = null)
     {
         $data = $request->validate([
-            'code' => ['required', Rule::in(array_keys(CourseCatalog::OPTIONS))],
+            'code' => ['required', 'string', 'max:50', Rule::unique('courses', 'code')->ignore($course?->id)],
             'name' => 'required|string|max:255',
-            'is_active' => 'required|boolean',
+            'is_active' => 'nullable',
         ]);
-        abort_unless($data['name'] === CourseCatalog::OPTIONS[$data['code']] && $data['is_active'], 422, 'The official program names and availability are fixed.');
-        if ($course) abort_unless($course->code === $data['code'], 422, 'Course codes cannot be changed.');
-        if (! $course && Course::where('code', $data['code'])->exists()) return back()->withErrors(['code' => 'This program already exists. Edit its existing row.'])->withInput();
-        Course::updateOrCreate(['code' => $data['code']], ['name' => $data['name'], 'is_active' => $data['is_active']]);
-        return back()->with('success', 'Program updated.');
+
+        $isActive = $request->boolean('is_active', true);
+
+        if ($course) {
+            $course->update([
+                'code' => trim($data['code']),
+                'name' => trim($data['name']),
+                'is_active' => $isActive,
+            ]);
+            $msg = "Program '{$course->code}' updated successfully.";
+        } else {
+            Course::create([
+                'code' => trim($data['code']),
+                'name' => trim($data['name']),
+                'is_active' => $isActive,
+            ]);
+            $msg = "New program '{$data['code']}' added successfully.";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    public function toggleCourse(Request $request, Course $course)
+    {
+        $course->update(['is_active' => !$course->is_active]);
+
+        $statusStr = $course->is_active ? 'activated' : 'deactivated';
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'is_active' => $course->is_active,
+                'message' => "Program {$course->code} has been {$statusStr}.",
+            ]);
+        }
+
+        return back()->with('success', "Program {$course->code} has been {$statusStr}.");
+    }
+
+    public function destroyCourse(Course $course)
+    {
+        return back()->with('error', 'Hard deletion is disabled to preserve historical records in Archives and Analytics. Please use the Active / Inactive toggle switch instead.');
     }
 
     public function user(Request $request, ?User $user = null)

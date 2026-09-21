@@ -2,9 +2,9 @@
 @section('content')
 
 {{-- ═══════════════════════════════════════════════════════
-     ADMISSION MASTERLIST — matching the provided UI screenshot
-     15-column table with 7-filter bar, Edit modal with
-     READ-ONLY exam score protection.
+     ADMISSION MASTERLIST & ARCHIVED CYCLE VIEWER
+     Supports inspecting both Active and Completed/Archived cycles.
+     Archived cycles are strictly locked against score edits or new entries.
      ═══════════════════════════════════════════════════════ --}}
 
 {{-- Top page header --}}
@@ -12,28 +12,46 @@
     <div>
         <h1 class="h3 mb-1">Admission Masterlist</h1>
         <p class="text-muted mb-0 small">
-            Current admission cycle: <strong>{{ $cycle->name }}</strong>
-            @if(session('import_errors'))
-                &nbsp;·&nbsp;
-                <span class="text-warning">
-                    {{ count(session('import_errors')) }} import warning(s)
-                </span>
+            Current admission cycle: <strong>{{ $cycle->displayName }}</strong>
+            @if ($isLocked)
+                <span class="badge bg-secondary ms-2"><i class="bi bi-lock-fill me-1"></i>Archived / Read-Only</span>
+            @elseif ($cycle->isActive())
+                <span class="badge bg-success ms-2"><i class="bi bi-star-fill me-1"></i>Active Cycle</span>
             @endif
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.encoding-sheet') }}">
+        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.encoding-sheet', ['cycle_id' => $cycle->id]) }}">
             <i class="bi bi-grid-3x3 me-1"></i> Masterlist Encoding Sheet
         </a>
         <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.sessions.index') }}">
             <i class="bi bi-calendar3 me-1"></i> Open Test Sessions
         </a>
         <a class="btn btn-primary btn-sm"
-           href="{{ route('admin.admission.report', ['type'=>'summary','format'=>'docx']) }}">
+           href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
             <i class="bi bi-file-earmark-word me-1"></i> DOCX Export
         </a>
     </div>
 </div>
+
+{{-- ── ARCHIVED CYCLE LOCKED BANNER ── --}}
+@if ($isLocked)
+    <div class="alert alert-secondary border d-flex align-items-center justify-content-between flex-wrap gap-2 py-2 px-3 mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock-fill fs-4 text-secondary"></i>
+            <div>
+                <strong>Archived Historical Record:</strong> You are inspecting past applicant rosters for <strong>{{ $cycle->displayName }}</strong>.
+                New applicant registrations, imports, and score modifications are permanently locked.
+            </div>
+        </div>
+        @php $activeCycle = \App\Models\AdmissionCycle::active(); @endphp
+        @if ($activeCycle && $activeCycle->id !== $cycle->id)
+            <a href="{{ route('admin.admission.masterlist', ['cycle_id' => $activeCycle->id]) }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-arrow-return-left me-1"></i> Return to Active Cycle
+            </a>
+        @endif
+    </div>
+@endif
 
 @if(session('import_errors'))
     <div class="alert alert-warning">
@@ -41,28 +59,34 @@
     </div>
 @endif
 
-{{-- ── FILTER BAR ── --}}
-<div class="card page-card mb-3">
+{{-- ── 7-FILTER BAR (MATCHING SCREENSHOT) ── --}}
+<div class="card page-card shadow-sm mb-3">
     <div class="card-body p-3">
-        <div class="fw-semibold small mb-2 text-muted">Admission Masterlist
-            <span class="text-dark ms-2">{{ $applicants->total() }} record(s)</span>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-semibold small text-muted">Admission Masterlist</div>
+            <span class="badge bg-light text-dark border">{{ $applicants->total() }} record(s)</span>
         </div>
         <form method="get" action="{{ route('admin.admission.masterlist') }}" id="masterlist-filters">
+            {{-- Row 1: Cycle Selector, Search, Batch Groups --}}
             <div class="row g-2 mb-2">
-                {{-- Cycle --}}
-                <div class="col-md-2">
-                    <select class="form-select form-select-sm" name="cycle_id">
-                        <option value="">{{ $cycle->name }}</option>
+                {{-- Cycle Selector --}}
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" name="cycle_id" onchange="this.form.submit()">
+                        @foreach($allCycles as $c)
+                            <option value="{{ $c->id }}" @selected($cycle->id === $c->id)>
+                                {{ $c->displayName }} {{ $c->isActive() ? '(Active)' : ($c->isCompleted() ? '(Archived)' : '(Draft)') }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
                 {{-- Search --}}
-                <div class="col-md-3">
+                <div class="col-md-5">
                     <input class="form-control form-control-sm" name="search"
                            value="{{ request('search') }}"
                            placeholder="Search by no., name, or course">
                 </div>
                 {{-- Batch groups --}}
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <select class="form-select form-select-sm" name="batch_group">
                         <option value="">All batch groups</option>
                         @foreach($batchGroups as $bg)
@@ -70,6 +94,10 @@
                         @endforeach
                     </select>
                 </div>
+            </div>
+
+            {{-- Row 2: Course, Sessions, Exam Records --}}
+            <div class="row g-2 mb-2">
                 {{-- Course --}}
                 <div class="col-md-4">
                     <select class="form-select form-select-sm" name="course">
@@ -79,10 +107,8 @@
                         @endforeach
                     </select>
                 </div>
-            </div>
-            <div class="row g-2 align-items-end">
                 {{-- Session --}}
-                <div class="col-md-2">
+                <div class="col-md-4">
                     <select class="form-select form-select-sm" name="session_filter">
                         <option value="">All sessions</option>
                         @foreach($sessionOptions as $s)
@@ -91,23 +117,25 @@
                     </select>
                 </div>
                 {{-- Exam records --}}
-                <div class="col-md-2">
+                <div class="col-md-4">
                     <select class="form-select form-select-sm" name="exam_filter">
                         <option value="">All exam records</option>
                         <option value="submitted" @selected(request('exam_filter') === 'submitted')>Submitted</option>
                         <option value="not_submitted" @selected(request('exam_filter') === 'not_submitted')>Not submitted</option>
                     </select>
                 </div>
-                {{-- Interview --}}
-                <div class="col-md-2">
+            </div>
+
+            {{-- Row 3: Interview, Stanines, Sort, Apply --}}
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
                     <select class="form-select form-select-sm" name="interview_filter">
                         <option value="">All interview records</option>
                         <option value="scored" @selected(request('interview_filter') === 'scored')>Scored</option>
                         <option value="pending" @selected(request('interview_filter') === 'pending')>Pending</option>
                     </select>
                 </div>
-                {{-- Stanine --}}
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <select class="form-select form-select-sm" name="stanine">
                         <option value="">All stanines</option>
                         @for($s = 1; $s <= 9; $s++)
@@ -115,8 +143,7 @@
                         @endfor
                     </select>
                 </div>
-                {{-- Sort --}}
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <select class="form-select form-select-sm" name="sort">
                         <option value="course_last_name" @selected(request('sort','course_last_name') === 'course_last_name')>Sort by Course</option>
                         <option value="gwa_desc" @selected(request('sort') === 'gwa_desc')>Highest GWA</option>
@@ -124,51 +151,52 @@
                         <option value="last_name" @selected(request('sort') === 'last_name')>Last Name A–Z</option>
                     </select>
                 </div>
-                <div class="col-md-1">
-                    <button class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-funnel"></i> Apply
-                    </button>
+                <div class="col-md-2 d-flex gap-1">
+                    <button class="btn btn-primary btn-sm flex-fill">Apply Filters</button>
+                    <a href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}" class="btn btn-outline-secondary btn-sm" title="Reset Filters">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
-{{-- ── APPLICANT TABLE ── --}}
-<div class="card page-card">
+{{-- ── APPLICANT TABLE (MATCHING SCREENSHOT EXACTLY) ── --}}
+<div class="card page-card shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0" id="masterlist-table">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">No.</th>
-                        <th>Last Name</th>
-                        <th>Given Name</th>
-                        <th>Middle Name</th>
-                        <th>Course (1st Choice)</th>
-                        <th>Sex</th>
+                        <th class="ps-3">NO.</th>
+                        <th>LAST NAME</th>
+                        <th>GIVEN NAME</th>
+                        <th>MIDDLE NAME</th>
+                        <th>COURSE (1ST CHOICE)</th>
+                        <th>SEX</th>
                         <th>4PS/OSY/IP/PWD/SP</th>
                         <th>CMFL</th>
                         <th>GWA</th>
-                        <th>Test</th>
-                        <th>Stanine</th>
-                        <th>Interview</th>
-                        <th>Status</th>
-                        <th>Exam Submitted</th>
-                        <th>Total</th>
-                        <th class="pe-3">Action</th>
+                        <th>TEST</th>
+                        <th>STANINE</th>
+                        <th>INTERVIEW</th>
+                        <th>STATUS</th>
+                        <th>EXAM SUBMITTED</th>
+                        <th>TOTAL</th>
+                        <th class="pe-3 text-end">ACTION</th>
                     </tr>
                 </thead>
                 <tbody>
                 @forelse ($applicants as $i => $applicant)
                     <tr>
                         <td class="ps-3">{{ $applicants->firstItem() + $i }}</td>
-                        <td class="fw-semibold">{{ mb_strtoupper($applicant->last_name) }}</td>
-                        <td>{{ $applicant->first_name }}</td>
-                        <td>{{ $applicant->middle_name ?: '–' }}</td>
-                        <td style="max-width:200px">
-                            <span title="{{ \App\Support\CourseCatalog::OPTIONS[$applicant->course_choice] ?? $applicant->course_choice }}">
-                                {{ \App\Support\CourseCatalog::OPTIONS[$applicant->course_choice] ?? $applicant->course_choice }}
+                        <td class="fw-bold">{{ mb_strtoupper($applicant->last_name) }}</td>
+                        <td>{{ mb_strtoupper($applicant->first_name) }}</td>
+                        <td>{{ $applicant->middle_name ? mb_strtoupper($applicant->middle_name) : '–' }}</td>
+                        <td>
+                            <span class="badge bg-light text-dark border" title="{{ \App\Support\CourseCatalog::label($applicant->course_choice) }}">
+                                {{ $applicant->course_choice }}
                             </span>
                         </td>
                         <td>{{ $applicant->sex ?: '–' }}</td>
@@ -190,21 +218,19 @@
                             @php
                                 $status = $applicant->qualification_status ?? 'Pending';
                                 $sessionLabel = $applicant->session_label ?? 'Unassigned';
-                                $batchLabel = $applicant->batch_label ?? '';
+                                $batchLabel = $applicant->batch_group ?? 'First Batch - Session A';
                             @endphp
                             <div>
-                                <span class="badge {{ $status === 'Qualified' ? 'bg-success' : ($status === 'Pending' ? 'bg-secondary' : 'bg-danger') }}">
+                                <span class="badge {{ $applicant->submitted_at ? ($status === 'Qualified' ? 'bg-success' : 'bg-danger') : 'bg-secondary' }}">
                                     {{ $applicant->submitted_at ? $status : 'Absent in Exam' }}
                                 </span>
-                                <div class="text-muted" style="font-size:11px">{{ $sessionLabel }}</div>
-                                @if($batchLabel)
-                                    <div class="text-muted" style="font-size:11px">{{ $batchLabel }}</div>
-                                @endif
+                                <div class="text-muted" style="font-size:10px">{{ $batchLabel }}</div>
+                                <div class="text-muted" style="font-size:10px">{{ $sessionLabel }}</div>
                             </div>
                         </td>
                         <td>
                             @if ($applicant->submitted_at)
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">Yes</span>
+                                <span class="text-success fw-semibold">Yes</span>
                             @else
                                 <span class="text-muted">No</span>
                             @endif
@@ -212,11 +238,11 @@
                         <td class="fw-bold">
                             {{ $applicant->total_score !== null ? number_format($applicant->total_score, 2) : '–' }}
                         </td>
-                        <td class="pe-3">
+                        <td class="pe-3 text-end">
                             <button class="btn btn-sm btn-outline-primary"
                                     data-bs-toggle="modal"
                                     data-bs-target="#edit-applicant-{{ $applicant->id }}">
-                                <i class="bi bi-pencil"></i> Edit
+                                {{ $isLocked ? 'View' : 'Edit' }}
                             </button>
                         </td>
                     </tr>
@@ -224,22 +250,23 @@
                     <tr>
                         <td colspan="16" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>
-                            No applicants found for the selected filters.
+                            No applicants found for {{ $cycle->displayName }}.
                         </td>
                     </tr>
                 @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="px-3 py-2">
+        <div class="px-3 py-2 border-top">
             {{ $applicants->withQueryString()->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>
 
 {{-- ══════════════════════════════════════
-     EDIT APPLICANT MODALS
+     EDIT / VIEW APPLICANT MODALS
      Exam score is strictly DISABLED/READ-ONLY
+     Locked for changes if cycle is completed
      ══════════════════════════════════════ --}}
 @foreach ($applicants as $applicant)
 <div class="modal fade" id="edit-applicant-{{ $applicant->id }}"
@@ -248,152 +275,123 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title h5" id="edit-label-{{ $applicant->id }}">
-                    Edit Applicant — {{ $applicant->full_name }}
+                    {{ $isLocked ? 'Applicant Profile' : 'Edit Applicant' }} — {{ $applicant->full_name }}
                 </h3>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="post" action="{{ route('admin.admission.applicants.save', $applicant) }}">
                 @csrf
+                <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
                 <div class="modal-body">
+                    @if($isLocked)
+                        <div class="alert alert-secondary py-2 small mb-3">
+                            <i class="bi bi-lock-fill me-1"></i> Historical Cycle Record — Profile is displayed in read-only mode.
+                        </div>
+                    @endif
+
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">Application Number</label>
+                            <label class="form-label form-label-sm fw-semibold">Application Number</label>
                             <input name="application_number" value="{{ $applicant->application_number }}"
-                                   class="form-control" required>
+                                   class="form-control form-control-sm" required @disabled($isLocked)>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Last Name</label>
+                            <label class="form-label form-label-sm fw-semibold">Last Name</label>
                             <input name="last_name" value="{{ $applicant->last_name }}"
-                                   class="form-control" required>
+                                   class="form-control form-control-sm" required @disabled($isLocked)>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">First Name</label>
+                            <label class="form-label form-label-sm fw-semibold">First Name</label>
                             <input name="first_name" value="{{ $applicant->first_name }}"
-                                   class="form-control" required>
+                                   class="form-control form-control-sm" required @disabled($isLocked)>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Middle Name</label>
+                            <label class="form-label form-label-sm fw-semibold">Middle Name</label>
                             <input name="middle_name" value="{{ $applicant->middle_name }}"
-                                   class="form-control">
+                                   class="form-control form-control-sm" @disabled($isLocked)>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Course (1st Choice)</label>
-                            <select name="course_choice" class="form-select" required>
+                            <label class="form-label form-label-sm fw-semibold">Course (1st Choice)</label>
+                            <select name="course_choice" class="form-select form-select-sm" required @disabled($isLocked)>
                                 @foreach ($courses as $code => $title)
-                                    <option value="{{ $code }}"
-                                        @selected($applicant->course_choice === $code)>
+                                    <option value="{{ $code }}" @selected($applicant->course_choice === $code)>
                                         {{ $title }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Sex</label>
-                            <select name="sex" class="form-select">
+                            <label class="form-label form-label-sm fw-semibold">Sex</label>
+                            <select name="sex" class="form-select form-select-sm" @disabled($isLocked)>
                                 <option value="">—</option>
                                 <option value="Male"   @selected($applicant->sex === 'Male')>Male</option>
                                 <option value="Female" @selected($applicant->sex === 'Female')>Female</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">4PS/OSY/IP/PWD/SP</label>
+                            <label class="form-label form-label-sm fw-semibold">4PS/OSY/IP/PWD/SP</label>
                             <input name="special_group" value="{{ $applicant->special_group }}"
-                                   class="form-control" placeholder="N/A">
+                                   class="form-control form-control-sm" placeholder="N/A" @disabled($isLocked)>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">CMFL</label>
+                            <label class="form-label form-label-sm fw-semibold">CMFL</label>
                             <input name="cmfl" value="{{ $applicant->cmfl }}"
-                                   class="form-control" placeholder="N/A">
+                                   class="form-control form-control-sm" placeholder="N/A" @disabled($isLocked)>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">GWA</label>
+                            <label class="form-label form-label-sm fw-semibold">GWA</label>
                             <input type="number" step="0.01" min="75" max="100"
                                    name="gwa" value="{{ $applicant->gwa }}"
-                                   class="form-control" placeholder="e.g. 92.50">
+                                   class="form-control form-control-sm" placeholder="e.g. 92.50" @disabled($isLocked)>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Interview Score</label>
+                        <div class="col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">Interview Score</label>
                             <input type="number" step="0.01" min="0" max="100"
                                    name="interview_score" value="{{ $applicant->interview_score }}"
-                                   class="form-control" placeholder="Optional">
+                                   class="form-control form-control-sm" placeholder="Optional" @disabled($isLocked)>
                         </div>
 
-                        {{-- ══ READ-ONLY EXAM SCORE SECTION ══ --}}
+                        {{-- ══ STRICTLY READ-ONLY EXAM SCORES ══ --}}
                         <div class="col-12">
-                            <hr class="my-1">
-                            <div class="alert alert-light border d-flex align-items-center gap-2 py-2">
-                                <i class="bi bi-lock-fill text-secondary"></i>
-                                <small class="text-muted">
-                                    The fields below are <strong>computed automatically</strong> from submitted exam answers and cannot be manually edited.
-                                </small>
+                            <hr class="my-2">
+                            <div class="small text-muted mb-2">
+                                <i class="bi bi-lock-fill me-1"></i> Exam score &amp; stanine ratings are computed automatically from submitted bubble answers and cannot be manually edited.
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">
-                                Computed Exam Score
-                                <i class="bi bi-lock text-muted ms-1" title="Auto-computed — read only"></i>
-                            </label>
+                            <label class="form-label form-label-sm text-muted">Computed Exam Score</label>
                             <input value="{{ $applicant->exam_score !== null ? number_format($applicant->exam_score, 2) : 'Not submitted' }}"
-                                   class="form-control bg-light text-muted"
-                                   disabled readonly
-                                   title="This score is calculated automatically from submitted answers and cannot be manually edited.">
+                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Stanine Score <i class="bi bi-lock text-muted ms-1"></i></label>
+                            <label class="form-label form-label-sm text-muted">Stanine Score</label>
                             <input value="{{ $applicant->stanine_score ?? 'Not computed' }}"
-                                   class="form-control bg-light text-muted"
-                                   disabled readonly>
+                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Total Score <i class="bi bi-lock text-muted ms-1"></i></label>
+                            <label class="form-label form-label-sm text-muted">Total Score</label>
                             <input value="{{ $applicant->total_score !== null ? number_format($applicant->total_score, 2) : 'Pending' }}"
-                                   class="form-control bg-light text-muted"
-                                   disabled readonly>
+                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Qualification <i class="bi bi-lock text-muted ms-1"></i></label>
+                            <label class="form-label form-label-sm text-muted">Qualification</label>
                             <input value="{{ $applicant->qualification_status ?? 'Pending' }}"
-                                   class="form-control bg-light text-muted"
-                                   disabled readonly>
+                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary">
-                        <i class="bi bi-save me-1"></i> Save Changes
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    @if(!$isLocked)
+                        <button class="btn btn-primary btn-sm">
+                            <i class="bi bi-save me-1"></i> Save Changes
+                        </button>
+                    @endif
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 @endforeach
-
-{{-- Import panel (hidden, triggered by button if needed) --}}
-<div class="modal fade" id="import-modal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title h5">Import Applicants from CSV / Excel</h3>
-                <button class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small">
-                    Required columns: <code>application_number, last_name, first_name, middle_name, course, sex, 4ps_osy_ip_pwd_sp, cmfl, gwa</code>
-                </p>
-                <form method="post"
-                      enctype="multipart/form-data"
-                      action="{{ route('admin.admission.applicants.import') }}">
-                    @csrf
-                    <input type="file" name="file" accept=".csv,.xlsx" class="form-control mb-3" required>
-                    <button class="btn btn-primary">
-                        <i class="bi bi-upload me-1"></i> Import Applicants
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 
 @endsection

@@ -16,7 +16,7 @@ class AdmissionPipelineController extends Controller
     public function index()
     {
         return view('admin.admission.setup', [
-            'cycles' => AdmissionCycle::latest()->get(),
+            'cycles' => AdmissionCycle::latest('id')->get(),
             'active' => AdmissionCycle::active(),
             'courses' => CourseCatalog::activeOptions(),
         ]);
@@ -25,40 +25,91 @@ class AdmissionPipelineController extends Controller
     public function cycle(Request $request, ?AdmissionCycle $cycle = null)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:120',
-            'academic_year' => 'required|string|max:50',
-            'passing_stanine' => 'required|integer|between:1,9',
-            'exam_weight' => 'required|numeric|between:0,100',
-            'gwa_weight' => 'required|numeric|between:0,100',
-            'interview_weight' => 'required|numeric|between:0,100',
+            'name' => 'nullable|string|max:120',
+            'cycle_name' => 'nullable|string|max:120',
+            'academic_year' => 'nullable|string|max:50',
+            'status' => ['nullable', Rule::in(AdmissionCycle::STATUSES)],
+            'passing_stanine' => 'nullable|integer|between:1,9',
+            'exam_weight' => 'nullable|numeric|between:0,100',
+            'gwa_weight' => 'nullable|numeric|between:0,100',
+            'interview_weight' => 'nullable|numeric|between:0,100',
+            'set_active' => 'nullable|boolean',
         ]);
 
-        if (abs(array_sum(array_map('floatval', [$data['exam_weight'], $data['gwa_weight'], $data['interview_weight']])) - 100) > 0.01) {
+        $cycleName = trim($data['cycle_name'] ?? ($data['name'] ?? ''));
+        if ($cycleName === '') {
+            return back()->withErrors(['cycle_name' => 'Cycle name is required.']);
+        }
+
+        $academicYear = trim($data['academic_year'] ?? '');
+        if ($academicYear === '') {
+            // Extract academic year from cycleName (e.g., "S.Y. 2026 - 2027" -> "2026-2027")
+            if (preg_match('/(\d{4})\s*[-–]\s*(\d{4})/', $cycleName, $matches)) {
+                $academicYear = "{$matches[1]}-{$matches[2]}";
+            } else {
+                $academicYear = date('Y') . '-' . (date('Y') + 1);
+            }
+        }
+
+        $examWeight = (float) ($data['exam_weight'] ?? 60.00);
+        $gwaWeight = (float) ($data['gwa_weight'] ?? 20.00);
+        $interviewWeight = (float) ($data['interview_weight'] ?? 20.00);
+
+        if (abs(($examWeight + $gwaWeight + $interviewWeight) - 100) > 0.01) {
             return back()->withErrors(['exam_weight' => 'Weights must total 100%.']);
         }
 
-        $record = $cycle ?? new AdmissionCycle(['is_active' => false]);
-        $record->fill($data)->save();
+        $record = $cycle ?? new AdmissionCycle();
+        $record->name = $cycleName;
+        $record->cycle_name = $cycleName;
+        $record->academic_year = $academicYear;
+        $record->passing_stanine = (int) ($data['passing_stanine'] ?? 4);
+        $record->exam_weight = $examWeight;
+        $record->gwa_weight = $gwaWeight;
+        $record->interview_weight = $interviewWeight;
+
+        $targetStatus = $data['status'] ?? ($record->status ?: AdmissionCycle::STATUS_DRAFT);
+        $shouldActivate = $request->boolean('set_active') || $targetStatus === AdmissionCycle::STATUS_ACTIVE;
+
+        if ($shouldActivate) {
+            $record->save();
+            $record->activate();
+        } else {
+            $record->status = $targetStatus;
+            $record->is_active = false;
+            $record->save();
+        }
+
         app(AdmissionScoringService::class)->evaluate($record);
 
-        return back()->with('success', 'Admission cycle saved successfully.');
+        $msg = $shouldActivate
+            ? "Admission cycle '{$record->displayName}' initialized and set as Active."
+            : "Admission cycle '{$record->displayName}' saved.";
+
+        return back()->with('success', $msg);
     }
 
     public function activate(AdmissionCycle $cycle)
     {
-        abort_if($cycle->is_archived, 409);
-        DB::transaction(function () use ($cycle) {
-            AdmissionCycle::query()->update(['is_active' => false]);
-            $cycle->update(['is_active' => true]);
-        });
+        abort_if($cycle->isCompleted(), 409, 'Cannot activate an archived/completed cycle.');
 
-        return redirect()->route('admin.admission.masterlist')->with('success', "Admission cycle '{$cycle->name}' is now active.");
+        $cycle->activate();
+
+        return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])
+            ->with('success', "Admission cycle '{$cycle->displayName}' is now active.");
     }
 
     public function archive(AdmissionCycle $cycle)
     {
-        $cycle->update(['is_active' => false, 'is_archived' => true]);
-        return back()->with('success', 'Admission cycle archived.');
+        $cycle->completeAndArchive();
+        return back()->with('success', "Admission cycle '{$cycle->displayName}' has been marked as Completed and Archived.");
+    }
+
+    public function complete(AdmissionCycle $cycle)
+    {
+        $cycle->completeAndArchive();
+        return redirect()->route('admin.admission.index')
+            ->with('success', "Admission cycle '{$cycle->displayName}' marked as Completed / Archived. Records are locked from modifications.");
     }
 
     public function quota(Request $request)
@@ -67,6 +118,8 @@ class AdmissionPipelineController extends Controller
         if (!$cycle) {
             return $this->gatekeeperRedirect();
         }
+
+        abort_if($cycle->isCompleted(), 422, 'Cannot edit quotas on an archived cycle.');
 
         $data = $request->validate([
             'course_code' => CourseCatalog::rule(),
@@ -89,6 +142,8 @@ class AdmissionPipelineController extends Controller
             return $this->gatekeeperRedirect();
         }
 
+        abort_if($cycle->isCompleted(), 422, 'Cannot edit answer key on an archived cycle.');
+
         $data = $request->validate([
             'answers' => 'required|array:' . implode(',', range(1, 80)) . '|size:80',
             'answers.*' => ['required', Rule::in(['A', 'B', 'C', 'D'])],
@@ -109,7 +164,15 @@ class AdmissionPipelineController extends Controller
 
     public function masterlist(Request $request)
     {
-        $cycle = $this->active();
+        $allCycles = AdmissionCycle::orderByDesc('id')->get();
+
+        // Allow inspecting archived/historical cycles via dropdown
+        if ($request->filled('cycle_id')) {
+            $cycle = AdmissionCycle::find($request->query('cycle_id'));
+        } else {
+            $cycle = $this->active();
+        }
+
         if (!$cycle) {
             return $this->gatekeeperRedirect();
         }
@@ -173,7 +236,7 @@ class AdmissionPipelineController extends Controller
 
         $applicants = $query->paginate(25)->withQueryString();
 
-        // Distinct batch groups and sessions for dropdowns
+        // Batch groups and session options
         $batchGroups = $cycle->applicants()->whereNotNull('batch_group')->distinct()->pluck('batch_group')->filter()->values()->all();
         if (empty($batchGroups)) {
             $batchGroups = ['Batch 1', 'Batch 2', 'Batch 3', 'Walk-in'];
@@ -184,11 +247,15 @@ class AdmissionPipelineController extends Controller
             $sessionOptions = ['First Batch - Session A', 'First Batch - Session B', 'Second Batch - Session A'];
         }
 
+        $isLocked = $cycle->isCompleted();
+
         return view('admin.admission.masterlist', [
             'cycle' => $cycle,
+            'allCycles' => $allCycles,
+            'isLocked' => $isLocked,
             'applicants' => $applicants,
             'search' => $search,
-            'courses' => CourseCatalog::activeOptions(),
+            'courses' => CourseCatalog::allOptions(),
             'batchGroups' => $batchGroups,
             'sessionOptions' => $sessionOptions,
         ]);
@@ -196,7 +263,14 @@ class AdmissionPipelineController extends Controller
 
     public function encodingSheet(Request $request)
     {
-        $cycle = $this->active();
+        $allCycles = AdmissionCycle::orderByDesc('id')->get();
+
+        if ($request->filled('cycle_id')) {
+            $cycle = AdmissionCycle::find($request->query('cycle_id'));
+        } else {
+            $cycle = $this->active();
+        }
+
         if (!$cycle) {
             return $this->gatekeeperRedirect();
         }
@@ -222,8 +296,12 @@ class AdmissionPipelineController extends Controller
             $batchGroups = ['Batch 1', 'Batch 2', 'Batch 3', 'Walk-in'];
         }
 
+        $isLocked = $cycle->isCompleted();
+
         return view('admin.admission.encoding-sheet', [
             'cycle' => $cycle,
+            'allCycles' => $allCycles,
+            'isLocked' => $isLocked,
             'rows' => $rows,
             'batchGroups' => $batchGroups,
             'courses' => CourseCatalog::activeOptions(),
@@ -232,10 +310,14 @@ class AdmissionPipelineController extends Controller
 
     public function saveEncodingSheet(Request $request, AdmissionScoringService $scoring)
     {
-        $cycle = $this->active();
+        $cycleId = $request->input('cycle_id');
+        $cycle = $cycleId ? AdmissionCycle::find($cycleId) : $this->active();
+
         if (!$cycle) {
             return $this->gatekeeperRedirect();
         }
+
+        abort_if($cycle->isCompleted(), 422, 'This admission cycle is archived/completed and locked from new applicant encoding.');
 
         $inputRows = $request->input('rows', []);
         $batchGroup = trim((string) $request->input('batch_group', ''));
@@ -246,7 +328,6 @@ class AdmissionPipelineController extends Controller
                 $lastName = trim((string) ($row['last_name'] ?? ''));
                 $firstName = trim((string) ($row['first_name'] ?? ''));
 
-                // Skip rows without at least last and first name
                 if ($lastName === '' || $firstName === '') {
                     continue;
                 }
@@ -301,18 +382,23 @@ class AdmissionPipelineController extends Controller
 
         $scoring->evaluate($cycle);
 
-        return redirect()->route('admin.admission.encoding-sheet', ['batch_group' => $batchGroup])
+        return redirect()->route('admin.admission.encoding-sheet', ['batch_group' => $batchGroup, 'cycle_id' => $cycle->id])
             ->with('success', "Successfully saved {$savedCount} row(s) to the Masterlist Encoding Sheet.");
     }
 
     public function saveApplicant(Request $request, ?AdmissionApplicant $applicant = null, AdmissionScoringService $scoring)
     {
-        $cycle = $this->active();
+        $cycleId = $request->input('cycle_id');
+        $cycle = $cycleId ? AdmissionCycle::find($cycleId) : ($applicant ? $applicant->cycle : $this->active());
+
         if (!$cycle) {
             return $this->gatekeeperRedirect();
         }
 
+        abort_if($cycle->isCompleted(), 422, 'This admission cycle is archived/completed and locked from edits.');
+
         if ($applicant) abort_unless($applicant->admission_cycle_id === $cycle->id, 404);
+
         $data = $request->validate([
             'application_number' => ['required', 'string', 'max:80', Rule::unique('admission_applicants')->ignore($applicant?->id)],
             'student_id' => 'nullable|string|max:80',
@@ -333,15 +419,19 @@ class AdmissionPipelineController extends Controller
         $record->save();
         $scoring->evaluate($cycle);
 
-        return redirect()->route('admin.admission.masterlist')->with('success', 'Applicant saved.');
+        return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])->with('success', 'Applicant saved.');
     }
 
     public function import(Request $request, AdmissionScoringService $scoring, \App\Services\AdmissionSpreadsheetReader $reader)
     {
-        $cycle = $this->active();
+        $cycleId = $request->input('cycle_id');
+        $cycle = $cycleId ? AdmissionCycle::find($cycleId) : $this->active();
+
         if (!$cycle) {
             return $this->gatekeeperRedirect();
         }
+
+        abort_if($cycle->isCompleted(), 422, 'Cannot import applicants into an archived/completed cycle.');
 
         $request->validate(['file' => 'required|file|mimes:csv,txt,xlsx|max:5120']);
         $batchGroup = trim((string) $request->input('batch_group', ''));
@@ -438,9 +528,8 @@ class AdmissionPipelineController extends Controller
 
     public function paper(AdmissionApplicant $applicant)
     {
-        $cycle = $this->active();
+        $cycle = $applicant->cycle ?? $this->active();
         if (!$cycle) return $this->gatekeeperRedirect();
-        abort_unless($applicant->admission_cycle_id === $cycle->id, 404);
         return view('admin.admission.paper', compact('applicant'));
     }
 
@@ -468,29 +557,31 @@ class AdmissionPipelineController extends Controller
 
     public function encode(AdmissionApplicant $applicant)
     {
-        $cycle = $this->active();
+        $cycle = $applicant->cycle;
         if (!$cycle) return $this->gatekeeperRedirect();
-        abort_unless($applicant->admission_cycle_id === $cycle->id, 404);
+        abort_if($cycle->isCompleted(), 422, 'Cannot encode answers on an archived cycle.');
         return view('admin.admission.encode', compact('applicant'));
     }
 
     public function submitPaper(Request $request, AdmissionApplicant $applicant, AdmissionScoringService $scoring)
     {
-        $cycle = $this->active();
+        $cycle = $applicant->cycle;
         if (!$cycle) return $this->gatekeeperRedirect();
-        abort_unless($applicant->admission_cycle_id === $cycle->id, 404);
+        abort_if($cycle->isCompleted(), 422, 'Cannot submit answers on an archived cycle.');
         $data = $request->validate([
             'answers' => 'required|array:' . implode(',', range(1, 80)) . '|size:80',
             'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
         $scoring->submit($applicant, $data['answers']);
-        return redirect()->route('admin.admission.masterlist')->with('success', 'Paper answers scored.');
+        return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])->with('success', 'Paper answers scored.');
     }
 
     public function report(Request $request)
     {
-        $cycle = $this->active();
+        $cycleId = $request->input('cycle_id');
+        $cycle = $cycleId ? AdmissionCycle::find($cycleId) : $this->active();
         if (!$cycle) return $this->gatekeeperRedirect();
+
         $data = $request->validate([
             'type' => ['required', Rule::in(['summary', 'qualified', 'not-qualified'])],
             'course' => 'nullable|string|max:30',
@@ -535,6 +626,7 @@ class AdmissionPipelineController extends Controller
 
     private function gatekeeperRedirect()
     {
-        return redirect()->route('admin.admission.index')->with('warning', 'Please select or initialize an active Admission Cycle (e.g., S.Y. 2026 – 2027) before accessing admission records.');
+        return redirect()->route('admin.admission.index')
+            ->with('warning', 'Please select or initialize an active Admission Cycle (e.g., S.Y. 2026 – 2027) before accessing admission records.');
     }
 }

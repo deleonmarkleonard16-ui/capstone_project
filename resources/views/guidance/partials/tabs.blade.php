@@ -15,12 +15,6 @@
     // Route mappings
     $isDocumentModule = in_array($currentModule, ['good-moral', 'exit-form'], true);
 
-    $analyticsRoute = match($currentModule) {
-        'good-moral', 'exit-form' => route("{$role}.{$currentModule}.analytics"),
-        'personality', 'career'   => route("{$role}.{$currentModule}.analytics"),
-        default                   => route("{$role}.psychological.analytics"),
-    };
-
     $individualRoute = match($currentModule) {
         'good-moral', 'exit-form' => route("{$role}.{$currentModule}"),
         'personality', 'career'   => route("{$role}.{$currentModule}.index"),
@@ -33,6 +27,12 @@
         'good-moral', 'exit-form' => route("{$role}.{$currentModule}.archive"),
         'personality', 'career'   => route("{$role}.{$currentModule}.archive"),
         default                   => route("{$role}.psychological.archive"),
+    };
+
+    $analyticsRoute = match($currentModule) {
+        'good-moral', 'exit-form' => route("{$role}.{$currentModule}.analytics"),
+        'personality', 'career'   => route("{$role}.{$currentModule}.analytics"),
+        default                   => route("{$role}.psychological.analytics"),
     };
 
     // State detection
@@ -51,19 +51,9 @@
     $isQueue     = !$isAnalytics && !$isBatch && !$isArchive;
 @endphp
 
-{{-- ═══ 4-TAB BAR ORDERED PER SPEC: Analytics, Individual Queue, Bundled/Batch Queue, Archives ═══ --}}
+{{-- ═══ 4-TAB BAR ORDERED: Individual Request Queue, Bundled / Batch Queue, Archives, Analytics ═══ --}}
 <ul class="nav nav-tabs mb-4 module-tabs" role="tablist">
-    {{-- Tab 1: Analytics --}}
-    <li class="nav-item" role="presentation">
-        <a class="nav-link {{ $isAnalytics ? 'active fw-bold' : '' }}"
-           href="{{ $analyticsRoute }}"
-           role="tab"
-           aria-selected="{{ $isAnalytics ? 'true' : 'false' }}">
-            <i class="bi bi-graph-up me-1"></i> Analytics
-        </a>
-    </li>
-
-    {{-- Tab 2: Individual Request Queue --}}
+    {{-- Tab 1: Individual Request Queue --}}
     <li class="nav-item" role="presentation">
         <a class="nav-link {{ $isQueue ? 'active fw-bold' : '' }}"
            href="{{ $individualRoute }}"
@@ -73,7 +63,7 @@
         </a>
     </li>
 
-    {{-- Tab 3: Bundled / Batch Queue --}}
+    {{-- Tab 2: Bundled / Batch Queue --}}
     <li class="nav-item" role="presentation">
         <a class="nav-link {{ $isBatch ? 'active fw-bold' : '' }}"
            href="{{ $batchRoute }}"
@@ -83,13 +73,23 @@
         </a>
     </li>
 
-    {{-- Tab 4: Archives --}}
+    {{-- Tab 3: Archives --}}
     <li class="nav-item" role="presentation">
         <a class="nav-link {{ $isArchive ? 'active fw-bold' : '' }}"
            href="{{ $archiveRoute }}"
            role="tab"
            aria-selected="{{ $isArchive ? 'true' : 'false' }}">
             <i class="bi bi-archive me-1"></i> Archives
+        </a>
+    </li>
+
+    {{-- Tab 4: Analytics --}}
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {{ $isAnalytics ? 'active fw-bold' : '' }}"
+           href="{{ $analyticsRoute }}"
+           role="tab"
+           aria-selected="{{ $isAnalytics ? 'true' : 'false' }}">
+            <i class="bi bi-graph-up me-1"></i> Analytics
         </a>
     </li>
 </ul>

@@ -3,7 +3,8 @@
 namespace App\Support;
 
 use App\Enums\CourseProgram;
-use Illuminate\Validation\Rule;
+use App\Models\Course;
+use Illuminate\Support\Facades\Schema;
 
 final class CourseCatalog
 {
@@ -23,33 +24,79 @@ final class CourseCatalog
     public static function rule(): array
     {
         return ['required', 'string', function ($attribute, $value, $fail) {
-            if (!array_key_exists($value, self::activeOptions())) $fail('Select an active program.');
+            if (!array_key_exists($value, self::activeOptions())) {
+                $fail('Select an active program.');
+            }
         }];
     }
 
+    /**
+     * Active courses only — for registration, student portal, and new imports.
+     */
     public static function activeOptions(): array
     {
+        try {
+            if (Schema::hasTable('courses')) {
+                $dbOptions = Course::where('is_active', true)->orderBy('code')->pluck('name', 'code')->toArray();
+                if (!empty($dbOptions)) {
+                    return $dbOptions;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback if DB is unavailable
+        }
+
         return CourseProgram::options();
     }
 
+    /**
+     * All courses (including Inactive) — for archives, past applicant rosters, and analytics.
+     */
     public static function allOptions(): array
     {
+        try {
+            if (Schema::hasTable('courses')) {
+                $dbOptions = Course::orderBy('code')->pluck('name', 'code')->toArray();
+                if (!empty($dbOptions)) {
+                    return $dbOptions;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback if DB is unavailable
+        }
+
         return CourseProgram::options();
     }
 
     public static function label(?string $code, ?string $legacy = null): string
     {
         $options = self::allOptions();
-        if ($code && isset($options[$code])) return $options[$code].' ('.$code.')';
+        if ($code && isset($options[$code])) {
+            return $options[$code] . ' (' . $code . ')';
+        }
+
         return $legacy ?: ($code ?: 'Not provided');
     }
 
     public static function normalizeLegacy(?string $value): ?string
     {
         $value = trim((string) $value);
-        if (isset(self::OPTIONS[$value])) return $value;
+        $all = self::allOptions();
+
+        if (isset($all[$value])) {
+            return $value;
+        }
+
+        foreach ($all as $code => $title) {
+            if (strcasecmp($value, $title) === 0 || strcasecmp($value, $title . ' (' . $code . ')') === 0) {
+                return $code;
+            }
+        }
+
         $fromEnum = CourseProgram::fromCode($value);
-        if ($fromEnum !== null) return $fromEnum->value;
+        if ($fromEnum !== null) {
+            return $fromEnum->value;
+        }
 
         return match (strtoupper($value)) {
             'BS INFORMATION TECHNOLOGY', 'BSIT 3-A', 'BSIT 3A' => 'BSIT',

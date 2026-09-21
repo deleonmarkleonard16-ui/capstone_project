@@ -101,11 +101,60 @@ document.getElementById('review-button').addEventListener('click',()=>{
     if(!review.open)review.showModal();
     document.body.classList.add('review-open');
 });
-document.getElementById('edit-request').addEventListener('click',()=>{review.close();document.getElementById('first_name').focus();});
-form.addEventListener('submit',event=>{if(!review.open){event.preventDefault();document.getElementById('review-button').click();}});
+const confirmSubmitBtn = document.getElementById('confirm-submit');
+const reviewBtn = document.getElementById('review-button');
+
+function disableSubmit() {
+    if (confirmSubmitBtn) {
+        confirmSubmitBtn.disabled = true;
+        confirmSubmitBtn.textContent = 'Submitting...';
+    }
+    if (reviewBtn) {
+        reviewBtn.disabled = true;
+    }
+}
+
+function enableSubmit() {
+    if (confirmSubmitBtn) {
+        confirmSubmitBtn.disabled = false;
+        confirmSubmitBtn.textContent = 'SUBMIT';
+    }
+    if (reviewBtn) {
+        reviewBtn.disabled = false;
+    }
+}
+
+confirmSubmitBtn.addEventListener('click', () => {
+    if (review.open) {
+        setTimeout(disableSubmit, 0);
+    }
+});
+
+document.getElementById('edit-request').addEventListener('click',()=>{
+    enableSubmit();
+    review.close();
+    document.getElementById('first_name').focus();
+});
+form.addEventListener('submit',event=>{
+    if(!review.open){
+        event.preventDefault();
+        document.getElementById('review-button').click();
+        return;
+    }
+    disableSubmit();
+});
+window.addEventListener('pageshow', () => {
+    enableSubmit();
+});
 updateFields();requirements();
-document.getElementById('close-review').addEventListener('click',()=>review.close());
-review.addEventListener('close',()=>document.body.classList.remove('review-open'));
+document.getElementById('close-review').addEventListener('click',()=>{
+    enableSubmit();
+    review.close();
+});
+review.addEventListener('close',()=>{
+    enableSubmit();
+    document.body.classList.remove('review-open');
+});
 
 // ── Auto-uppercase all text inputs except email ─────────────────────────
 const uppercaseFields = ['first_name','middle_name','last_name','other_reason'];

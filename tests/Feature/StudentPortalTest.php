@@ -86,7 +86,7 @@ class StudentPortalTest extends TestCase
     {
         foreach (['student' => 'staff', 'alumni' => 'admin'] as $studentStatus => $role) {
             auth()->logout();
-            $this->post('/portal/requests', array_replace($this->payload(), ['student_status' => $studentStatus]))->assertSessionHasNoErrors();
+            $this->post('/portal/requests', array_replace($this->payload(), ['student_status' => $studentStatus, 'student_number' => $studentStatus === 'student' ? '2020-123' : '2020-456']))->assertSessionHasNoErrors();
             $entry = ServiceRequest::latest('id')->firstOrFail();
             $appointment = $entry->guidanceAppointments()->firstOrFail();
             $url = route($role.'.guidance-appointments.verify', $appointment);

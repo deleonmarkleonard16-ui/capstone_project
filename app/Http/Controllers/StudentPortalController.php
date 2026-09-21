@@ -47,6 +47,55 @@ class StudentPortalController extends Controller
             }
         }
         $data['student_number'] = mb_strtoupper(trim($data['student_number'] ?? ''));
+
+        // ── Check for duplicate active request ─────────────────────────────
+        if (! empty($data['student_number'])) {
+            $hasActive = false;
+            if ($data['service'] === 'testing') {
+                $categories = $data['tests'] ?? ['psychological'];
+                $activeGaStatuses = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'];
+
+                $hasActive = \App\Models\GuidanceAppointment::where(function ($q) use ($data) {
+                        $q->where('student_id_number', $data['student_number'])
+                          ->orWhereHas('serviceRequest', fn ($sr) => $sr->where('student_number', $data['student_number']));
+                    })
+                    ->whereIn('test_category', $categories)
+                    ->whereIn('status', $activeGaStatuses)
+                    ->whereNull('batch_id')
+                    ->exists();
+
+                if (! $hasActive) {
+                    $hasActive = ServiceRequest::where('student_number', $data['student_number'])
+                        ->where('service', 'testing')
+                        ->whereIn('status', ServiceRequest::ACTIVE_STATUSES)
+                        ->whereNull('archived_at')
+                        ->where(function ($q) use ($categories) {
+                            foreach ($categories as $cat) {
+                                $q->orWhereJsonContains('tests', $cat);
+                            }
+                        })
+                        ->exists();
+                }
+            } else {
+                $hasActive = ServiceRequest::hasActiveRequest($data['student_number'], $data['service']);
+            }
+
+            if ($hasActive) {
+                $message = 'You already have an active request for this item. Please track your existing request using your Tracking Reference code.';
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => $message,
+                        'errors' => ['service' => [$message]],
+                    ], 422);
+                }
+
+                return back()
+                    ->with('portal_notice', $message)
+                    ->withErrors(['service' => $message])
+                    ->withInput();
+            }
+        }
+
         $entry = $data['service'] === 'testing'
             ? app(\App\Services\GuidancePortalService::class)->create($data)
             : ServiceRequest::create($data + [

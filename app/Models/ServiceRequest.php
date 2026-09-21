@@ -22,6 +22,33 @@ class ServiceRequest extends Model
     public const SERVICES = ['testing' => 'Testing Request', 'good-moral' => 'Good Moral Request', 'exit-form' => 'Exit Form'];
     public const STATUSES = ['pending', 'approved', 'proof_review', 'processing', 'ready', 'scheduled', 'completed', 'declined', 'cancelled', 'void'];
 
+    /**
+     * Statuses that represent an in-flight / active request.
+     * A new submission from the same student for the same service is blocked
+     * while any prior request is in one of these statuses.
+     */
+    public const ACTIVE_STATUSES = ['pending', 'proof_review', 'approved', 'processing', 'ready', 'scheduled'];
+
+    /**
+     * Check whether the given student already has an active request for
+     * the specified service (good-moral, exit-form, or testing).
+     *
+     * @param  string  $studentNumber  Normalised student ID (e.g. "23-SC-4143").
+     * @param  string  $service        Service key from self::SERVICES.
+     */
+    public static function hasActiveRequest(string $studentNumber, string $service): bool
+    {
+        if ($studentNumber === '') {
+            return false; // Cannot reliably deduplicate without a student number
+        }
+
+        return static::where('student_number', $studentNumber)
+            ->where('service', $service)
+            ->whereIn('status', self::ACTIVE_STATUSES)
+            ->whereNull('archived_at')
+            ->exists();
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $model): void {

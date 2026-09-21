@@ -179,7 +179,7 @@
         button.disabled = true;
         message.textContent = 'Verifying receipt and generating QR...';
         try {
-            const response = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, signal: verificationController.signal });
+            const response = await fetch(form.getAttribute('action'), { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, signal: verificationController.signal });
             const data = await response.json();
             if (!response.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Verification failed.');
             if (version !== generation || !visible) return;

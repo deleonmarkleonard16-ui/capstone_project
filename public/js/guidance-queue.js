@@ -67,7 +67,7 @@
                 status.textContent = 'Processing request...';
                 try {
                     const csrf = form.querySelector('input[name="_token"]')?.value || document.querySelector('meta[name="csrf-token"]')?.content;
-                    const response = await fetch(form.action, {
+                    const response = await fetch(form.getAttribute('action'), {
                         method: form.method || 'POST',
                         body: new FormData(form),
                         headers: {

@@ -54,7 +54,7 @@
         const button = form.querySelector('button');
         if (!background) { button.disabled = true; passes.replaceChildren(); lastPayload = ''; output.textContent = 'Looking up your request…'; }
         try {
-            const response = await fetch(form.action, {method:'POST', body:new FormData(form), headers:{Accept:'application/json'}, cache:'no-store', signal:lookupController.signal});
+            const response = await fetch(form.getAttribute('action'), {method:'POST', body:new FormData(form), headers:{Accept:'application/json'}, cache:'no-store', signal:lookupController.signal});
             const data = await response.json();
             if (version !== lookupVersion) return;
             if (response.status === 429) { schedulePoll(60000); throw new Error('Too many lookups. Retrying in a minute.'); }

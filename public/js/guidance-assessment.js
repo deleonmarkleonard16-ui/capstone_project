@@ -167,7 +167,7 @@
         notify(timedOut ? 'Time expired. Finalizing saved answers...' : 'Submitting answers...');
         try {
             // The server finalizes saved drafts at the deadline, even when the browser was suspended.
-            const state = await enqueue(() => timedOut ? request(form.dataset.state) : request(form.action, 'POST', snapshot));
+            const state = await enqueue(() => timedOut ? request(form.dataset.state) : request(form.getAttribute('action'), 'POST', snapshot));
             if (state.status === 'Completed') complete();
         } catch (error) { notify(error.message + ' Retrying is safe.'); retryAfter = performance.now() + 5000; }
         finally { submitting = false; if (!finished && lock.hidden) fields.disabled = false; }

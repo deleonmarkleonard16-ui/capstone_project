@@ -23,16 +23,39 @@
         clearTimeout(pollTimer);
         const button = upload.querySelector('button');
         const message = upload.querySelector('[data-upload-message]');
-        button.disabled = true; message.textContent = 'Uploading receipt...';
+        if (button) button.disabled = true;
+        if (message) message.textContent = 'Uploading receipt...';
         try {
-            const response = await fetch(upload.action, {method:'POST', body:new FormData(upload), headers:{Accept:'application/json'}});
+            const formData = new FormData(upload);
+            const fileInput = upload.querySelector('input[type="file"][name="payment_slip"], input[type="file"][name="proof"], input[type="file"]');
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                const selectedFile = fileInput.files[0];
+                formData.set('payment_slip', selectedFile);
+                formData.set('proof', selectedFile);
+            }
+            const orNumberInput = upload.querySelector('input[name="or_number"]');
+            if (orNumberInput && orNumberInput.value.trim()) {
+                formData.set('or_number', orNumberInput.value.trim());
+            }
+            const orDateInput = upload.querySelector('input[name="or_date"]');
+            if (orDateInput && orDateInput.value.trim()) {
+                formData.set('or_date', orDateInput.value.trim());
+            }
+            const refInput = upload.querySelector('input[name="reference"]');
+            if (refInput && refInput.value.trim()) {
+                formData.set('reference', refInput.value.trim());
+            }
+
+            const response = await fetch(upload.action, {method:'POST', body:formData, headers:{Accept:'application/json'}});
             const data = await response.json();
             if (!response.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Receipt upload failed.');
-            message.textContent = data.message;
-            form.querySelector('[name="reference"]').value = upload.querySelector('[name="reference"]').value;
+            if (message) message.textContent = data.message;
+            if (refInput && form.querySelector('[name="reference"]')) {
+                form.querySelector('[name="reference"]').value = refInput.value.trim();
+            }
             form.requestSubmit();
-        } catch(error) { message.textContent = error.message || 'Upload failed. Please retry.'; }
-        finally { uploading = false; button.disabled = false; schedulePoll(); }
+        } catch(error) { if (message) message.textContent = error.message || 'Upload failed. Please retry.'; }
+        finally { uploading = false; if (button) button.disabled = false; schedulePoll(); }
     });
     function schedulePoll(delay = 10000) {
         clearTimeout(pollTimer);

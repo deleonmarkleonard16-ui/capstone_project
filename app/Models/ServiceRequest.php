@@ -87,6 +87,16 @@ class ServiceRequest extends Model
         return \App\Support\CourseCatalog::label($this->course, $this->legacy_course);
     }
 
+    public function getOfficialFeeAttribute(): float
+    {
+        return \App\Support\RequestFees::total($this->service, $this->tests ?? [], $this->copies ?? 1);
+    }
+
+    public function getOfficialFeeFormattedAttribute(): string
+    {
+        return '₱' . number_format($this->official_fee, 2);
+    }
+
     public function checkAndApplyExpiration(): bool
     {
         if ($this->guidanceAppointments()->exists()) return false;

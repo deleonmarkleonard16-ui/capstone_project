@@ -1,4 +1,4 @@
-@php($officialFee = \App\Support\RequestFees::total($entry->service, $entry->tests ?? [], $entry->copies ?? 1))
+@php($officialFee = $entry->official_fee ?? \App\Support\RequestFees::total($entry->service, $entry->tests ?? [], $entry->copies ?? 1))
 @if($officialFee !== null)<p class="notice"><strong>Official fee: Php {{ number_format($officialFee, 2) }}</strong></p>@endif
 @if($entry->guidanceAppointments()->exists())
 @include('guidance.stub', ['tracking' => $tracking ?? false])
@@ -15,6 +15,7 @@
         <div><label>Student ID Number</label>{{ $entry->student_number ?: 'NOT PROVIDED' }}</div>
         <div><label>Student Status</label>{{ $entry->student_status === 'student' ? 'CURRENTLY ENROLLED' : 'ALUMNI' }}</div>
         <div><label>Course</label>{{ $entry->courseLabel() }}</div>
+        <div><label>Amount Paid / Amount Due</label><strong style="color:#16a34a;font-size:1.1em">{{ $entry->official_fee_formatted ?? '₱60.00' }}</strong></div>
         @if($entry->service === 'testing' && $entry->tests)
         <div class="full"><label>Requested Testing</label>{{ collect($entry->tests)->map(fn($test) => ['psychological'=>'Psychological Assessment','personality'=>'Personality Test','career'=>'Career Test'][$test] ?? ucfirst($test))->join(', ') }}</div>
         @endif
@@ -23,7 +24,7 @@
         @endif
         <div class="full"><label>Reason / Purpose</label>{{ $entry->purpose }}</div>
     </div>
-    <div style="border-top:1px dashed #aaa;margin-top:24px;padding-top:20px"><strong>FOR OFFICE USE</strong><p>Amount paid: __________________ &nbsp; Receipt / Stub number: __________________</p><p>Payment date: __________________ &nbsp; Verified by / stamp: __________________</p></div>
+    <div style="border-top:1px dashed #aaa;margin-top:24px;padding-top:20px"><strong>FOR OFFICE USE</strong><p>Amount Paid / Amount Due: <strong>{{ $entry->official_fee_formatted ?? '₱60.00' }}</strong> &nbsp; Receipt / Stub number: __________________</p><p>Payment date: __________________ &nbsp; Verified by / stamp: __________________</p></div>
     <p class="muted">This is a request stub, not proof of payment. The payment office confirms the applicable fee.</p>
     <button type="button" class="no-print" onclick="window.print()">PRINT / SAVE STUB</button>
 </section>
@@ -57,7 +58,7 @@
 @endif
 
 @if(in_array($entry->status, ['pending','approved']) && ($tracking ?? false))
-<form method="POST" action="{{ route('portal.receipt') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ route('portal.receipt') }}" enctype="multipart/form-data" data-guidance-receipt>
     @csrf
     <input type="hidden" name="reference" value="{{ $entry->reference }}">
     <div style="margin-bottom:12px">
@@ -69,10 +70,11 @@
         <input id="portal-or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
     </div>
     <div style="margin-bottom:12px">
-        <label for="proof">Upload paid/stamped stub or receipt (JPG, PNG, PDF; up to 5 MB)</label>
-        <input id="proof" name="payment_slip" type="file" accept=".jpg,.jpeg,.png,.pdf,image/*" required>
+        <label for="proof-{{ $entry->id }}">Upload paid/stamped stub or receipt (JPG, PNG, PDF; up to 5 MB)</label>
+        <input id="proof-{{ $entry->id }}" name="payment_slip" type="file" accept=".jpg,.jpeg,.png,.pdf,image/*" required>
     </div>
     <button style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button>
+    <p data-upload-message role="status"></p>
 </form>
 @elseif(in_array($entry->status, ['pending','approved']))
 <a class="button" href="/portal?service={{ $entry->service }}#track">Track Existing Request / Upload Receipt</a>

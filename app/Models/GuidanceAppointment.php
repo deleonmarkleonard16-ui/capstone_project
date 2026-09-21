@@ -67,4 +67,59 @@ class GuidanceAppointment extends Model
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
+
+    public function getOfficialFeeAttribute(): float
+    {
+        if ($this->serviceRequest) {
+            return $this->serviceRequest->official_fee;
+        }
+        $category = $this->test_category ?? $this->test_type ?? 'psychological';
+        return (float) (\App\Support\RequestFees::PESOS[$category] ?? 60.00);
+    }
+
+    public function getOfficialFeeFormattedAttribute(): string
+    {
+        return '₱' . number_format($this->official_fee, 2);
+    }
+
+    public function getReferenceAttribute(): string
+    {
+        return $this->attributes['request_code'] ?? ($this->serviceRequest?->reference ?? '');
+    }
+
+    public function courseLabel(): string
+    {
+        $course = $this->origin_course ?? $this->batch?->course ?? $this->sourceBatch?->course ?? $this->serviceRequest?->course;
+        return $course ? (\App\Support\CourseCatalog::allOptions()[$course] ?? $course) : 'Not specified';
+    }
+
+    public function getFirstNameAttribute(): string
+    {
+        return $this->applicant?->first_name ?? ($this->serviceRequest?->first_name ?? '');
+    }
+
+    public function getLastNameAttribute(): string
+    {
+        return $this->applicant?->last_name ?? ($this->serviceRequest?->last_name ?? '');
+    }
+
+    public function getMiddleNameAttribute(): ?string
+    {
+        return $this->applicant?->middle_name ?? ($this->serviceRequest?->middle_name ?? null);
+    }
+
+    public function getStudentNumberAttribute(): ?string
+    {
+        return $this->attributes['student_id_number'] ?? ($this->serviceRequest?->student_number ?? null);
+    }
+
+    public function getPurposeAttribute(): string
+    {
+        return $this->serviceRequest?->purpose ?? ($this->batch?->reason_for_request ?? 'Guidance Assessment');
+    }
+
+    public function getTestsAttribute(): array
+    {
+        return $this->testTypes();
+    }
 }

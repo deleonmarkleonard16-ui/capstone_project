@@ -197,14 +197,17 @@ class PsychologicalRequestController extends Controller
     public function upload(Request $request)
     {
         $request->merge(['reference' => is_string($request->input('reference')) ? strtoupper(trim($request->input('reference'))) : $request->input('reference')]);
-        if ($request->hasFile('payment_slip') && ! $request->hasFile('proof')) {
-            $request->files->set('proof', $request->file('payment_slip'));
+        // Normalize file inputs: support both 'payment_slip' and 'proof'
+        $file = $request->file('payment_slip') ?? $request->file('proof');
+        if ($file) {
+            $request->files->set('payment_slip', $file);
+            $request->files->set('proof', $file);
         }
         $data = $request->validate([
-            'reference' => ServiceRequest::referenceRules(),
-            'or_number' => 'required|string|max:50',
-            'or_date'   => 'required|date|before_or_equal:today',
-            'proof'     => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'reference'    => ServiceRequest::referenceRules(),
+            'or_number'    => 'required|string|max:50',
+            'or_date'      => 'required|date|before_or_equal:today',
+            'payment_slip' => 'required|file|image|max:5120',
         ]);
         $isPrefixRef = (bool) preg_match('/^(?:G|TR|GM|EF)-/i', $data['reference']);
         $data['reference'] = $isPrefixRef ? strtoupper($data['reference']) : strtolower($data['reference']);
@@ -212,13 +215,12 @@ class PsychologicalRequestController extends Controller
             $entry = ServiceRequest::where('reference', $data['reference'])->lockForUpdate()->first();
             abort_unless($entry, 404);
             if ($entry->batch_id) {
-                throw ValidationException::withMessages(['proof' => 'Use the batch QR link to verify your roster identity before uploading a receipt.']);
+                throw ValidationException::withMessages(['payment_slip' => 'Use the batch QR link to verify your roster identity before uploading a receipt.']);
             }
-            if ($entry->guidanceAppointments()->exists()) {
-                throw ValidationException::withMessages(['proof' => 'Use the receipt upload form in Track Existing Request for this guidance appointment.']);
+            if (! in_array($entry->status, ['pending', 'approved'], true)) {
+                throw ValidationException::withMessages(['payment_slip' => 'A stub can only be uploaded while awaiting payment or a replacement stub.']);
             }
-            if (! in_array($entry->status, ['pending', 'approved'], true)) throw ValidationException::withMessages(['proof' => 'A stub can only be uploaded while awaiting payment or a replacement stub.']);
-            $path = $request->file('proof')->store('receipts', 'local');
+            $path = $request->file('payment_slip')->store('receipts', 'local');
             abort_unless($path, 500, 'Unable to save receipt. Please try again.');
             $entry->update([
                 'proof_path' => $path,
@@ -226,8 +228,18 @@ class PsychologicalRequestController extends Controller
                 'or_date' => $data['or_date'],
                 'status' => 'proof_review',
             ]);
+            $entry->guidanceAppointments()->update([
+                'payment_slip_path' => $path,
+                'or_number' => $data['or_number'],
+                'or_date' => $data['or_date'],
+                'status' => 'Receipt Uploaded',
+                'appointment_at' => now(),
+            ]);
         });
         $request->session()->put('portal_request_reference', $data['reference']);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['status' => 'Receipt Uploaded', 'message' => 'Paid stub or receipt uploaded. The guidance office will verify it and process your request.']);
+        }
         return redirect()->route('portal.index')->with('portal_notice', 'Paid stub or receipt uploaded. The guidance office will verify it and process your request.');
     }
 

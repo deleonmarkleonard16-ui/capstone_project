@@ -1,4 +1,4 @@
-@php($officialFee = \App\Support\RequestFees::total($entry->service, $entry->tests ?? [], $entry->copies ?? 1))
+@php($officialFee = $entry->official_fee ?? \App\Support\RequestFees::total($entry->service ?? 'testing', $entry->tests ?? [], $entry->copies ?? 1))
 @if($officialFee !== null)<p class="notice"><strong>Official fee: Php {{ number_format($officialFee, 2) }}</strong></p>@endif
 <section class="card payment-stub">
     <div class="request-banner">TESTING REQUEST STUB</div>
@@ -11,8 +11,14 @@
         <div><label>Student ID</label>{{ mb_strtoupper($entry->student_number ?: 'Not provided') }}</div>
         <div><label>Course</label>{{ $entry->courseLabel() }}</div>
         <div><label>Student status</label>{{ $entry->student_status === 'student' ? 'CURRENTLY ENROLLED' : 'ALUMNI' }}</div>
+        <div><label>Amount Paid / Amount Due</label><strong style="color:#16a34a;font-size:1.1em">{{ $entry->official_fee_formatted ?? '₱60.00' }}</strong></div>
         <div class="full"><label>Requested testing</label>{{ collect($entry->tests)->map(fn($test) => ['psychological'=>'Psychological Assessment','personality'=>'Personality Test','career'=>'Career Test'][$test] ?? ucfirst($test))->join(', ') }}</div>
         <div class="full"><label>Reason</label>{{ $entry->purpose }}</div>
+    </div>
+    <div style="border-top:1px dashed #aaa;margin-top:24px;padding-top:20px">
+        <strong>FOR OFFICE USE</strong>
+        <p>Amount Paid / Amount Due: <strong>{{ $entry->official_fee_formatted ?? '₱60.00' }}</strong> &nbsp; Receipt / Stub number: __________________</p>
+        <p>Payment date: __________________ &nbsp; Verified by / stamp: __________________</p>
     </div>
     <p class="muted">This stub confirms your request. The payment office will issue your receipt after payment.</p>
     <button type="button" class="no-print" data-print-stub>PRINT / SAVE STUB</button>

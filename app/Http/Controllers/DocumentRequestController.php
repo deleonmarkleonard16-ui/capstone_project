@@ -201,6 +201,12 @@ class DocumentRequestController extends Controller
 
     public function receipt(Request $request, string $token)
     {
+        $file = $request->file('receipt') ?? $request->file('payment_slip') ?? $request->file('proof');
+        if ($file) {
+            $request->files->set('receipt', $file);
+            $request->files->set('payment_slip', $file);
+            $request->files->set('proof', $file);
+        }
         $request->validate(['receipt' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120']);
         $batch = $this->documentBatch($token);
         abort_unless($batch->status === 'Pending Registration', 409, 'Batch registration is closed.');

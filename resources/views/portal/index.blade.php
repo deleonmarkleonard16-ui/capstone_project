@@ -1,6 +1,6 @@
 @extends('portal.layout')
 @section('content')
-<p class="notice">Official fees: Good Moral Certificate, Personality Test, Psychological Assessment, and Career Test ? Php 60.00 each.</p>
+<p class="notice">Official fees: Good Moral Certificate, Personality Test, Psychological Assessment, and Career Test &mdash; Php 60.00 each.</p>
 @php($selectedService = old('service', request('service', 'testing')))
 @php($selectedService = array_key_exists($selectedService, \App\Models\ServiceRequest::SERVICES) ? $selectedService : 'testing')
 @if(session('portal_notice'))
@@ -24,7 +24,7 @@
 <input type="hidden" name="service" id="service" value="{{ $selectedService }}">
 <div><label for="student_status">Student status</label><select id="student_status" name="student_status" required><option value="student" @selected(old('student_status') === 'student')>Currently enrolled</option><option value="alumni" @selected(old('student_status') === 'alumni')>Alumni</option></select></div>
 @foreach(['student_number'=>'Student ID number'] as $field=>$label)
-<div><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : 'text' }}" value="{{ old($field) }}" maxlength="{{ ['first_name'=>100,'middle_name'=>100,'last_name'=>100,'student_number'=>50,'email'=>255,'contact_number'=>30,'course'=>150][$field] }}" @required(!in_array($field, ['middle_name', 'student_number']))>@if($field === 'student_number')<small id="student-id-help" class="muted">Required for currently enrolled students. Optional for alumni.</small>@endif</div>
+<div><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : 'text' }}" value="{{ old($field) }}" placeholder="{{ $field === 'student_number' ? '##-SC-####' : '' }}" maxlength="{{ ['first_name'=>100,'middle_name'=>100,'last_name'=>100,'student_number'=>50,'email'=>255,'contact_number'=>30,'course'=>150][$field] }}" @required(!in_array($field, ['middle_name', 'student_number']))>@if($field === 'student_number')<small id="student-id-help" class="muted">Required for currently enrolled students. Optional for alumni.</small>@endif</div>
 @endforeach
 <div><label for="course">Course / program</label><select id="course" name="course" required><option value="">Select a program</option>@foreach(\App\Support\CourseCatalog::activeOptions() as $code=>$title)<option value="{{ $code }}" @selected(old('course') === $code)>{{ $title }} ({{ $code }})</option>@endforeach</select></div>
 <div class="full" id="test-fields"><label for="requested-test">Requested testing</label><select id="requested-test" name="tests[]" required>@foreach(['psychological'=>'Psychological Assessment','personality'=>'Personality Test','career'=>'Career Test'] as $key=>$label)<option value="{{ $key }}" @selected(in_array($key, (array) old('tests', ['psychological'])))>{{ $label }}</option>@endforeach</select></div>
@@ -219,7 +219,7 @@ uppercaseFields.forEach(id=>{
         if(digits.length >= PREFIX_LEN + SUFFIX_LEN) e.preventDefault();
     });
 
-    sid.placeholder = '23-SC-4143';
+    sid.placeholder = '##-SC-####';
     sid.setAttribute('maxlength', PREFIX_LEN + MID.length + SUFFIX_LEN); // 2+4+4=10
     sid.setAttribute('pattern', '\\d{' + PREFIX_LEN + '}-SC-\\d{0,' + SUFFIX_LEN + '}');
     sid.setAttribute('inputmode', 'numeric');

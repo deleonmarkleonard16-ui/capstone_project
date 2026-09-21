@@ -116,7 +116,7 @@
 
 <div class="info-block">
     <div><strong>Name:</strong> {{ $appointment->applicant->full_name }}</div>
-    <div><strong>ID No.:</strong> [{{ $appointment->serviceRequest?->student_number ?? $appointment->applicant->student_id ?? '23-SC-####' }}]</div>
+    <div><strong>ID No.:</strong> [{{ $appointment->serviceRequest?->student_number ?? $appointment->applicant->student_id ?? '##-SC-####' }}]</div>
     <div><strong>Purpose:</strong> {{ $appointment->serviceRequest?->purpose ?? 'For Counseling Reference' }}</div>
     <div><strong>Others:</strong> ____________________</div>
 </div>

@@ -42,11 +42,11 @@
                         </p>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Official Receipt (O.R.) Number <span class="text-danger">*</span></label>
-                            <input class="form-control" name="or_number" maxlength="100" placeholder="e.g. 1234567" required>
+                            <input class="form-control" name="or_number" maxlength="100" value="{{ $entry->or_number }}" placeholder="e.g. 1234567" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">O.R. Date <span class="text-danger">*</span></label>
-                            <input class="form-control" type="date" name="or_date" max="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" required>
+                            <input class="form-control" type="date" name="or_date" max="{{ now()->toDateString() }}" value="{{ $entry->or_date?->format('Y-m-d') }}" required>
                         </div>
                         <div class="mb-3">
                             <button type="button" class="btn btn-outline-primary btn-sm w-100"

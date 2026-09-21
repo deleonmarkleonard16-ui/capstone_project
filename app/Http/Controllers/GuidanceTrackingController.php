@@ -47,22 +47,9 @@ class GuidanceTrackingController extends Controller
             'details_html' => $entry ? view('portal.stub', ['entry' => $entry, 'tracking' => true])->render() : null]);
     }
 
-    public function uploadReceipt(Request $request, \App\Services\GuidancePortalService $portal)
+    public function uploadReceipt(\App\Http\Requests\ReceiptUploadRequest $request, \App\Services\GuidancePortalService $portal)
     {
-        if (!$request->has('reference')) $request->merge(['reference' => $request->input('request_code')]);
-        if (is_string($request->input('reference'))) $request->merge(['reference' => strtoupper(trim($request->input('reference')))]);
-        // Normalize file inputs: support both 'payment_slip' and 'proof'
-        $file = $request->file('payment_slip') ?? $request->file('proof');
-        if ($file) {
-            $request->files->set('payment_slip', $file);
-            $request->files->set('proof', $file);
-        }
-        $data = $request->validate([
-            'reference'    => ['required', 'string', 'regex:/^(?:G-[A-Z0-9]{4}|(?:TR|GT)-[A-F0-9]{32})$/D'],
-            'or_number'    => 'required|string|max:50',
-            'or_date'      => 'required|date|before_or_equal:today',
-            'payment_slip' => 'required|file|image|max:5120',
-        ]);
+        $data = $request->validated();
         $reference = strtoupper($data['reference']);
         $reference = GuidanceAppointment::whereNull('batch_id')->where('request_code', $reference)->first()?->serviceRequest?->reference ?? $reference;
         $portal->uploadReceipt($reference, $request->file('payment_slip'), $data['or_number'], $data['or_date']);

@@ -194,21 +194,9 @@ class PsychologicalRequestController extends Controller
         return redirect()->to($redirectUrl)->with('success', 'Request updated successfully.');
     }
 
-    public function upload(Request $request)
+    public function upload(\App\Http\Requests\ReceiptUploadRequest $request)
     {
-        $request->merge(['reference' => is_string($request->input('reference')) ? strtoupper(trim($request->input('reference'))) : $request->input('reference')]);
-        // Normalize file inputs: support both 'payment_slip' and 'proof'
-        $file = $request->file('payment_slip') ?? $request->file('proof');
-        if ($file) {
-            $request->files->set('payment_slip', $file);
-            $request->files->set('proof', $file);
-        }
-        $data = $request->validate([
-            'reference'    => ServiceRequest::referenceRules(),
-            'or_number'    => 'required|string|max:50',
-            'or_date'      => 'required|date|before_or_equal:today',
-            'payment_slip' => 'required|file|image|max:5120',
-        ]);
+        $data = $request->validated();
         $isPrefixRef = (bool) preg_match('/^(?:G|TR|GM|EF)-/i', $data['reference']);
         $data['reference'] = $isPrefixRef ? strtoupper($data['reference']) : strtolower($data['reference']);
         DB::transaction(function () use ($request, $data) {

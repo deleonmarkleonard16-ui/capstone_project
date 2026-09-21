@@ -31,7 +31,7 @@
             if (fileInput && fileInput.files && fileInput.files[0]) {
                 const selectedFile = fileInput.files[0];
                 formData.set('payment_slip', selectedFile);
-                formData.set('proof', selectedFile);
+                formData.delete('proof');
             }
             const orNumberInput = upload.querySelector('input[name="or_number"]');
             if (orNumberInput && orNumberInput.value.trim()) {

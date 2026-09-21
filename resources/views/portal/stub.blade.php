@@ -39,7 +39,7 @@
 <section class="card no-print"><h2>What to do next</h2><ol>
     <li>Print or save your request stub and keep your tracking number: <strong>{{ $entry->reference }}</strong></li>
     <li>Present the stub to the Registrar or Cashier and follow payment instructions. <em>(Note: You have 5 days from request date to complete this step before the request is voided.)</em></li>
-    <li>Upload a clear photo or PDF of your paid/stamped stub or official payment receipt below.</li>
+    <li>Upload a clear photo of your paid/stamped stub or official payment receipt below.</li>
     <li>Wait for the guidance office to verify your payment. Track this request for updates.</li>
     @if($entry->service === 'testing')
     <li>Complete your requested guidance assessments online or attend your scheduled session.</li>
@@ -70,8 +70,8 @@
         <input id="portal-or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
     </div>
     <div style="margin-bottom:12px">
-        <label for="proof-{{ $entry->id }}">Upload paid/stamped stub or receipt (JPG, PNG, PDF; up to 5 MB)</label>
-        <input id="proof-{{ $entry->id }}" name="payment_slip" type="file" accept=".jpg,.jpeg,.png,.pdf,image/*" required>
+        <label for="proof-{{ $entry->id }}">Upload paid/stamped stub or receipt (JPG, PNG, WebP; up to 5 MB)</label>
+        <input id="proof-{{ $entry->id }}" name="payment_slip" type="file" accept="image/jpeg,image/png,image/webp" required>
     </div>
     <button style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button>
     <p data-upload-message role="status"></p>

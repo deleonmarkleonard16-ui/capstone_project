@@ -114,12 +114,20 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->prefix('
 });
 Route::get('/admission/complete', fn () => view('admin.admission.complete'))->name('admission.complete');
 
+Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.settings.')->group(function (): void {
+    Route::get('/settings', [\App\Http\Controllers\StaffSettingsController::class, 'index'])->name('index');
+    Route::post('/settings', [\App\Http\Controllers\StaffSettingsController::class, 'update'])->name('update');
+});
+
 foreach (['staff', 'admin'] as $role) Route::middleware(['auth', 'role:'.$role])->prefix($role)->name($role.'.')->group(function (): void {
     Route::get('/notifications', [\App\Http\Controllers\GuidanceNotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [\App\Http\Controllers\GuidanceNotificationController::class, 'read'])->name('notifications.read');
     Route::get('/notifications/{notification}/review', [\App\Http\Controllers\GuidanceNotificationController::class, 'review'])->name('notifications.review');
     Route::get('/requests/{serviceRequest}/details', [\App\Http\Controllers\GuidanceNotificationController::class, 'details'])->name('requests.details');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/analytics', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('analytics');
+    Route::get('/analytics/export/pdf', [\App\Http\Controllers\AnalyticsController::class, 'exportPdf'])->name('analytics.export.pdf');
+    Route::get('/analytics/export/excel', [\App\Http\Controllers\AnalyticsController::class, 'exportExcel'])->name('analytics.export.excel');
     Route::get('/psychological', [PsychologicalRequestController::class, 'index'])->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.index');
     Route::get('/psychological/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'index'])->defaults('module', 'psychological')->name('psychological.batches');
     Route::post('/psychological/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'store'])->defaults('module', 'psychological')->name('psychological.batches.store');

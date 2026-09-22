@@ -20,7 +20,7 @@
     </td>
     <td>
         @if($appointment->payment_slip_path)
-            <button type="button" class="btn btn-outline-primary btn-sm" data-receipt="{{ route(auth()->user()->role.'.guidance-appointments.receipt', $appointment) }}">Show receipt</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-receipt="{{ route(auth()->user()->role.'.guidance-appointments.receipt', $appointment) }}" data-or-number="{{ $appointment->or_number ?: $appointment->serviceRequest?->or_number }}" data-or-date="{{ ($appointment->or_date ?: $appointment->serviceRequest?->or_date) ? \Illuminate\Support\Carbon::parse($appointment->or_date ?: $appointment->serviceRequest?->or_date)->format('M d, Y') : '' }}">Show receipt</button>
             @if($appointment->or_number || $appointment->serviceRequest?->or_number)
                 <div class="small text-muted mt-1">O.R. # <strong>{{ $appointment->or_number ?: $appointment->serviceRequest?->or_number }}</strong></div>
             @endif

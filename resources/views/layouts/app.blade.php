@@ -139,7 +139,8 @@
     $currentPath = request()->path();
 
     // Detect active admission sub-page
-    $admissionActive = str_starts_with($currentPath, 'admin/admission');
+    $admissionActive = request()->routeIs('admin.admission.*', 'admin.sessions.*')
+        || (request()->routeIs('admin.archive') && request()->query('section') === 'admission');
 
     // Detect active guidance module for the request-testing accordion
     $activeGuidanceModule = collect(['psychological','personality','career','good-moral','exit-form'])
@@ -207,7 +208,7 @@
         <div class="sidebar-account">
             <small>Signed in as</small>
             <span class="role-pill {{ $isAdmin ? 'admin' : 'staff' }}">
-                {{ ucfirst($role) }}
+                {{ $isStaff ? 'Guidance Staff' : ucfirst($role) }}
             </span>
             @if($user->name ?? null)
             <div class="text-white fw-semibold mt-1" style="font-size:13px">{{ $user->name }}</div>
@@ -218,21 +219,17 @@
 
         <nav aria-label="Main navigation">
 
-            {{-- ── ADMISSION TEST (Admin only) ── --}}
+            {{-- ── 1. ADMISSION TEST (Admin Only) ── --}}
             @if ($isAdmin)
             <details class="sb-group"
                      @if($admissionActive) open @endif>
                 <summary>
                     <span><i class="bi bi-mortarboard me-1"></i> Admission Test</span>
                     <span class="d-flex align-items-center gap-2">
-                        <span class="sb-badge">Sessions&nbsp;<i class="bi bi-chevron-right sb-chevron"></i></span>
+                        <span class="sb-badge">Admin&nbsp;<i class="bi bi-chevron-right sb-chevron"></i></span>
                     </span>
                 </summary>
                 <div class="sb-sub">
-                    <a class="sidebar-link {{ request()->routeIs('admin.admission.index') ? 'active' : '' }}"
-                       href="{{ route('admin.admission.index') }}">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
                     <a class="sidebar-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}"
                        href="{{ route('admin.sessions.index') }}">
                         <i class="bi bi-calendar3"></i> Sessions
@@ -249,9 +246,9 @@
                        href="{{ route('admin.admission.index') }}#answer-key">
                         <i class="bi bi-key-fill"></i> Answer Key
                     </a>
-                    <a class="sidebar-link {{ request()->routeIs('admin.admission.proctoring') ? 'active' : '' }}"
-                       href="{{ route('admin.admission.proctoring') }}">
-                        <i class="bi bi-bar-chart-fill"></i> Analytics
+                    <a class="sidebar-link {{ request()->routeIs('admin.admission.report') ? 'active' : '' }}"
+                       href="{{ route('admin.admission.report') }}">
+                        <i class="bi bi-bar-chart-line-fill"></i> Analytics
                     </a>
                     <a class="sidebar-link {{ request()->is('admin/archive*') && request()->has('section') && request()->query('section') === 'admission' ? 'active' : '' }}"
                        href="{{ route('admin.archive') }}?section=admission">
@@ -261,12 +258,12 @@
             </details>
             @endif
 
-            {{-- ── TESTING REQUEST ── --}}
+            {{-- ── 2. TESTING REQUEST (Parent Accordion / Sub-menu) ── --}}
             <details class="sb-group"
                      @if($activeGuidanceModule && in_array($activeGuidanceModule,['psychological','personality','career'])) open @endif>
                 <summary>
                     <span><i class="bi bi-clipboard2-pulse me-1"></i> Testing Request</span>
-                    <span class="sb-badge">Dashboard&nbsp;<i class="bi bi-chevron-right sb-chevron"></i></span>
+                    <span class="sb-badge">Modules&nbsp;<i class="bi bi-chevron-right sb-chevron"></i></span>
                 </summary>
                 <div class="sb-sub">
                     <a class="sidebar-link {{ request()->routeIs("{$role}.psychological.*") ? 'active' : '' }}"
@@ -287,35 +284,41 @@
                 </div>
             </details>
 
-            {{-- ── GOOD MORAL ── --}}
+            {{-- ── 3. GOOD MORAL ── --}}
             <a class="sidebar-link {{ request()->routeIs("{$role}.good-moral","{$role}.good-moral.*") ? 'active' : '' }}"
                href="{{ route("{$role}.good-moral") }}"
                data-module-navigation="good-moral">
                 <i class="bi bi-patch-check"></i> Good Moral
-                <span class="sb-badge ms-auto">Dashboard</span>
+                <span class="sb-badge ms-auto">Service</span>
             </a>
 
-            {{-- ── EXIT FORM ── --}}
+            {{-- ── 4. EXIT FORM ── --}}
             <a class="sidebar-link {{ request()->routeIs("{$role}.exit-form","{$role}.exit-form.*") ? 'active' : '' }}"
                href="{{ route("{$role}.exit-form") }}"
                data-module-navigation="exit-form">
                 <i class="bi bi-door-open"></i> Exit Form
-                <span class="sb-badge ms-auto">Dashboard</span>
+                <span class="sb-badge ms-auto">Service</span>
             </a>
 
-            {{-- ── ARCHIVE (Admin unified page) ── --}}
-            @if ($isAdmin)
-            <a class="sidebar-link {{ request()->routeIs('admin.archive') && !request()->query('section') ? 'active' : '' }}"
-               href="{{ route('admin.archive') }}">
-                <i class="bi bi-archive-fill"></i> Archive
-                <span class="sb-badge ms-auto">Records</span>
+            {{-- ── 5. ANALYTICS (Dedicated Main Navigation Button) ── --}}
+            <a class="sidebar-link {{ request()->routeIs("{$role}.analytics", 'admin.analytics', 'staff.analytics') ? 'active' : '' }}"
+               href="{{ route($isAdmin ? 'admin.analytics' : 'staff.analytics') }}">
+                <i class="bi bi-bar-chart-line-fill"></i> Analytics
+                <span class="sb-badge ms-auto">{{ $isStaff ? 'Guidance' : 'Executive' }}</span>
             </a>
 
-            {{-- ── SYSTEM SETTINGS ── --}}
-            <a class="sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}"
-               href="{{ route('admin.settings.index') }}">
+            {{-- 6. ARCHIVE (Dedicated Main Navigation Link) --}}
+            <a class="sidebar-link {{ (request()->routeIs('admin.archive') && request()->query('section') !== 'admission') || request()->routeIs('staff.guidance-appointments.archive') ? 'active' : '' }}"
+               href="{{ route($isAdmin ? 'admin.archive' : 'staff.guidance-appointments.archive') }}">
+                <i class="bi bi-archive"></i> Archive
+            </a>
+
+            {{-- ── 7. SETTINGS (Admin Only) ── --}}
+            @if ($isAdmin || $isStaff)
+            <a class="sidebar-link {{ request()->routeIs($role.'.settings.*') ? 'active' : '' }}"
+               href="{{ route($role.'.settings.index') }}">
                 <i class="bi bi-sliders"></i> Settings
-                <span class="sb-badge ms-auto">Admin</span>
+                <span class="sb-badge ms-auto">Config</span>
             </a>
             @endif
 

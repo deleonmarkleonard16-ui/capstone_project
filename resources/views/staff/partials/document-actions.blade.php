@@ -1,7 +1,7 @@
-@if($entry->status === 'proof_review')
+﻿@if($entry->status === 'proof_review')
     <div class="btn-group btn-group-sm">
         <button type="button" class="btn btn-outline-primary"
-                data-receipt="{{ route(auth()->user()->role.'.documents.proof', $entry) }}">
+                data-receipt="{{ route(auth()->user()->role.'.documents.proof', $entry) }}" data-or-number="{{ $entry->or_number }}" data-or-date="{{ $entry->or_date ? \Illuminate\Support\Carbon::parse($entry->or_date)->format('M d, Y') : '' }}">
             <i class="bi bi-receipt me-1"></i> Review Receipt
         </button>
         <form method="post"
@@ -28,7 +28,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h3 class="modal-title h5" id="claimLabel{{ $entry->id }}">
-                        Document Claim Verification — {{ $entry->reference }}
+                        Document Claim Verification â€” {{ $entry->reference }}
                     </h3>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -50,7 +50,7 @@
                         </div>
                         <div class="mb-3">
                             <button type="button" class="btn btn-outline-primary btn-sm w-100"
-                                    data-receipt="{{ route(auth()->user()->role.'.documents.proof', $entry) }}">
+                                    data-receipt="{{ route(auth()->user()->role.'.documents.proof', $entry) }}" data-or-number="{{ $entry->or_number }}" data-or-date="{{ $entry->or_date ? \Illuminate\Support\Carbon::parse($entry->or_date)->format('M d, Y') : '' }}">
                                 <i class="bi bi-image me-1"></i> Preview Attached Receipt
                             </button>
                         </div>

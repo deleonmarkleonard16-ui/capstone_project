@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $guidanceOnly ? 'Guidance Analytics' : '{{ $guidanceOnly ? 'Guidance Analytics' : 'Institutional Analytics Dashboard' }}')
+@section('title', 'Guidance Analytics')
 
 @section('content')
 <div class="container-fluid px-0">
@@ -14,7 +14,7 @@
                 </ol>
             </nav>
             <h1 class="h3 fw-bold text-dark mb-1">
-                <i class="bi bi-bar-chart-line-fill text-primary me-2"></i>{{ $guidanceOnly ? 'Guidance Analytics' : '{{ $guidanceOnly ? 'Guidance Analytics' : 'Institutional Analytics Dashboard' }}' }}
+                <i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Guidance Analytics
             </h1>
             <p class="text-muted small mb-0">
                 Comprehensive institutional metrics for testing, assessments, document requests, and student mental wellness across PSU San Carlos.
@@ -188,7 +188,6 @@
                     </div>
 
                     @if(!$guidanceOnly)
-                    @if(!$guidanceOnly)
                     <h3 class="h6 fw-bold text-muted small text-uppercase mb-2 pt-2 border-top">Special Priority Groups</h3>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach($specialCategories as $group => $count)
@@ -198,7 +197,6 @@
                             </div>
                         @endforeach
                     </div>
-                    @endif
                     @endif
                 </div>
             </div>

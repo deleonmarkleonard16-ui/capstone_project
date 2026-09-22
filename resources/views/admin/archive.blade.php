@@ -9,7 +9,7 @@
 <div class="mb-4">
     <h1 class="h3 mb-1">Archive</h1>
     <p class="text-muted mb-0 small">
-        Archive area for completed service requests and admission records.
+        Archive area for completed guidance service requests.
     </p>
 </div>
 

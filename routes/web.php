@@ -176,6 +176,8 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', 'role:'.$role])
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::prefix('admission')->name('admission.')->group(function () {
+        Route::get('/analytics', [\App\Http\Controllers\AdmissionOverviewController::class, 'analytics'])->name('analytics');
+        Route::get('/archive', [\App\Http\Controllers\AdmissionOverviewController::class, 'archive'])->name('archive');
         $c = \App\Http\Controllers\AdmissionPipelineController::class;
         Route::get('/', [$c, 'index'])->name('index');
         Route::post('/cycles/{cycle?}', [$c, 'cycle'])->name('cycles.save');

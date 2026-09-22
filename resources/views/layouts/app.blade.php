@@ -246,12 +246,12 @@
                        href="{{ route('admin.admission.index') }}#answer-key">
                         <i class="bi bi-key-fill"></i> Answer Key
                     </a>
-                    <a class="sidebar-link {{ request()->routeIs('admin.admission.report') ? 'active' : '' }}"
-                       href="{{ route('admin.admission.report') }}">
+                    <a class="sidebar-link {{ request()->routeIs('admin.admission.analytics', 'admin.admission.report') ? 'active' : '' }}"
+                       href="{{ route('admin.admission.analytics') }}">
                         <i class="bi bi-bar-chart-line-fill"></i> Analytics
                     </a>
-                    <a class="sidebar-link {{ request()->is('admin/archive*') && request()->has('section') && request()->query('section') === 'admission' ? 'active' : '' }}"
-                       href="{{ route('admin.archive') }}?section=admission">
+                    <a class="sidebar-link {{ request()->routeIs('admin.admission.archive') ? 'active' : '' }}"
+                       href="{{ route('admin.admission.archive') }}">
                         <i class="bi bi-archive"></i> Archive
                     </a>
                 </div>
@@ -304,7 +304,7 @@
             <a class="sidebar-link {{ request()->routeIs("{$role}.analytics", 'admin.analytics', 'staff.analytics') ? 'active' : '' }}"
                href="{{ route($isAdmin ? 'admin.analytics' : 'staff.analytics') }}">
                 <i class="bi bi-bar-chart-line-fill"></i> Analytics
-                <span class="sb-badge ms-auto">{{ $isStaff ? 'Guidance' : 'Executive' }}</span>
+                <span class="sb-badge ms-auto">Guidance</span>
             </a>
 
             {{-- 6. ARCHIVE (Dedicated Main Navigation Link) --}}

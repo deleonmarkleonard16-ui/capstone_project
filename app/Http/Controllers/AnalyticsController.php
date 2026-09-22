@@ -200,7 +200,7 @@ class AnalyticsController extends Controller
      */
     private function compileExecutiveMetrics(): array
     {
-        $guidanceOnly = auth()->user()?->role === 'staff';
+        $guidanceOnly = true;
         // ── 1. Executive Summary Cards ──
         $serviceRequestsCount = ServiceRequest::count();
         $standaloneAppointmentsCount = GuidanceAppointment::whereNull('service_request_id')->count();

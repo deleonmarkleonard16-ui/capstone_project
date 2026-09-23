@@ -157,9 +157,6 @@
         </div>
         @if ($user)
             <div class="d-flex align-items-center gap-2 ms-auto">
-                <span class="badge rounded-pill {{ $isAdmin ? 'bg-warning text-dark' : 'bg-warning-subtle text-dark border border-warning' }} text-uppercase fw-bold px-3 py-1 d-none d-sm-inline-block" style="font-size: 11px; letter-spacing: .05em;">
-                    {{ $isAdmin ? 'ADMIN' : 'STAFF' }}
-                </span>
                 {{-- Notification bell (staff + admin) --}}
                 @if (in_array($role, ['admin','staff'], true))
                 <div class="dropdown"

@@ -23,6 +23,7 @@
         .full{grid-column:1/-1}
         label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
         input:not([type=checkbox]),select,textarea{width:100%;padding:11px;border:1px solid #b7c5d8;border-radius:7px;font:inherit}
+        select option{padding:12px 16px;border-bottom:1px solid #e2e8f0;min-height:42px}
         textarea{min-height:100px}
         button,.button{display:inline-block;border:0;border-radius:7px;padding:12px 20px;background:#194896;color:white;font:inherit;text-decoration:none;cursor:pointer}
         fieldset{border:1px solid #d7dfec;border-radius:8px;padding:16px}
@@ -96,6 +97,11 @@
                 padding: 6px 10px !important;
                 font-size: 13.5px !important;
                 border-radius: 6px;
+            }
+            select option {
+                padding: 12px 16px !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                font-size: 14px !important;
             }
             button, .button {
                 padding: 8px 16px !important;

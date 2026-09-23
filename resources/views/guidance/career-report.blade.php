@@ -116,21 +116,22 @@
 
 <div class="info-block">
     <div><strong>Name:</strong> {{ $appointment->applicant->full_name }}</div>
-    <div><strong>ID No.:</strong> [{{ $appointment->serviceRequest?->student_number ?? $appointment->applicant->student_id ?? '##-SC-####' }}]</div>
+    <div><strong>ID No.:</strong> [{{ $appointment->serviceRequest?->student_number ?? $appointment->applicant->student_id ?? '23-SC-####' }}]</div>
     <div><strong>Purpose:</strong> {{ $appointment->serviceRequest?->purpose ?? 'For Counseling Reference' }}</div>
     <div><strong>Others:</strong> ____________________</div>
 </div>
 
 <div class="narrative-block">
-    <p>
-        "Based on your RIASEC, your interest code is <strong>{{ implode(', ', $traits) }}</strong>.
-        <br>
-        This implies that you are <strong>{{ $interestLevel }}</strong> in the following skills:
-        <br>
-        <strong>Skills:</strong> These are the skills you can explore:
+    <p style="font-size: 14px; line-height: 1.8;">
+        "Based on your RIASEC, your interest code is <strong>{{ implode(', ', $traits) }}</strong>.<br>
+        This implies that you are <strong>{{ $interestLevel }}</strong> in the following skills:<br>
+        <strong>Skills:</strong> These are the skills you can explore: 
+        1. <u>{{ $skills[$traits[0] ?? ''] ?? 'Hands-on problem solving & field execution' }}</u> &nbsp; 
+        2. <u>{{ $skills[$traits[1] ?? ''] ?? 'Analytical research & empirical investigation' }}</u> &nbsp; 
+        3. <u>{{ $skills[$traits[2] ?? ''] ?? 'Creative design & innovative expression' }}</u>"
     </p>
 
-    <ol class="skills-list">
+    <ol class="skills-list" style="margin-top: 15px;">
         @foreach($traits as $trait)
             <li>
                 <strong>{{ $trait }}:</strong> {{ $skills[$trait] ?? $trait }}
@@ -141,8 +142,8 @@
 
 <div class="footer-section">
     <div class="or-line">
-        <span><strong>O.R. Date:</strong> {{ $appointment->serviceRequest?->or_date ? $appointment->serviceRequest->or_date->format('F d, Y') : '___________________' }}</span>
-        <span><strong>O.R. Number:</strong> {{ $appointment->serviceRequest?->or_number ?? '___________________' }}</span>
+        <span><strong>O.R. Date:</strong> {{ $appointment->or_date ? $appointment->or_date->format('F d, Y') : ($appointment->serviceRequest?->or_date ? \Illuminate\Support\Carbon::parse($appointment->serviceRequest->or_date)->format('F d, Y') : '___________________') }}</span>
+        <span><strong>O.R. Number:</strong> {{ $appointment->or_number ?: ($appointment->serviceRequest?->or_number ?: '___________________') }}</span>
     </div>
 
     <div class="signatory">

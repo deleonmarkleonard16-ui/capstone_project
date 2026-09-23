@@ -58,8 +58,8 @@
             display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px;
             border-radius: 999px; letter-spacing: .03em;
         }
-        .role-pill.admin { background: var(--psu-gold); color: #1a1a00; }
-        .role-pill.staff { background: #3b72e8; color: #fff; }
+        .role-pill.admin { background: #ffc107; color: #000; font-weight: 700; text-transform: lowercase; }
+        .role-pill.staff { background: #fff3cd; color: #664d03; font-weight: 700; text-transform: lowercase; }
         .sidebar-caption{
             color: #c2d0f0; font-size: 10px; font-weight: 700; text-transform: uppercase;
             letter-spacing: .08em; margin-bottom: 8px; margin-top: 6px;
@@ -208,7 +208,7 @@
         <div class="sidebar-account">
             <small>Signed in as</small>
             <span class="role-pill {{ $isAdmin ? 'admin' : 'staff' }}">
-                {{ $isStaff ? 'Guidance Staff' : ucfirst($role) }}
+                {{ $isAdmin ? 'admin' : 'staff' }}
             </span>
             @if($user->name ?? null)
             <div class="text-white fw-semibold mt-1" style="font-size:13px">{{ $user->name }}</div>
@@ -230,6 +230,10 @@
                     </span>
                 </summary>
                 <div class="sb-sub">
+                    <a class="sidebar-link {{ request()->routeIs('admin.admission.index') && !request()->has('section') ? 'active' : '' }}"
+                       href="{{ route('admin.admission.index') }}">
+                        <i class="bi bi-arrow-repeat"></i> Admission Cycle
+                    </a>
                     <a class="sidebar-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}"
                        href="{{ route('admin.sessions.index') }}">
                         <i class="bi bi-calendar3"></i> Sessions
@@ -245,6 +249,10 @@
                     <a class="sidebar-link {{ request()->routeIs('admin.admission.answer-key.*') ? 'active' : '' }}"
                        href="{{ route('admin.admission.index') }}#answer-key">
                         <i class="bi bi-key-fill"></i> Answer Key
+                    </a>
+                    <a class="sidebar-link {{ request()->routeIs('admin.admission.scan-paper*') ? 'active' : '' }}"
+                       href="{{ route('admin.admission.scan-paper') }}">
+                        <i class="bi bi-qr-code-scan"></i> OMR Scanner
                     </a>
                     <a class="sidebar-link {{ request()->routeIs('admin.admission.analytics', 'admin.admission.report') ? 'active' : '' }}"
                        href="{{ route('admin.admission.analytics') }}">

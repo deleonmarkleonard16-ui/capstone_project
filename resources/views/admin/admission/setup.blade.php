@@ -91,6 +91,7 @@
                             <tr>
                                 <th class="ps-3">Cycle Name</th>
                                 <th>Academic Year</th>
+                                <th class="text-center">Examinees</th>
                                 <th>Status</th>
                                 <th class="pe-3 text-end">Actions</th>
                             </tr>
@@ -105,6 +106,11 @@
                                     @endif
                                 </td>
                                 <td>{{ $cycle->academic_year }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-primary border font-monospace">
+                                        {{ $cycle->applicants_count ?? $cycle->applicants()->count() }}
+                                    </span>
+                                </td>
                                 <td>
                                     @if ($cycle->isCompleted())
                                         <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
@@ -134,8 +140,15 @@
                                         <a class="btn btn-sm btn-outline-primary"
                                            href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}"
                                            title="Inspect applicant roster and historical records">
-                                            <i class="bi bi-eye"></i> View
+                                            <i class="bi bi-table"></i> Masterlist
                                         </a>
+                                        @unless($cycle->isCompleted())
+                                            <a class="btn btn-sm btn-outline-secondary"
+                                               href="{{ route('admin.admission.encoding-sheet', ['cycle_id' => $cycle->id]) }}"
+                                               title="Open Encoding Sheet">
+                                                <i class="bi bi-grid-3x3"></i>
+                                            </a>
+                                        @endunless
 
                                         @unless($cycle->isCompleted())
                                             <button type="button" class="btn btn-sm btn-outline-secondary"

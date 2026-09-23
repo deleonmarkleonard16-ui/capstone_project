@@ -187,6 +187,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/quotas', [$c, 'quota'])->name('quotas.save');
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
+        Route::post('/sessions/assign-range', [$c, 'assignSessionRange'])->name('sessions.assign-range');
         Route::get('/encoding-sheet', [$c, 'encodingSheet'])->name('encoding-sheet');
         Route::post('/encoding-sheet', [$c, 'saveEncodingSheet'])->name('encoding-sheet.save');
         Route::post('/applicants/import', [$c, 'import'])->name('applicants.import');

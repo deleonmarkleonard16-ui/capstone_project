@@ -16,7 +16,7 @@ class AdmissionPipelineController extends Controller
     public function index()
     {
         return view('admin.admission.setup', [
-            'cycles' => AdmissionCycle::latest('id')->get(),
+            'cycles' => AdmissionCycle::withCount('applicants')->latest('id')->get(),
             'active' => AdmissionCycle::active(),
             'courses' => CourseCatalog::activeOptions(),
         ]);
@@ -617,6 +617,49 @@ class AdmissionPipelineController extends Controller
         $pdf->setPaper('A4', 'landscape');
         $pdf->render();
         return $pdf->output();
+    }
+
+    public function assignSessionRange(Request $request)
+    {
+        $cycleId = $request->input('cycle_id');
+        $cycle = $cycleId ? AdmissionCycle::find($cycleId) : $this->active();
+        if (!$cycle) return $this->gatekeeperRedirect();
+
+        abort_if($cycle->isCompleted(), 422, 'Cannot assign sessions on an archived/completed cycle.');
+
+        $data = $request->validate([
+            'session_label' => 'required|string|max:120',
+            'start_number'  => 'required|integer|min:1',
+            'end_number'    => 'required|integer|gte:start_number',
+            'batch_group'   => 'nullable|string|max:100',
+            'course'        => 'nullable|string|max:30',
+        ]);
+
+        $query = $cycle->applicants();
+        if (!empty($data['batch_group']) && $data['batch_group'] !== '__all__') {
+            $query->where('batch_group', $data['batch_group']);
+        }
+        if (!empty($data['course'])) {
+            $query->where('course_choice', $data['course']);
+        }
+
+        $query->orderBy('course_choice')->orderBy('last_name')->orderBy('first_name');
+
+        $offset = $data['start_number'] - 1;
+        $limit = ($data['end_number'] - $data['start_number']) + 1;
+
+        $targetApplicants = $query->skip($offset)->take($limit)->get();
+
+        if ($targetApplicants->isEmpty()) {
+            return back()->with('error', 'No applicants found in the specified numerical range.');
+        }
+
+        $sessionLabel = trim($data['session_label']);
+        foreach ($targetApplicants as $app) {
+            $app->update(['session_label' => $sessionLabel]);
+        }
+
+        return back()->with('success', "Successfully assigned {$targetApplicants->count()} applicant(s) (Range: {$data['start_number']} to {$data['end_number']}) to session '{$sessionLabel}'.");
     }
 
     private function active(): ?AdmissionCycle

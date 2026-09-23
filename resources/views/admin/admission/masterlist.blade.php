@@ -27,6 +27,9 @@
         <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.sessions.index') }}">
             <i class="bi bi-calendar3 me-1"></i> Open Test Sessions
         </a>
+        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rangeAllocationModal" @disabled($isLocked)>
+            <i class="bi bi-person-lines-fill me-1"></i> Range Session Allocation
+        </button>
         <a class="btn btn-primary btn-sm"
            href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
             <i class="bi bi-file-earmark-word me-1"></i> DOCX Export

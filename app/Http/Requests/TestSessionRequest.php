@@ -22,6 +22,8 @@ class TestSessionRequest extends FormRequest
             'duration_minutes' => ['required', 'integer', 'min:1', 'max:240'],
             'room' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::exists('test_session_statuses', 'slug')],
+            'start_number' => ['nullable', 'integer', 'min:1'],
+            'end_number' => ['nullable', 'integer', 'gte:start_number'],
         ];
     }
 }

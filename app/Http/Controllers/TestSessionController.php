@@ -30,15 +30,54 @@ class TestSessionController extends Controller
     {
         $token = Str::uuid()->toString();
 
+        $data = $request->validated();
+        $startNum = $data['start_number'] ?? null;
+        $endNum = $data['end_number'] ?? null;
+        unset($data['start_number'], $data['end_number']);
+
         $session = TestSession::create([
-            ...$request->validated(),
+            ...$data,
             'qr_token' => $token,
             'qr_code_path' => $this->buildQrCodeUrl($token),
         ]);
 
+        // Range-Based Test Session Generation (e.g., Applicants 1 to 20)
+        if ($startNum && $endNum && (int)$endNum >= (int)$startNum) {
+            $start = (int)$startNum;
+            $end = (int)$endNum;
+            $limit = ($end - $start) + 1;
+
+            $cycle = \App\Models\AdmissionCycle::active();
+            if ($cycle) {
+                $apps = $cycle->applicants()
+                    ->orderBy('course_choice')
+                    ->orderBy('last_name')
+                    ->orderBy('first_name')
+                    ->skip($start - 1)
+                    ->take($limit)
+                    ->get();
+
+                foreach ($apps as $app) {
+                    $app->update(['session_label' => $session->title]);
+                }
+            }
+
+            $legacyApps = \App\Models\Applicant::orderBy('last_name')
+                ->skip($start - 1)
+                ->take($limit)
+                ->get();
+
+            foreach ($legacyApps as $legacyApp) {
+                \App\Models\SessionApplicant::firstOrCreate([
+                    'test_session_id' => $session->id,
+                    'applicant_id' => $legacyApp->id,
+                ]);
+            }
+        }
+
         return redirect()
             ->route(auth()->user()->role.'.sessions.assignments.index', $session)
-            ->with('success', 'Test session created. You can now assign applicants.');
+            ->with('success', 'Test session created and range allocation processed successfully.');
     }
 
     public function edit(TestSession $session): View

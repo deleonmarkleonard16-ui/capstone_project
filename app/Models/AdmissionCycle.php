@@ -109,10 +109,11 @@ class AdmissionCycle extends Model
         abort_if($this->isCompleted(), 409, 'A completed/archived cycle cannot be reactivated.');
 
         DB::transaction(function () {
-            // Deactivate all other cycles
-            static::query()->update([
+            // Deactivate and archive any previously active cycles so the new cycle starts fresh
+            static::query()->where('id', '!=', $this->id)->update([
                 'is_active' => false,
-                'status' => DB::raw("CASE WHEN status = 'Active' THEN 'Draft' ELSE status END"),
+                'status' => DB::raw("CASE WHEN status = 'Active' THEN 'Completed' ELSE status END"),
+                'is_archived' => DB::raw("CASE WHEN status = 'Active' THEN 1 ELSE is_archived END"),
             ]);
 
             $this->update([

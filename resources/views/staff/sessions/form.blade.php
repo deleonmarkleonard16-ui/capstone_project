@@ -43,6 +43,22 @@
                                 @endforeach
                             </select>
                         </div>
+                        @if (!$session->exists)
+                        <div class="col-12 border-top pt-3 mt-3">
+                            <h6 class="fw-bold text-primary mb-1"><i class="bi bi-person-lines-fill me-1"></i> Range-Based Applicant Allocation (Optional)</h6>
+                            <p class="text-muted small mb-2">Automatically assign a numerical slice of examinees from the Masterlist (e.g. Applicants 1 to 20) to this session.</p>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label form-label-sm fw-semibold">Start Number</label>
+                                    <input type="number" min="1" name="start_number" class="form-control form-control-sm" placeholder="e.g. 1" value="{{ old('start_number') }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label form-label-sm fw-semibold">End Number</label>
+                                    <input type="number" min="1" name="end_number" class="form-control form-control-sm" placeholder="e.g. 20" value="{{ old('end_number') }}">
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         <div class="col-12 d-flex justify-content-end gap-2 mt-4">
                             <a href="{{ route(auth()->user()->role.'.sessions.index') }}" class="btn btn-outline-secondary">Cancel</a>
                             <button class="btn btn-primary" type="submit">Save Session</button>

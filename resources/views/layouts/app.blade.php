@@ -53,13 +53,13 @@
             padding: 12px 13px; border: 1px solid #ffffff30; border-radius: 14px;
             background: #ffffff18; margin-bottom: 18px;
         }
-        .sidebar-account small { display: block; color: #a8bfeb; font-size: 11px; margin-bottom: 2px; }
+        .sidebar-account small { display: block; color: #a8bfeb; font-size: 11px; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
         .sidebar-account .role-pill {
-            display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 10px;
-            border-radius: 999px; letter-spacing: .03em;
+            display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 14px;
+            border-radius: 9999px; letter-spacing: .05em; text-transform: uppercase;
         }
-        .role-pill.admin { background: #ffc107; color: #000; font-weight: 700; text-transform: lowercase; }
-        .role-pill.staff { background: #fff3cd; color: #664d03; font-weight: 700; text-transform: lowercase; }
+        .role-pill.admin { background: #ffc107; color: #000; border: 1px solid #e0a800; }
+        .role-pill.staff { background: #fff3cd; color: #664d03; border: 1px solid #ffe69c; }
         .sidebar-caption{
             color: #c2d0f0; font-size: 10px; font-weight: 700; text-transform: uppercase;
             letter-spacing: .08em; margin-bottom: 8px; margin-top: 6px;
@@ -157,6 +157,9 @@
         </div>
         @if ($user)
             <div class="d-flex align-items-center gap-2 ms-auto">
+                <span class="badge rounded-pill {{ $isAdmin ? 'bg-warning text-dark' : 'bg-warning-subtle text-dark border border-warning' }} text-uppercase fw-bold px-3 py-1 d-none d-sm-inline-block" style="font-size: 11px; letter-spacing: .05em;">
+                    {{ $isAdmin ? 'ADMIN' : 'STAFF' }}
+                </span>
                 {{-- Notification bell (staff + admin) --}}
                 @if (in_array($role, ['admin','staff'], true))
                 <div class="dropdown"
@@ -207,12 +210,9 @@
         {{-- Account pill --}}
         <div class="sidebar-account">
             <small>Signed in as</small>
-            <span class="role-pill {{ $isAdmin ? 'admin' : 'staff' }}">
-                {{ $isAdmin ? 'admin' : 'staff' }}
+            <span class="role-pill {{ $isAdmin ? 'admin' : 'staff' }} text-uppercase">
+                {{ $isAdmin ? 'ADMIN' : 'STAFF' }}
             </span>
-            @if($user->name ?? null)
-            <div class="text-white fw-semibold mt-1" style="font-size:13px">{{ $user->name }}</div>
-            @endif
         </div>
 
         <div class="sidebar-caption">Main Navigation</div>

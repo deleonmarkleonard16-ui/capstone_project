@@ -16,7 +16,13 @@ class AdmissionOverviewController extends Controller
         $statuses = $cycle ? $cycle->applicants()->selectRaw('qualification_status, COUNT(*) as total')
             ->groupBy('qualification_status')->pluck('total', 'qualification_status') : collect();
 
-        return view('admin.admission.analytics', compact('cycles', 'cycle', 'statuses'));
+        $courseStats = $cycle ? $cycle->applicants()
+            ->selectRaw('course_choice, COUNT(*) as total, SUM(CASE WHEN qualification_status = "Qualified" THEN 1 ELSE 0 END) as qualified_count')
+            ->groupBy('course_choice')
+            ->orderBy('course_choice')
+            ->get() : collect();
+
+        return view('admin.admission.analytics', compact('cycles', 'cycle', 'statuses', 'courseStats'));
     }
 
     public function archive()

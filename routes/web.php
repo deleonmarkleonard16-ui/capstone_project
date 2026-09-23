@@ -175,7 +175,7 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', 'role:'.$role])
 });
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
-    Route::prefix('admission')->name('admission.')->group(function () {
+    Route::prefix('admission')->name('admission.')->middleware('admission.cycle')->group(function () {
         Route::get('/analytics', [\App\Http\Controllers\AdmissionOverviewController::class, 'analytics'])->name('analytics');
         Route::get('/archive', [\App\Http\Controllers\AdmissionOverviewController::class, 'archive'])->name('archive');
         $c = \App\Http\Controllers\AdmissionPipelineController::class;
@@ -217,23 +217,24 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         ->only(['index', 'create', 'store', 'edit', 'update']);
     Route::post('/applicants/import', [ApplicantController::class, 'import'])->name('applicants.import');
 
-    Route::resource('sessions', TestSessionController::class)
-        ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::middleware('admission.cycle')->group(function () {
+        Route::resource('sessions', TestSessionController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 
+        Route::get('/sessions/{session}/assignments', [SessionApplicantController::class, 'index'])->name('sessions.assignments.index');
+        Route::post('/sessions/{session}/assignments', [SessionApplicantController::class, 'store'])->name('sessions.assignments.store');
+        Route::delete('/sessions/{session}/assignments/{assignment}', [SessionApplicantController::class, 'destroy'])->name('sessions.assignments.destroy');
+        Route::post('/sessions/{session}/regenerate-qr', [SessionApplicantController::class, 'regenerateQr'])->name('sessions.regenerate-qr');
 
-    Route::get('/sessions/{session}/assignments', [SessionApplicantController::class, 'index'])->name('sessions.assignments.index');
-    Route::post('/sessions/{session}/assignments', [SessionApplicantController::class, 'store'])->name('sessions.assignments.store');
-    Route::delete('/sessions/{session}/assignments/{assignment}', [SessionApplicantController::class, 'destroy'])->name('sessions.assignments.destroy');
-    Route::post('/sessions/{session}/regenerate-qr', [SessionApplicantController::class, 'regenerateQr'])->name('sessions.regenerate-qr');
-
-    Route::get('/sessions/{session}/monitoring', [ExamMonitoringController::class, 'show'])->name('sessions.monitoring.show');
-    Route::post('/sessions/{session}/start', [ExamMonitoringController::class, 'start'])->name('sessions.monitoring.start');
-    Route::get('/sessions/{session}/stats', [ExamMonitoringController::class, 'stats'])->name('sessions.monitoring.stats');
-    Route::get('/sessions/{session}/attendance', [AttendanceController::class, 'index'])->name('sessions.attendance.index');
-    Route::get('/sessions/{session}/answer-key', [ExamResultController::class, 'editAnswerKey'])->name('sessions.answer-key.edit');
-    Route::post('/sessions/{session}/answer-key', [ExamResultController::class, 'updateAnswerKey'])->name('sessions.answer-key.update');
-    Route::get('/sessions/{session}/results', [ExamResultController::class, 'index'])->name('sessions.results.index');
-    Route::get('/sessions/{session}/results/{answerSheet}', [ExamResultController::class, 'show'])->name('sessions.results.show');
+        Route::get('/sessions/{session}/monitoring', [ExamMonitoringController::class, 'show'])->name('sessions.monitoring.show');
+        Route::post('/sessions/{session}/start', [ExamMonitoringController::class, 'start'])->name('sessions.monitoring.start');
+        Route::get('/sessions/{session}/stats', [ExamMonitoringController::class, 'stats'])->name('sessions.monitoring.stats');
+        Route::get('/sessions/{session}/attendance', [AttendanceController::class, 'index'])->name('sessions.attendance.index');
+        Route::get('/sessions/{session}/answer-key', [ExamResultController::class, 'editAnswerKey'])->name('sessions.answer-key.edit');
+        Route::post('/sessions/{session}/answer-key', [ExamResultController::class, 'updateAnswerKey'])->name('sessions.answer-key.update');
+        Route::get('/sessions/{session}/results', [ExamResultController::class, 'index'])->name('sessions.results.index');
+        Route::get('/sessions/{session}/results/{answerSheet}', [ExamResultController::class, 'show'])->name('sessions.results.show');
+    });
 });
 
 Route::middleware(['auth', 'role:admin,staff'])->get('/dashboard', function () {

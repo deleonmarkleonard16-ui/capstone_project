@@ -63,16 +63,80 @@
         </div>
     </div>
 @else
-    <div class="alert alert-warning d-flex align-items-center gap-3 shadow-sm mb-4">
-        <i class="bi bi-exclamation-triangle-fill fs-3 text-warning"></i>
-        <div class="flex-grow-1">
-            <strong>No active admission cycle.</strong>
-            Access to the Encoding Sheet, CSV Import, and Test Sessions is currently blocked.
-            Please activate an existing cycle below or click <strong>Initialize New Cycle</strong> to begin.
+    {{-- ── MANDATORY GATEKEEPER LANDING SCREEN: NO ACTIVE CYCLE ── --}}
+    <div class="card page-card border-warning border-3 shadow-sm mb-4" id="gatekeeperLandingCard">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-start gap-3">
+                <div class="bg-warning text-dark rounded-circle p-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width:52px;height:52px;">
+                    <i class="bi bi-shield-exclamation fs-3"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-warning text-dark fw-bold text-uppercase">Gatekeeper Enforcement</span>
+                        <span class="badge bg-danger text-white fw-bold">Admission Operations Locked</span>
+                    </div>
+                    <h2 class="h4 fw-bold text-dark mb-1">Active Admission Cycle Required</h2>
+                    <p class="text-muted small mb-3">
+                        Access to the <strong>Masterlist</strong>, <strong>Encoding Sheet</strong>, <strong>CSV Import</strong>, and <strong>Test Sessions</strong> is strictly blocked until an Admission Cycle is activated. Choose one of the mandatory options below to proceed:
+                    </p>
+
+                    <div class="row g-3">
+                        {{-- Option A: Select existing cycle --}}
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="fw-bold text-primary mb-1">
+                                        <i class="bi bi-check2-circle me-1"></i> Option A: Select Existing Cycle to Activate
+                                    </div>
+                                    <p class="small text-muted mb-2">
+                                        Activate an existing cycle from the system to resume operations.
+                                    </p>
+                                </div>
+                                @php
+                                    $availableCycles = $cycles->filter(fn($c) => !$c->isActive());
+                                @endphp
+                                @if($availableCycles->isNotEmpty())
+                                    <form method="post" action="{{ route('admin.admission.cycles.activate', $availableCycles->first()) }}" id="gatekeeperActivateForm">
+                                        @csrf
+                                        <div class="input-group input-group-sm">
+                                            <select class="form-select form-select-sm fw-semibold" id="gatekeeperCycleSelect" onchange="document.getElementById('gatekeeperActivateForm').action = '/admin/admission/cycles/' + this.value + '/activate'">
+                                                @foreach($availableCycles as $c)
+                                                    <option value="{{ $c->id }}">
+                                                        {{ $c->displayName }} ({{ $c->academic_year }}) — {{ $c->status }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-lightning-fill me-1"></i> Set Active
+                                            </button>
+                                        </div>
+                                    </form>
+                                @else
+                                    <p class="small text-muted mb-0 fst-italic">No previous cycles found in database.</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Option B: Initialize new cycle --}}
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="fw-bold text-success mb-1">
+                                        <i class="bi bi-plus-circle me-1"></i> Option B: Initialize New Admission Cycle
+                                    </div>
+                                    <p class="small text-muted mb-2">
+                                        Initialize a fresh operational cycle (e.g., <strong>S.Y. 2026 – 2027</strong>) for new applicants.
+                                    </p>
+                                </div>
+                                <button type="button" class="btn btn-success btn-sm w-100 fw-semibold" data-bs-toggle="modal" data-bs-target="#initCycleModal">
+                                    <i class="bi bi-plus-lg me-1"></i> Initialize &amp; Activate New Cycle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#initCycleModal">
-            Initialize Cycle
-        </button>
     </div>
 @endif
 

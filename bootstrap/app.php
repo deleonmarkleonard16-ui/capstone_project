@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'admission.cycle' => \App\Http\Middleware\AdmissionCycleGatekeeper::class,
         ]);
 
         // Student-facing portal & assessment routes are unauthenticated public endpoints.

@@ -10,13 +10,18 @@
 {{-- Top page header --}}
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
     <div>
-        <h1 class="h3 mb-1">Admission Masterlist</h1>
+        <h1 class="h3 mb-1">
+            Admission Masterlist
+            <span class="badge {{ $isLocked ? 'bg-secondary' : ($cycle->isActive() ? 'bg-success' : 'bg-warning text-dark') }} fs-6 ms-2">
+                {{ $isLocked ? 'Viewing: ' . $cycle->displayName . ' [Archived]' : ($cycle->isActive() ? 'Viewing: ' . $cycle->displayName . ' [Active]' : 'Viewing: ' . $cycle->displayName . ' [Draft]') }}
+            </span>
+        </h1>
         <p class="text-muted mb-0 small">
-            Current admission cycle: <strong>{{ $cycle->displayName }}</strong>
-            @if ($isLocked)
-                <span class="badge bg-secondary ms-2"><i class="bi bi-lock-fill me-1"></i>Archived / Read-Only</span>
-            @elseif ($cycle->isActive())
-                <span class="badge bg-success ms-2"><i class="bi bi-star-fill me-1"></i>Active Cycle</span>
+            Academic Year: <strong>{{ $cycle->academic_year }}</strong> &nbsp;·&nbsp;
+            Passing Stanine: <strong>{{ $cycle->passing_stanine }}</strong> &nbsp;·&nbsp;
+            Exam / GWA / Interview: {{ $cycle->exam_weight }}% / {{ $cycle->gwa_weight }}% / {{ $cycle->interview_weight }}%
+            @if($isLocked)
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-2"><i class="bi bi-lock-fill me-1"></i>Archived / Read-Only</span>
             @endif
         </p>
     </div>
@@ -34,6 +39,16 @@
            href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
             <i class="bi bi-file-earmark-word me-1"></i> DOCX Export
         </a>
+        @if ($cycle->isActive())
+            <form method="post" action="{{ route('admin.admission.cycles.complete', $cycle) }}"
+                  onsubmit="return confirm('Are you sure you want to mark cycle \'{{ $cycle->displayName }}\' as Completed and Archive it? This will lock all applicant entries and exam scores from further modification.');"
+                  class="d-inline">
+                @csrf
+                <button class="btn btn-warning btn-sm fw-semibold">
+                    <i class="bi bi-archive-fill me-1"></i> Complete &amp; Archive
+                </button>
+            </form>
+        @endif
     </div>
 </div>
 
@@ -77,7 +92,7 @@
                     <select class="form-select form-select-sm" name="cycle_id" onchange="this.form.submit()">
                         @foreach($allCycles as $c)
                             <option value="{{ $c->id }}" @selected($cycle->id === $c->id)>
-                                {{ $c->displayName }} {{ $c->isActive() ? '(Active)' : ($c->isCompleted() ? '(Archived)' : '(Draft)') }}
+                                Viewing: {{ $c->displayName }} [{{ $c->isCompleted() ? 'Archived' : ($c->isActive() ? 'Active' : 'Draft') }}]
                             </option>
                         @endforeach
                     </select>

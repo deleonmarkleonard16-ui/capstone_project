@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+# Install PHP extensions (including OPcache for high performance)
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd opcache
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -38,8 +38,15 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 80
 
-# Replace the old CMD line:
-# CMD service nginx start && php-fpm
-
-# With this updated startup command:
-CMD php artisan migrate --force && php artisan db:seed --force && php artisan storage:link && php artisan config:cache && php artisan route:cache && service nginx start && php-fpm
+# Production Startup Command:
+# 1. Runs database migrations automatically against remote DB
+# 2. Creates the dynamic public storage symlink for uploaded files
+# 3. Caches Laravel configurations, routes, views, and events in memory
+# 4. Starts Nginx web server and PHP-FPM process worker
+CMD php artisan migrate --force && \
+    php artisan storage:link && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache && \
+    php artisan event:cache && \
+    service nginx start && php-fpm

@@ -31,7 +31,7 @@
             {{-- Account pill --}}
             <div class="sidebar-account">
                 <small>Signed in as</small>
-                <span class="role-pill {{ $isStaff ? 'staff' : ($isAdmin ? 'admin' : 'secondary') }} text-uppercase">
+                <span class="badge role-pill {{ $isStaff ? 'staff' : ($isAdmin ? 'admin' : 'secondary') }} text-uppercase">
                     {{ $displayRole }}
                 </span>
             </div>

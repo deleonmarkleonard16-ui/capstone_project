@@ -16,17 +16,34 @@ class AuthController extends Controller
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->validated();
+        $request->session()->forget('user_role');
 
-        if (! Auth::attempt($credentials + ['is_active' => true], $request->boolean('remember'))) {
+        if (! Auth::attempt([
+            'email' => $request->validated('email'),
+            'password' => $request->validated('password'),
+            'is_active' => true,
+        ], $request->boolean('remember'))) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => 'The provided credentials do not match our records.']);
         }
 
-        $request->session()->regenerate();
+        $role = Auth::user()->role;
 
-        return redirect()->route($request->user()->role.'.analytics');
+        if (! in_array($role, ['admin', 'staff'], true)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'This account does not have an authorized role.']);
+        }
+
+        $request->session()->regenerate();
+        $request->session()->put('user_role', $role);
+
+        return redirect()->route($role.'.analytics');
     }
 
     public function destroy(): RedirectResponse

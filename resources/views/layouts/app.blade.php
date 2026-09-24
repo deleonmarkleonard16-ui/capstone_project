@@ -157,6 +157,7 @@
         </div>
         @if ($user)
             <div class="d-flex align-items-center gap-2 ms-auto">
+                @include('partials.header')
                 {{-- Notification bell (staff + admin) --}}
                 @if (in_array($role, ['admin','staff'], true))
                 <div class="dropdown"

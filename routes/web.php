@@ -15,9 +15,10 @@ use App\Http\Controllers\PsychologicalRequestController;
 use App\Http\Controllers\GuidanceAssessmentController;
 use App\Http\Controllers\AdmissionEvaluationController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\PreventBackHistory;
 
 Route::redirect('/', '/portal');
-Route::middleware(['auth', 'role:admin,staff'])->prefix('api/notifications')->name('api.notifications.')->group(function (): void {
+Route::middleware(['auth', PreventBackHistory::class, 'role:admin,staff'])->prefix('api/notifications')->name('api.notifications.')->group(function (): void {
     Route::post('/{notification}/read', [\App\Http\Controllers\GuidanceNotificationController::class, 'read'])->name('read');
     Route::post('/clear-module', [\App\Http\Controllers\GuidanceNotificationController::class, 'clearModule'])->name('clear-module');
 });
@@ -28,7 +29,7 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->group(fu
     Route::post('/test/batch-join/{token}/receipt', [$batch, 'receipt'])->middleware('throttle:guidance-exam')->name('guidance.batch.receipt');
     Route::get('/test/batch-join/{token}/state', [$batch, 'state'])->middleware('throttle:guidance-exam')->name('guidance.batch.state');
     foreach (['staff', 'admin'] as $role) {
-        Route::middleware(['auth', 'role:'.$role])->prefix($role.'/guidance-batches')->name($role.'.guidance-batches.')->group(function () use ($batch) {
+        Route::middleware(['auth', PreventBackHistory::class, 'role:'.$role])->prefix($role.'/guidance-batches')->name($role.'.guidance-batches.')->group(function () use ($batch) {
             Route::get('/', [$batch, 'index'])->name('index');
             Route::post('/', [$batch, 'store'])->name('store');
             Route::post('/{batch}/action', [$batch, 'action'])->name('action');
@@ -70,7 +71,7 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->group(fu
     Route::post('/test/take/{token}/progress', [$controller, 'saveProgress'])->middleware('throttle:guidance-exam')->name('guidance.progress');
     Route::get('/test/take/{token}/state', [$controller, 'state'])->middleware('throttle:guidance-exam')->name('guidance.state');
     Route::post('/test/take/{token}', [$controller, 'submit'])->middleware('throttle:guidance-exam')->name('guidance.submit');
-    foreach (['staff', 'admin'] as $role) Route::middleware(['auth', 'role:'.$role])->prefix($role.'/guidance-appointments')->name($role.'.guidance-appointments.')->group(function () {
+    foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHistory::class, 'role:'.$role])->prefix($role.'/guidance-appointments')->name($role.'.guidance-appointments.')->group(function () {
         $controller = \App\Http\Controllers\AdminGuidanceController::class;
         Route::get('/', [$controller, 'index'])->name('index');
         Route::get('/archive', [$controller, 'index'])->name('archive');
@@ -89,13 +90,13 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->group(fu
     });
 });
 
-Route::middleware('guest')->group(function (): void {
+Route::middleware([PreventBackHistory::class, 'guest'])->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store'])->name('login.store');
 });
 
 Route::post('/logout', [AuthController::class, 'destroy'])
-    ->middleware('auth')
+    ->middleware(['auth', PreventBackHistory::class])
     ->name('logout');
 
 Route::get('/check-in/{token}', [QrCheckinController::class, 'show'])->name('checkin.show');
@@ -114,12 +115,12 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->prefix('
 });
 Route::get('/admission/complete', fn () => view('admin.admission.complete'))->name('admission.complete');
 
-Route::middleware(['auth', 'role:staff'])->prefix('staff')->name('staff.settings.')->group(function (): void {
+Route::middleware(['auth', PreventBackHistory::class, 'role:staff'])->prefix('staff')->name('staff.settings.')->group(function (): void {
     Route::get('/settings', [\App\Http\Controllers\StaffSettingsController::class, 'index'])->name('index');
     Route::post('/settings', [\App\Http\Controllers\StaffSettingsController::class, 'update'])->name('update');
 });
 
-foreach (['staff', 'admin'] as $role) Route::middleware(['auth', 'role:'.$role])->prefix($role)->name($role.'.')->group(function (): void {
+foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHistory::class, 'role:'.$role])->prefix($role)->name($role.'.')->group(function (): void {
     Route::get('/notifications', [\App\Http\Controllers\GuidanceNotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [\App\Http\Controllers\GuidanceNotificationController::class, 'read'])->name('notifications.read');
     Route::get('/notifications/{notification}/review', [\App\Http\Controllers\GuidanceNotificationController::class, 'review'])->name('notifications.review');
@@ -174,7 +175,7 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', 'role:'.$role])
     Route::patch('/requests/{serviceRequest}', [StudentPortalController::class, 'update'])->name('requests.update');
 });
 
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
+Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::prefix('admission')->name('admission.')->middleware('admission.cycle')->group(function () {
         Route::get('/analytics', [\App\Http\Controllers\AdmissionOverviewController::class, 'analytics'])->name('analytics');
         Route::get('/archive', [\App\Http\Controllers\AdmissionOverviewController::class, 'archive'])->name('archive');
@@ -237,6 +238,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     });
 });
 
-Route::middleware(['auth', 'role:admin,staff'])->get('/dashboard', function () {
+Route::middleware(['auth', PreventBackHistory::class, 'role:admin,staff'])->get('/dashboard', function () {
     return redirect()->route(auth()->user()->role.'.dashboard');
 })->name('dashboard');

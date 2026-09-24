@@ -13,6 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request): string {
+            $role = $request->user()->role;
+            abort_unless(in_array($role, ['admin', 'staff'], true), 403);
+
+            return route($role.'.analytics');
+        });
+
         // Trust Render's reverse proxy / load balancer so Laravel reads the correct
         // X-Forwarded-Proto header and generates HTTPS URLs behind SSL termination.
         $middleware->trustProxies(

@@ -28,7 +28,7 @@ class AdmissionPipelineController extends Controller
             'name' => 'nullable|string|max:120',
             'cycle_name' => 'nullable|string|max:120',
             'academic_year' => 'nullable|string|max:50',
-            'status' => ['nullable', Rule::in(AdmissionCycle::STATUSES)],
+            'status' => ['nullable', Rule::in(array_merge(AdmissionCycle::STATUSES, ['Maintenance', 'Archived']))],
             'passing_stanine' => 'nullable|integer|between:1,9',
             'exam_weight' => 'nullable|numeric|between:0,100',
             'gwa_weight' => 'nullable|numeric|between:0,100',
@@ -70,21 +70,29 @@ class AdmissionPipelineController extends Controller
 
         $targetStatus = $data['status'] ?? ($record->status ?: AdmissionCycle::STATUS_DRAFT);
         $shouldActivate = $request->boolean('set_active') || $targetStatus === AdmissionCycle::STATUS_ACTIVE;
+        $isMaintenance  = $targetStatus === AdmissionCycle::STATUS_MAINTENANCE;
 
         if ($shouldActivate) {
             $record->save();
             $record->activate();
+        } elseif ($isMaintenance) {
+            // Maintenance: cycle remains findable by active() but gatekeeper blocks encoding
+            $record->status    = AdmissionCycle::STATUS_MAINTENANCE;
+            $record->is_active = true;
+            $record->save();
         } else {
-            $record->status = $targetStatus;
+            $record->status    = $targetStatus;
             $record->is_active = false;
             $record->save();
         }
 
         app(AdmissionScoringService::class)->evaluate($record);
 
-        $msg = $shouldActivate
-            ? "Admission cycle '{$record->displayName}' initialized and set as Active."
-            : "Admission cycle '{$record->displayName}' saved.";
+        $msg = match(true) {
+            $shouldActivate  => "Admission cycle '{$record->displayName}' initialized and set as Active.",
+            $isMaintenance   => "Admission cycle '{$record->displayName}' placed in Maintenance Mode. Encoding and masterlist access is suspended.",
+            default          => "Admission cycle '{$record->displayName}' saved.",
+        };
 
         return back()->with('success', $msg);
     }
@@ -583,7 +591,7 @@ class AdmissionPipelineController extends Controller
         if (!$cycle) return $this->gatekeeperRedirect();
 
         $data = $request->validate([
-            'type' => ['required', Rule::in(['summary', 'qualified', 'not-qualified'])],
+            'type'   => ['required', Rule::in(['summary', 'qualified', 'not-qualified'])],
             'course' => 'nullable|string|max:30',
             'format' => ['nullable', Rule::in(['html', 'pdf', 'docx'])],
         ]);
@@ -594,6 +602,12 @@ class AdmissionPipelineController extends Controller
             ->orderBy('course_choice')
             ->orderByDesc('total_score')
             ->get();
+
+        // Merge course quotas into $data so the view can display quota per course
+        $data['quotas'] = DB::table('admission_course_quotas')
+            ->where('admission_cycle_id', $cycle->id)
+            ->pluck('seats', 'course_code')
+            ->all();
 
         $html = view('admin.admission.report', compact('cycle', 'rows', 'data'))->render();
 

@@ -15,13 +15,18 @@ class GuidanceTestSecurityLog extends Model
     {
         return [
             'strike_number' => 'integer',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
+            'created_at'    => 'datetime',
+            'updated_at'    => 'datetime',
         ];
     }
 
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(GuidanceAppointment::class, 'guidance_appointment_id');
+    }
+
+    public function admissionApplicant(): BelongsTo
+    {
+        return $this->belongsTo(AdmissionApplicant::class, 'applicant_id');
     }
 }

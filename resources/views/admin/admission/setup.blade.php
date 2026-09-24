@@ -180,6 +180,10 @@
                                         <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
                                             Completed / Archived
                                         </span>
+                                    @elseif ($cycle->status === 'Maintenance')
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-cone-striped me-1"></i>Maintenance
+                                        </span>
                                     @elseif ($cycle->isActive())
                                         <span class="badge bg-success">
                                             Active
@@ -220,11 +224,32 @@
                                                     data-bs-target="#editCycle{{ $cycle->id }}">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
+
+                                            {{-- ── MAINTENANCE MODE TOGGLE ── --}}
+                                            @if($cycle->status === 'Maintenance')
+                                                <form method="post" action="{{ route('admin.admission.cycles.activate', $cycle) }}" class="d-inline"
+                                                      onsubmit="return confirm('Exit Maintenance Mode and re-activate this cycle?');">
+                                                    @csrf
+                                                    <button class="btn btn-sm btn-warning fw-semibold" title="Exit Maintenance Mode">
+                                                        <i class="bi bi-cone-striped me-1"></i> Exit Maintenance
+                                                    </button>
+                                                </form>
+                                            @elseif($cycle->isActive())
+                                                <form method="post" action="{{ route('admin.admission.cycles.save', $cycle) }}" class="d-inline"
+                                                      onsubmit="return confirm('Put this cycle in Maintenance Mode? The encoding sheet and masterlist will be locked until you exit maintenance.');">
+                                                    @csrf
+                                                    <input type="hidden" name="status" value="Maintenance">
+                                                    <button class="btn btn-sm btn-outline-warning" title="Enable Maintenance Mode">
+                                                        <i class="bi bi-cone-striped"></i> Maintenance
+                                                    </button>
+                                                </form>
+                                            @endif
+
                                             <form method="post" action="{{ route('admin.admission.cycles.archive', $cycle) }}"
                                                   onsubmit="return confirm('Archive this cycle? It will become read-only.');"
                                                   class="d-inline">
                                                 @csrf
-                                                <button class="btn btn-sm btn-outline-warning" title="Archive cycle">
+                                                <button class="btn btn-sm btn-outline-danger" title="Archive cycle">
                                                     <i class="bi bi-archive"></i>
                                                 </button>
                                             </form>

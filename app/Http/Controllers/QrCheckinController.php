@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\QrVerificationRequest;
+use App\Models\AdmissionApplicant;
 use App\Models\Applicant;
 use App\Models\AttendanceLog;
 use App\Models\SessionApplicant;
 use App\Models\TestSession;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -16,69 +17,65 @@ class QrCheckinController extends Controller
     public function show(string $token): View
     {
         $sessionRecord = $this->findSession($token);
-
         return view('examinee.checkin', [
-            'sessionRecord' => $sessionRecord,
-            'isCheckinOpen' => $sessionRecord->isCheckinOpen(),
+            'sessionRecord'  => $sessionRecord,
+            'isCheckinOpen'  => $sessionRecord->isCheckinOpen(),
         ]);
     }
 
-    public function verify(QrVerificationRequest $request, string $token): RedirectResponse
+    public function verify(Request $request, string $token): RedirectResponse
     {
         $sessionRecord = $this->findSession($token);
 
         if (! $sessionRecord->isCheckinOpen()) {
             throw ValidationException::withMessages([
-                'application_number' => 'This check-in QR is only available during the scheduled session time.',
+                'last_name' => 'Check-in is not open at this time.',
             ]);
         }
 
-        $assignment = $this->findAssignedApplicant($sessionRecord->id, $request->validated());
-        $applicant = $assignment->applicant;
-        $data = $request->validated();
+        // Support both admission applicants (new pipeline) and legacy applicants
+        $data = $request->validate([
+            'first_name'  => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:255'],
+            'last_name'   => ['required', 'string', 'max:255'],
+        ]);
 
-        if ($assignment->is_present) {
+        $assignment = $this->findAssignedAdmissionApplicant($sessionRecord->id, $data)
+            ?? $this->findAssignedLegacyApplicant($sessionRecord->id, $data);
+
+        if (! $assignment) {
             throw ValidationException::withMessages([
-                'application_number' => 'This applicant has already checked in for this session.',
+                'last_name' => 'The details you entered do not match any applicant assigned to this session. Please check your name spelling.',
             ]);
         }
 
-        $assignment->update([
-            'scanned_at' => now(),
-            'is_present' => true,
-        ]);
+        if ($assignment->is_present ?? false) {
+            throw ValidationException::withMessages([
+                'last_name' => 'This applicant has already checked in.',
+            ]);
+        }
 
-        AttendanceLog::updateOrCreate(
-            [
-                'test_session_id' => $assignment->test_session_id,
-                'applicant_id' => $assignment->applicant_id,
-            ],
-            [
-                'scanned_at' => now(),
-                'verified_name' => $applicant->full_name,
-                'verified_gender' => $data['gender'],
-                'verified_application_number' => $data['application_number'],
-                'ip_address' => $request->ip(),
-            ]
-        );
+        $assignment->update(['scanned_at' => now(), 'is_present' => true]);
 
-        session([
-            'session_applicant_id' => $assignment->id,
-        ]);
+        if ($assignment instanceof SessionApplicant) {
+            AttendanceLog::updateOrCreate(
+                ['test_session_id' => $assignment->test_session_id, 'applicant_id' => $assignment->applicant_id],
+                ['scanned_at' => now(), 'verified_name' => $assignment->applicant->full_name, 'ip_address' => $request->ip()]
+            );
+        }
 
-        return redirect()
-            ->route('checkin.waiting')
-            ->with('success', 'Verification complete. Please wait for the staff to start the test.');
+        session(['session_applicant_id' => $assignment->id]);
+
+        return redirect()->route('checkin.waiting')
+            ->with('success', 'Verification complete. Please wait for the exam to begin.');
     }
 
     public function waiting(): View|RedirectResponse
     {
         $assignment = $this->currentAssignment();
-
         if (! $assignment) {
             return redirect()->route('login');
         }
-
         return view('examinee.waiting', [
             'assignment' => $assignment->load(['applicant', 'testSession']),
         ]);
@@ -86,56 +83,63 @@ class QrCheckinController extends Controller
 
     private function findSession(string $token): TestSession
     {
-        return TestSession::where('qr_token', $token)
-            ->firstOrFail();
+        return TestSession::where('qr_token', $token)->firstOrFail();
     }
 
     private function currentAssignment(): ?SessionApplicant
     {
-        $assignmentId = session('session_applicant_id');
-
-        if (! $assignmentId) {
-            return null;
-        }
-
-        return SessionApplicant::with(['applicant', 'testSession'])
-            ->find($assignmentId);
+        $id = session('session_applicant_id');
+        if (! $id) return null;
+        return SessionApplicant::with(['applicant', 'testSession'])->find($id);
     }
 
     private function normalize(string $value): string
     {
-        return strtolower(preg_replace('/\s+/', ' ', trim($value)));
+        return mb_strtolower(preg_replace('/\s+/', ' ', trim($value)));
     }
 
-    private function findAssignedApplicant(int $sessionId, array $data): SessionApplicant
+    /**
+     * Find an admission applicant (new PSU-CAT pipeline) assigned to this session
+     * by matching first_name, last_name, and optionally middle_name.
+     */
+    private function findAssignedAdmissionApplicant(int $sessionId, array $data): ?SessionApplicant
     {
-        $applicant = Applicant::query()
-            ->whereRaw('LOWER(application_number) = ?', [strtolower($data['application_number'])])
-            ->whereHas('genderLookup', function ($query) use ($data): void {
-                $query->whereRaw('LOWER(name) = ?', [strtolower($data['gender'])]);
-            })
-            ->get()
-            ->first(function (Applicant $applicant) use ($data): bool {
-                return $this->normalize($applicant->full_name) === $this->normalize($data['full_name']);
-            });
+        // Find sessions that reference admission applicants via session_label
+        $session = TestSession::find($sessionId);
+        if (! $session) return null;
 
-        if (! $applicant) {
-            throw ValidationException::withMessages([
-                'full_name' => 'The details entered do not match any applicant record.',
-            ]);
+        $query = AdmissionApplicant::query()
+            ->whereRaw('LOWER(last_name) = ?', [$this->normalize($data['last_name'])])
+            ->whereRaw('LOWER(first_name) = ?', [$this->normalize($data['first_name'])])
+            ->where('session_label', $session->title);
+
+        if (!empty($data['middle_name'])) {
+            $query->whereRaw('LOWER(middle_name) = ?', [$this->normalize($data['middle_name'])]);
         }
 
-        $assignment = SessionApplicant::with(['applicant', 'testSession'])
-            ->where('test_session_id', $sessionId)
-            ->where('applicant_id', $applicant->id)
+        $admApplicant = $query->first();
+        if (! $admApplicant) return null;
+
+        // Find or create a legacy SessionApplicant bridge
+        return SessionApplicant::where('test_session_id', $sessionId)
+            ->where('applicant_id', $admApplicant->id)
             ->first();
+    }
 
-        if (! $assignment) {
-            throw ValidationException::withMessages([
-                'application_number' => 'You are not assigned to this scheduled test session.',
-            ]);
-        }
-
-        return $assignment;
+    /**
+     * Find a legacy applicant assigned to this session by name matching.
+     */
+    private function findAssignedLegacyApplicant(int $sessionId, array $data): ?SessionApplicant
+    {
+        return SessionApplicant::with(['applicant', 'testSession'])
+            ->where('test_session_id', $sessionId)
+            ->get()
+            ->first(function (SessionApplicant $sa) use ($data) {
+                $applicant = $sa->applicant;
+                if (! $applicant) return false;
+                $lastMatch  = $this->normalize($applicant->last_name ?? '')  === $this->normalize($data['last_name']);
+                $firstMatch = $this->normalize($applicant->first_name ?? '') === $this->normalize($data['first_name']);
+                return $lastMatch && $firstMatch;
+            });
     }
 }

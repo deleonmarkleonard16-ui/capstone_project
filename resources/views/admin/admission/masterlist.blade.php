@@ -35,6 +35,10 @@
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rangeAllocationModal" @disabled($isLocked)>
             <i class="bi bi-person-lines-fill me-1"></i> Range Session Allocation
         </button>
+        {{-- ── REFRESH DATA BUTTON ── --}}
+        <button class="btn btn-outline-secondary btn-sm" id="refreshMasterlistBtn" type="button" title="Reload applicant list without a full page reload">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
+        </button>
         <a class="btn btn-primary btn-sm"
            href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
             <i class="bi bi-file-earmark-word me-1"></i> DOCX Export
@@ -411,5 +415,80 @@
     </div>
 </div>
 @endforeach
+
+
+{{-- ── REFRESH DATA: AJAX re-fetch without full page reload ── --}}
+@push('scripts')
+<script>
+(function () {
+    const btn = document.getElementById('refreshMasterlistBtn');
+    if (!btn) return;
+
+    async function refresh(silent = false) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Refreshing…';
+
+        try {
+            const url  = new URL(window.location.href);
+            url.searchParams.set('_ajax_refresh', '1');
+            const res  = await fetch(url.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' }
+            });
+
+            if (!res.ok) throw new Error('Server error ' + res.status);
+            const html = await res.text();
+
+            // Parse the returned HTML and swap the applicants table body
+            const parser  = new DOMParser();
+            const doc     = parser.parseFromString(html, 'text/html');
+            const newBody  = doc.querySelector('#applicants-tbody');
+            const curBody  = document.querySelector('#applicants-tbody');
+            if (newBody && curBody) {
+                curBody.innerHTML = newBody.innerHTML;
+
+                // Re-attach modal triggers on newly injected buttons
+                if (typeof bootstrap !== 'undefined') {
+                    curBody.querySelectorAll('[data-bs-toggle="modal"]').forEach(el => {
+                        new bootstrap.Modal(document.querySelector(el.dataset.bsTarget));
+                    });
+                }
+            }
+
+            if (!silent) showToast('Masterlist refreshed successfully.', 'success');
+        } catch (err) {
+            if (!silent) showToast('Refresh failed: ' + err.message, 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh Data';
+        }
+    }
+
+    function showToast(msg, type) {
+        const container = document.getElementById('toast-container')
+            || (() => {
+                const c = document.createElement('div');
+                c.id = 'toast-container';
+                c.className = 'toast-container position-fixed top-0 end-0 p-3';
+                c.style.zIndex = '9999';
+                document.body.appendChild(c);
+                return c;
+            })();
+        const toast = document.createElement('div');
+        toast.className = `toast show text-bg-${type} border-0`;
+        toast.innerHTML = `<div class="toast-body d-flex justify-content-between align-items-center">
+            <span>${msg}</span>
+            <button class="btn-close btn-close-white ms-2" onclick="this.closest('.toast').remove()"></button>
+        </div>`;
+        container.prepend(toast);
+        setTimeout(() => { try { toast.remove(); } catch (e) {} }, 4000);
+    }
+
+    btn.addEventListener('click', () => refresh(false));
+
+    // Auto-refresh every 60 seconds (silent)
+    setInterval(() => refresh(true), 60000);
+})();
+</script>
+@endpush
 
 @endsection

@@ -1,9 +1,8 @@
 @php
     $user        = auth()->user();
-    $rawRole     = $user?->role ?? ($user?->role_id === 1 ? 'admin' : ($user?->role_id === 2 ? 'staff' : 'guest'));
-    $role        = strtolower((string) $rawRole);
-    $isAdmin     = $role === 'admin' || (int) ($user?->role_id ?? 0) === 1;
-    $isStaff     = $role === 'staff' || (int) ($user?->role_id ?? 0) === 2;
+    $role        = strtolower((string) ($user?->role ?? 'guest'));
+    $isAdmin     = $role === 'admin';
+    $isStaff     = $role === 'staff';
     $displayRole = $isStaff ? 'STAFF' : ($isAdmin ? 'ADMIN' : strtoupper($role));
 
     // Detect active admission sub-page

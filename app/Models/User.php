@@ -47,9 +47,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'can_proctor' => 'boolean',
-            'is_active' => 'boolean',
+            'password'          => 'hashed',
+            'can_proctor'       => 'boolean',
+            'is_active'         => 'boolean',
         ];
     }
 
@@ -58,30 +58,42 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id');
     }
 
-    public function getAttribute($key)
+    /**
+     * Accessor: $user->role always returns the slug of the linked Role row.
+     * Uses the already-loaded relation if available, otherwise queries the DB.
+     */
+    public function getRoleAttribute(): ?string
     {
-        if ($key === 'role') {
-            return $this->roleLookup?->slug ?? $this->roleLookup?->name;
+        // If relation already loaded (eager or lazy), use it directly.
+        if ($this->relationLoaded('roleLookup')) {
+            return $this->getRelation('roleLookup')?->slug;
         }
 
-        return parent::getAttribute($key);
+        // Otherwise hit the DB with a single lightweight query.
+        if ($this->role_id) {
+            return $this->roleLookup()->value('slug');
+        }
+
+        return null;
     }
 
-    public function setAttribute($key, $value)
+    /**
+     * Mutator: $user->role = 'staff'  →  sets role_id from the roles table.
+     */
+    public function setRoleAttribute(mixed $value): void
     {
-        if ($key === 'role') {
-            $role = is_numeric($value)
-                ? Role::find($value)
-                : Role::query()
-                    ->where('slug', strtolower((string) $value))
-                    ->orWhere('name', $value)
-                    ->first();
-
-            $this->attributes['role_id'] = $role?->id;
-
-            return $this;
+        if ($value === null) {
+            $this->attributes['role_id'] = null;
+            return;
         }
 
-        return parent::setAttribute($key, $value);
+        $role = is_numeric($value)
+            ? Role::find($value)
+            : Role::query()
+                ->where('slug', strtolower((string) $value))
+                ->orWhere('name', $value)
+                ->first();
+
+        $this->attributes['role_id'] = $role?->id;
     }
 }

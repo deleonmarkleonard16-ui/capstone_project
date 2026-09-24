@@ -17,8 +17,8 @@ class AdmissionCycleGatekeeper
      * assertStatus(409) on both browser and API requests.
      *
      * Maintenance Mode: if the active cycle has status='Maintenance', encoding
-     * operations are blocked (same as no cycle) — only Setup/Cycle management
-     * routes remain open.
+     * operations are blocked (same as no cycle) — only Setup/Cycle management,
+     * Archive, and Analytics overview routes remain open.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -29,8 +29,8 @@ class AdmissionCycleGatekeeper
             return $next($request);
         }
 
-        // 2. Setup & cycle lifecycle routes are always open
-        if ($request->routeIs('admin.admission.index', 'admin.admission.cycles.*')) {
+        // 2. Setup, cycle lifecycle, analytics, archive overview, and legacy session management routes are always open
+        if ($request->routeIs('admin.admission.index', 'admin.admission.cycles.*', 'admin.admission.analytics', 'admin.admission.archive', 'admin.sessions.*')) {
             return $next($request);
         }
 
@@ -38,9 +38,7 @@ class AdmissionCycleGatekeeper
         if (
             $request->routeIs(
                 'admin.admission.masterlist',
-                'admin.admission.report',
-                'admin.admission.analytics',
-                'admin.admission.archive'
+                'admin.admission.report'
             )
             && $request->filled('cycle_id')
             && AdmissionCycle::whereKey($request->integer('cycle_id'))->exists()

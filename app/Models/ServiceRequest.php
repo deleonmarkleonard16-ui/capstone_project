@@ -8,6 +8,11 @@ class ServiceRequest extends Model
 {
     protected $guarded = ['id'];
 
+    protected $attributes = [
+        'student_number' => '',
+        'purpose' => '',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -87,14 +92,15 @@ class ServiceRequest extends Model
         return \App\Support\CourseCatalog::label($this->course, $this->legacy_course);
     }
 
-    public function getOfficialFeeAttribute(): float
+    public function getOfficialFeeAttribute(): ?float
     {
-        return \App\Support\RequestFees::total($this->service, $this->tests ?? [], $this->copies ?? 1);
+        $fee = \App\Support\RequestFees::total($this->service, $this->tests ?? [], $this->copies ?? 1);
+        return $fee !== null ? (float) $fee : null;
     }
 
     public function getOfficialFeeFormattedAttribute(): string
     {
-        return '₱' . number_format($this->official_fee, 2);
+        return $this->official_fee !== null ? '₱' . number_format($this->official_fee, 2) : 'Free';
     }
 
     public function checkAndApplyExpiration(): bool

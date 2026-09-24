@@ -266,10 +266,7 @@
             {{-- ── 2. TESTING REQUEST (Parent Accordion / Sub-menu) ── --}}
             <details class="sb-group"
                      @if($activeGuidanceModule && in_array($activeGuidanceModule,['psychological','personality','career'])) open @endif>
-                <summary>
-                    <span><i class="bi bi-clipboard2-pulse me-1"></i> Testing Request</span>
-                    <span class="sb-badge">Modules&nbsp;<i class="bi bi-chevron-right sb-chevron"></i></span>
-                </summary>
+                <summary>Request Testing</summary>
                 <div class="sb-sub">
                     <a class="sidebar-link {{ request()->routeIs("{$role}.psychological.*") ? 'active' : '' }}"
                        href="{{ route("{$role}.psychological.index") }}"

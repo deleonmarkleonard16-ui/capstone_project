@@ -33,22 +33,33 @@ class GuidanceSettingsController extends Controller
             'is_active' => 'nullable',
         ]);
 
+        $code = strtoupper(trim($data['code']));
         $isActive = $request->boolean('is_active', true);
+
+        // Official campus programs cannot be disabled
+        if ($course && array_key_exists($course->code, CourseCatalog::OPTIONS) && ! $isActive) {
+            abort(422, 'Official campus programs cannot be disabled.');
+        }
+
+        // Only official campus programs can be added
+        if (! $course && ! array_key_exists($code, CourseCatalog::OPTIONS)) {
+            return back()->with('error', 'Only official campus programs may be configured.');
+        }
 
         if ($course) {
             $course->update([
-                'code' => trim($data['code']),
+                'code' => $code,
                 'name' => trim($data['name']),
                 'is_active' => $isActive,
             ]);
             $msg = "Program '{$course->code}' updated successfully.";
         } else {
             Course::create([
-                'code' => trim($data['code']),
+                'code' => $code,
                 'name' => trim($data['name']),
                 'is_active' => $isActive,
             ]);
-            $msg = "New program '{$data['code']}' added successfully.";
+            $msg = "New program '{$code}' added successfully.";
         }
 
         return back()->with('success', $msg);

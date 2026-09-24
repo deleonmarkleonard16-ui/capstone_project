@@ -268,7 +268,7 @@
     <div class="card page-card shadow-sm p-5 text-center">
         <i class="bi bi-calendar-x fs-1 text-muted mb-2"></i>
         <h4 class="fw-bold">No Admission Cycles Available</h4>
-        <p class="text-muted small">Please initialize or activate an admission cycle to view analytics.</p>
+        <p class="text-muted small">No admission cycles available. Please initialize or activate an admission cycle to view analytics.</p>
         <div>
             <a href="{{ route('admin.admission.index') }}" class="btn btn-primary btn-sm">
                 Go to Admission Cycle Hub

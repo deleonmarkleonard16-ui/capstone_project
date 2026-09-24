@@ -45,13 +45,17 @@
         #timer.danger { background: #7c1e1e; color: #ff6060; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-        /* Answer grid: questions vertical, A B C D horizontal */
-        .question-card { background: #111e45; border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px; border: 2px solid transparent; transition: border-color 0.2s; }
+        /* Answer grid: 4 vertical balanced columns of 20 items */
+        .exam-columns-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        @media (max-width: 992px) { .exam-columns-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 576px) { .exam-columns-grid { grid-template-columns: 1fr; } }
+        .exam-column { display: flex; flex-direction: column; gap: 8px; }
+        .question-card { background: #111e45; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1.5px solid transparent; transition: border-color 0.2s; }
         .question-card:hover { border-color: #2a4580; }
         .question-card.answered { border-color: #1e5c3e; background: #0e2a1e; }
-        .q-num { font-size: 14px; font-weight: 700; color: #a8c0e8; min-width: 32px; }
-        .choices { display: flex; gap: 10px; flex-wrap: wrap; }
-        .choice-label { cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; padding: 8px 18px; border-radius: 6px; border: 2px solid #2a4580; color: #c8d8f0; transition: all 0.15s; }
+        .q-num { font-size: 13px; font-weight: 700; color: #a8c0e8; min-width: 24px; font-family: monospace; }
+        .choices { display: flex; gap: 6px; }
+        .choice-label { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-size: 13px; font-weight: 700; border-radius: 50%; border: 1.5px solid #2a4580; color: #c8d8f0; transition: all 0.15s; }
         .choice-label:hover { border-color: #4a7be0; color: #fff; background: #1e3060; }
         .choice-label input[type="radio"] { display: none; }
         .choice-label input[type="radio"]:checked + span { font-weight: 800; }
@@ -136,19 +140,26 @@
 
     <form id="exam-form">
         @csrf
-        @for($i = 1; $i <= 80; $i++)
-        <div class="question-card" id="qcard-{{ $i }}" data-item="{{ $i }}">
-            <div class="q-num">{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}</div>
-            <div class="choices">
-                @foreach(['A','B','C','D'] as $letter)
-                <label class="choice-label" for="a{{ $i }}_{{ $letter }}">
-                    <input type="radio" name="answers[{{ $i }}]" id="a{{ $i }}_{{ $letter }}" value="{{ $letter }}">
-                    <span>{{ $letter }}</span>
-                </label>
-                @endforeach
-            </div>
+        <div class="exam-columns-grid">
+            @for($col = 0; $col < 4; $col++)
+                <div class="exam-column">
+                    @for($row = 1; $row <= 20; $row++)
+                        @php($i = $col * 20 + $row)
+                        <div class="question-card" id="qcard-{{ $i }}" data-item="{{ $i }}">
+                            <div class="q-num">{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}.</div>
+                            <div class="choices">
+                                @foreach(['A','B','C','D'] as $letter)
+                                <label class="choice-label" for="a{{ $i }}_{{ $letter }}">
+                                    <input type="radio" name="answers[{{ $i }}]" id="a{{ $i }}_{{ $letter }}" value="{{ $letter }}">
+                                    <span>{{ $letter }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endfor
+                </div>
+            @endfor
         </div>
-        @endfor
     </form>
 
     <div id="submit-bar">

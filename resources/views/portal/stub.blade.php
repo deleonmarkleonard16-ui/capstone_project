@@ -1,8 +1,8 @@
-@php($officialFee = $entry->official_fee ?? \App\Support\RequestFees::total($entry->service, $entry->tests ?? [], $entry->copies ?? 1))
-@if($officialFee !== null)<p class="notice"><strong>Official fee: Php {{ number_format($officialFee, 2) }}</strong></p>@endif
 @if($entry->guidanceAppointments()->exists())
 @include('guidance.stub', ['tracking' => $tracking ?? false])
 @else
+@php($officialFee = $entry->official_fee ?? \App\Support\RequestFees::total($entry->service, $entry->tests ?? [], $entry->copies ?? 1))
+@if($officialFee !== null)<p class="notice"><strong>Official fee: Php {{ number_format($officialFee, 2) }}</strong></p>@endif
 <section class="card payment-stub" id="payment-stub">
     <div class="request-banner">{{ ['good-moral'=>'GOOD MORAL CHARACTER REQUEST STUB','exit-form'=>'EXIT FORM CLEARANCE STUB'][$entry->service] ?? 'TESTING REQUEST STUB' }}</div>
     <h2>Pangasinan State University – San Carlos Campus</h2>
@@ -26,7 +26,9 @@
     </div>
     <div style="border-top:1px dashed #aaa;margin-top:24px;padding-top:20px"><strong>FOR OFFICE USE</strong><p>Amount Paid / Amount Due: <strong>{{ $entry->official_fee_formatted ?? '₱60.00' }}</strong> &nbsp; Receipt / Stub number: __________________</p><p>Payment date: __________________ &nbsp; Verified by / stamp: __________________</p></div>
     <p class="muted">This is a request stub, not proof of payment. The payment office confirms the applicable fee.</p>
-    <button type="button" class="no-print" onclick="window.print()">PRINT / SAVE STUB</button>
+    <button type="button" class="no-print button" data-download-stub data-ref="{{ $entry->reference }}" style="margin-top:12px;font-weight:700;">
+        📥 DOWNLOAD REQUEST STUB (PRINT / SAVE STUB)
+    </button>
 </section>
 
 @if($entry->isVoid())
@@ -37,8 +39,8 @@
 </section>
 @else
 <section class="card no-print"><h2>What to do next</h2><ol>
-    <li>Print or save your request stub and keep your tracking number: <strong>{{ $entry->reference }}</strong></li>
-    <li>Present the stub to the Registrar or Cashier and follow payment instructions. <em>(Note: You have 5 days from request date to complete this step before the request is voided.)</em></li>
+    <li>Download or print your request stub above and keep your tracking number: <strong>{{ $entry->reference }}</strong></li>
+    <li>Present the stub to the Registrar or Cashier and pay the fee of <strong>₱60.00</strong>. <em>(Note: You have 5 days from request date before the request expires.)</em></li>
     <li>Upload a clear photo of your paid/stamped stub or official payment receipt below.</li>
     <li>Wait for the guidance office to verify your payment. Track this request for updates.</li>
     @if($entry->service === 'testing')
@@ -58,24 +60,32 @@
 @endif
 
 @if(in_array($entry->status, ['pending','approved']) && ($tracking ?? false))
-<form method="POST" action="{{ route('portal.receipt') }}" enctype="multipart/form-data" data-guidance-receipt>
-    @csrf
-    <input type="hidden" name="reference" value="{{ $entry->reference }}">
-    <div style="margin-bottom:12px">
-        <label for="portal-or_number-{{ $entry->id }}">Official Receipt Number</label>
-        <input id="portal-or_number-{{ $entry->id }}" name="or_number" type="text" maxlength="50" placeholder="Official Receipt Number" required>
+<div class="stub-download-gate" data-gate-ref="{{ $entry->reference }}" style="margin-top:16px;">
+    <div class="notice notice-warn stub-download-lock-msg" id="stub-lock-msg-{{ $entry->reference }}" style="background:#fff8e6;border-left:4px solid #f59e0b;padding:14px;border-radius:8px;margin-bottom:14px;">
+        <span style="font-size:18px;margin-right:6px;">⚠️</span>
+        <strong>Action Required:</strong> You must click <strong>"DOWNLOAD REQUEST STUB"</strong> above before you can proceed to upload your payment receipt.
     </div>
-    <div style="margin-bottom:12px">
-        <label for="portal-or_date-{{ $entry->id }}">Receipt Date</label>
-        <input id="portal-or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
+    <div class="receipt-upload-container" id="receipt-upload-box-{{ $entry->reference }}">
+        <form method="POST" action="{{ route('portal.receipt') }}" enctype="multipart/form-data" data-guidance-receipt>
+            @csrf
+            <input type="hidden" name="reference" value="{{ $entry->reference }}">
+            <div style="margin-bottom:12px">
+                <label for="portal-or_number-{{ $entry->id }}">Official Receipt Number</label>
+                <input id="portal-or_number-{{ $entry->id }}" name="or_number" type="text" maxlength="50" placeholder="Official Receipt Number" required>
+            </div>
+            <div style="margin-bottom:12px">
+                <label for="portal-or_date-{{ $entry->id }}">Receipt Date</label>
+                <input id="portal-or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
+            </div>
+            <div style="margin-bottom:12px">
+                <label for="proof-{{ $entry->id }}">Upload paid/stamped stub or receipt (JPG, PNG, WebP; up to 5 MB)</label>
+                <input id="proof-{{ $entry->id }}" name="payment_slip" type="file" accept="image/jpeg,image/png,image/webp" required>
+            </div>
+            <button style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button>
+            <p data-upload-message role="status"></p>
+        </form>
     </div>
-    <div style="margin-bottom:12px">
-        <label for="proof-{{ $entry->id }}">Upload paid/stamped stub or receipt (JPG, PNG, WebP; up to 5 MB)</label>
-        <input id="proof-{{ $entry->id }}" name="payment_slip" type="file" accept="image/jpeg,image/png,image/webp" required>
-    </div>
-    <button style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button>
-    <p data-upload-message role="status"></p>
-</form>
+</div>
 @elseif(in_array($entry->status, ['pending','approved']))
 <a class="button" href="/portal?service={{ $entry->service }}#track">Track Existing Request / Upload Receipt</a>
 @endif

@@ -133,7 +133,7 @@
                     <div><strong>1st Choice Program:</strong> {{ \App\Support\CourseCatalog::label($applicant->course_choice) }}</div>
                 </div>
                 <div class="proctor-notice">
-                    <strong>NOTICE TO PROCTOR:</strong> Match valid test permit / photo ID against the printed name above before handing out this sheet.
+                    <strong>NOTICE TO PROCTOR:</strong> Match valid test permit / valid ID against the printed name above before handing out this sheet.
                     Examinees must completely shade only one bubble per item using dark pencil or pen.
                 </div>
             </td>

@@ -52,7 +52,7 @@ class GuidanceTrackingController extends Controller
         $data = $request->validated();
         $reference = strtoupper($data['reference']);
         $reference = GuidanceAppointment::whereNull('batch_id')->where('request_code', $reference)->first()?->serviceRequest?->reference ?? $reference;
-        $portal->uploadReceipt($reference, $request->file('payment_slip'), $data['or_number'], $data['or_date']);
+        $portal->uploadReceipt($reference, $request->file('payment_slip'), $data['or_number'] ?? null, $data['or_date'] ?? null);
         if ($request->expectsJson()) return response()->json(['status' => 'Receipt Uploaded', 'message' => 'Receipt uploaded. Please wait for staff verification.']);
         return redirect('/portal?service=testing#track')->with('tracking_reference', $reference)->with('portal_notice', 'Receipt uploaded. Please wait for staff verification.');
     }

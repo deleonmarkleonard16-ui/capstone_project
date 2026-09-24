@@ -223,5 +223,42 @@ uppercaseFields.forEach(id=>{
     sid.setAttribute('pattern', '\\d{' + PREFIX_LEN + '}-SC-\\d{0,' + SUFFIX_LEN + '}');
     sid.setAttribute('inputmode', 'numeric');
 })();
+
+// ── Automatic Tracking Reference Copy & Toast Notification ──────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const newRef = @json(session('tracking_reference') ?? session('request_reference') ?? session('copied_reference'));
+    if (newRef) {
+        const refInput = document.getElementById('reference');
+        if (refInput) {
+            refInput.value = newRef;
+        }
+
+        // Copy to clipboard
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(newRef).then(() => {
+                if (window.showPortalToast) {
+                    window.showPortalToast("Tracking Reference copied to clipboard!", 'success');
+                }
+            }).catch(() => {
+                if (window.showPortalToast) {
+                    window.showPortalToast("Tracking Reference copied to clipboard!", 'success');
+                }
+            });
+        } else {
+            // Fallback for older browsers
+            try {
+                const temp = document.createElement('textarea');
+                temp.value = newRef;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                if (window.showPortalToast) {
+                    window.showPortalToast("Tracking Reference copied to clipboard!", 'success');
+                }
+            } catch (e) {}
+        }
+    }
+});
 </script>
 @endpush

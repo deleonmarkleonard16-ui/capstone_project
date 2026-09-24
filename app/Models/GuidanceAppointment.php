@@ -11,6 +11,11 @@ class GuidanceAppointment extends Model
     public const STATUSES = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress', 'Completed'];
     protected $primaryKey = 'guidance_appointment_id';
     protected $guarded = ['guidance_appointment_id'];
+
+    protected $attributes = [
+        'student_status' => 'student',
+    ];
+
     public function securityIncidents(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(GuidanceSecurityIncident::class, 'guidance_appointment_id');

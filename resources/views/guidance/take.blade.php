@@ -15,12 +15,61 @@ body { user-select:none; -webkit-user-select:none; }
 .stepper-pill { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; transition: background 0.3s; }
 .stepper-pill.active { background: #2563eb; }
 .stepper-pill.completed { background: #16a34a; }
-.item-card { border: 1px solid #e2e8f0; border-radius: 8px; transition: border-color 0.2s; }
-.item-card:hover { border-color: #94a3b8; }
-.item-card.unanswered { border-color: #ef4444; background: #fef2f2; }
-.option-label { cursor: pointer; transition: all 0.15s; }
-.option-label:hover { background: #f1f5f9; border-color: #cbd5e1; }
-input[type="radio"]:checked + span, .form-check-input:checked ~ .option-text { font-weight: bold; color: #2563eb; }
+
+/* ── Vertical Column Answer Sheet Styling ── */
+.vertical-sheet-column {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px;
+}
+.vertical-item-row {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s ease;
+    border-radius: 6px;
+}
+.vertical-item-row:last-child {
+    border-bottom: none;
+}
+.vertical-item-row:hover {
+    background: #f8fafc;
+}
+.vertical-item-row.unanswered {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+}
+.bubble-choice-label {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: 6px;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+.bubble-choice-label:hover {
+    border-color: #2563eb;
+    color: #1d4ed8;
+    background: #eff6ff;
+}
+.bubble-choice-input {
+    display: none !important;
+}
+.bubble-choice-label:has(.bubble-choice-input:checked) {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.35);
+}
 </style>
 @endpush
 
@@ -48,7 +97,7 @@ input[type="radio"]:checked + span, .form-check-input:checked ~ .option-text { f
 <div id="assessment-lock" role="dialog" aria-modal="true" aria-labelledby="lock-title">
     <div class="card shadow-lg"><div class="card-body p-4 text-center">
         <h1 class="h4 fw-bold mb-3" id="lock-title">Ready to start?</h1>
-        <p class="text-muted">Record each answer in the assessment below. For paper-based tests, use the question booklet provided by the Guidance Office.</p>
+        <p class="text-muted">Record each answer in the vertical answer sheet below using your paper question booklet.</p>
         <div class="alert alert-warning text-start small">
             <strong>Lockdown Rules:</strong>
             <ul class="mb-0 ps-3 mt-1">
@@ -74,7 +123,7 @@ input[type="radio"]:checked + span, .form-check-input:checked ~ .option-text { f
     <div class="sticky-assessment-header d-flex flex-wrap justify-content-between align-items-center">
         <div>
             <h2 class="h5 mb-0 fw-bold">{{ $appointment->testLabel() }}</h2>
-            <small class="text-muted">Digital Answer Sheet · Step <span id="current-step-label">1</span> of {{ $totalSteps }}</small>
+            <small class="text-muted">Paper-Based Answer Sheet · Step <span id="current-step-label">1</span> of {{ $totalSteps }}</small>
         </div>
         <div class="d-flex align-items-center gap-3">
             <span class="small text-muted d-none d-sm-inline">Time Remaining:</span>
@@ -97,34 +146,62 @@ input[type="radio"]:checked + span, .form-check-input:checked ~ .option-text { f
                     $test = $section['test'];
                     $def = $definitions[$test] ?? $definition;
                     $isSingle = !$appointment->test_types;
+                    
+                    // Split items into 2-3 balanced vertical columns
+                    $itemsCount = count($section['items']);
+                    $colsCount = $itemsCount > 20 ? 3 : ($itemsCount > 10 ? 2 : 1);
+                    $chunkSize = (int) ceil($itemsCount / $colsCount);
+                    $itemChunks = array_chunk($section['items'], max(1, $chunkSize));
                 @endphp
 
                 <div class="assessment-step" data-step="{{ $stepNum }}" data-test="{{ $test }}" @if($stepNum !== 1) hidden @endif>
-                    <div class="card mb-4 bg-light border-0">
+                    <div class="card mb-3 bg-light border-0">
                         <div class="card-body p-3">
-                            <h3 class="h5 mb-1 fw-bold text-primary">{{ $section['label'] }}</h3>
-                            <p class="text-muted small mb-0">@if($test === 'career')Rate your interest in each activity from 1 (Not interested) to 5 (Extremely interested).@else Refer to your paper question booklet for {{ \App\Services\GuidanceTestScoringService::LABELS[$test] ?? $test }}. Record your answer for all {{ $def['items'] }} questions below.@endif</p>
+                            <h3 class="h6 mb-1 fw-bold text-primary">{{ $section['label'] }}</h3>
+                            <p class="text-muted small mb-0">Refer to your paper question booklet for {{ \App\Services\GuidanceTestScoringService::LABELS[$test] ?? $test }}. Record your answer for all {{ $def['items'] }} items in the vertical grid below.</p>
                         </div>
                     </div>
 
+                    {{-- ── VERTICAL MULTI-COLUMN CHOICES GRID (NO QUESTIONS) ── --}}
                     <div class="row g-3">
-                        @foreach($section['items'] as $item)
-                            @php
-                                $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
-                                $fieldId = "item-{$test}-{$item}";
-                            @endphp
-                            <div class="col-md-6 col-lg-4">
-                                <div class="card item-card p-3 h-100" id="card-{{ $test }}-{{ $item }}">
-                                    <div class="fw-bold mb-2 text-secondary small">ITEM {{ $item }}</div>
-                                    @if($test === 'career')<p>{{ $def['questions'][$item] }}</p>@endif
-                                    <div class="d-flex flex-wrap gap-2">
-                                        @for($choice = $def['min']; $choice <= $def['max']; $choice++)
-                                            <label class="form-check-label border rounded px-3 py-2 option-label flex-fill text-center" for="{{ $fieldId }}-{{ $choice }}">
-                                                <input class="form-check-input me-1" id="{{ $fieldId }}-{{ $choice }}" type="radio" name="{{ $inputName }}" value="{{ $choice }}" @checked(isset($sessionState['answers'][$test][$item]) && (int) $sessionState['answers'][$test][$item] === $choice) required>
-                                                <span class="option-text">{{ $test === 'bfpi' ? number_format($choice, 2) : $choice }}@if($test === 'career') — {{ $def['choices'][$choice] }}@endif</span>
-                                            </label>
-                                        @endfor
+                        @foreach($itemChunks as $chunk)
+                            <div class="col-12 col-md-{{ 12 / count($itemChunks) }}">
+                                <div class="vertical-sheet-column shadow-sm">
+                                    <div class="text-center py-1 mb-2 border-bottom fw-bold small text-secondary bg-light rounded-2">
+                                        Items {{ $chunk[0] }} – {{ end($chunk) }}
                                     </div>
+                                    @foreach($chunk as $item)
+                                        @php
+                                            $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
+                                            $fieldId = "item-{$test}-{$item}";
+                                        @endphp
+                                        <div class="d-flex flex-column vertical-item-row" id="card-{{ $test }}-{{ $item }}" data-item="{{ $item }}">
+                                            @if(!empty($def['questions'][$item]))
+                                                <div class="small text-muted mb-1 fw-medium">{{ $def['questions'][$item] }}</div>
+                                            @endif
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <span class="fw-bold small text-secondary font-monospace" style="min-width: 32px;">
+                                                    {{ str_pad($item, 2, '0', STR_PAD_LEFT) }}.
+                                                </span>
+                                                <div class="d-flex gap-1 gap-sm-2 flex-wrap justify-content-end">
+                                                    @for($choice = $def['min']; $choice <= $def['max']; $choice++)
+                                                        @php
+                                                            $currentVal = $sessionState['answers'][$test][$item] ?? $sessionState['answers'][$item] ?? null;
+                                                            $isChecked = ($currentVal !== null && (string) $currentVal === (string) $choice);
+                                                            $choiceText = $def['choices'][$choice] ?? null;
+                                                        @endphp
+                                                        <label class="bubble-choice-label" for="{{ $fieldId }}-{{ $choice }}" title="Item {{ $item }}: {{ $choice }}{{ $choiceText ? ' - ' . $choiceText : '' }}">
+                                                            <input class="bubble-choice-input" id="{{ $fieldId }}-{{ $choice }}" type="radio" name="{{ $inputName }}" value="{{ $choice }}" @checked($isChecked) required>
+                                                            <span>{{ $test === 'bfpi' ? number_format($choice, 2) : $choice }}</span>
+                                                            @if($choiceText)
+                                                                <span class="visually-hidden">{{ $choiceText }}</span>
+                                                            @endif
+                                                        </label>
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
                         @endforeach

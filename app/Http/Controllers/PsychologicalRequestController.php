@@ -202,24 +202,33 @@ class PsychologicalRequestController extends Controller
         DB::transaction(function () use ($request, $data) {
             $entry = ServiceRequest::where('reference', $data['reference'])->lockForUpdate()->first();
             abort_unless($entry, 404);
+            if ($entry->guidanceAppointments()->exists()) {
+                throw ValidationException::withMessages(['proof' => 'Use the guidance tracking interface to upload payment receipts for testing assessments.']);
+            }
             if ($entry->batch_id) {
-                throw ValidationException::withMessages(['payment_slip' => 'Use the batch QR link to verify your roster identity before uploading a receipt.']);
+                throw ValidationException::withMessages([
+                    'payment_slip' => 'Use the batch QR link to verify your roster identity before uploading a receipt.',
+                    'proof'        => 'Use the batch QR link to verify your roster identity before uploading a receipt.',
+                ]);
             }
             if (! in_array($entry->status, ['pending', 'approved'], true)) {
-                throw ValidationException::withMessages(['payment_slip' => 'A stub can only be uploaded while awaiting payment or a replacement stub.']);
+                throw ValidationException::withMessages([
+                    'payment_slip' => 'A stub can only be uploaded while awaiting payment or a replacement stub.',
+                    'proof'        => 'A stub can only be uploaded while awaiting payment or a replacement stub.',
+                ]);
             }
             $path = $request->file('payment_slip')->store('receipts', 'local');
             abort_unless($path, 500, 'Unable to save receipt. Please try again.');
             $entry->update([
                 'proof_path' => $path,
-                'or_number' => $data['or_number'],
-                'or_date' => $data['or_date'],
+                'or_number' => $data['or_number'] ?? null,
+                'or_date' => $data['or_date'] ?? null,
                 'status' => 'proof_review',
             ]);
             $entry->guidanceAppointments()->update([
                 'payment_slip_path' => $path,
-                'or_number' => $data['or_number'],
-                'or_date' => $data['or_date'],
+                'or_number' => $data['or_number'] ?? null,
+                'or_date' => $data['or_date'] ?? null,
                 'status' => 'Receipt Uploaded',
                 'appointment_at' => now(),
             ]);

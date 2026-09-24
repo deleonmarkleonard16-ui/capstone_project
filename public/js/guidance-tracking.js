@@ -3,18 +3,99 @@
     if (!form) return;
     let pollTimer, activeReference = '', lastPayload = '', lookupVersion = 0, lookupController;
     let uploading = false;
+
+    // ── Toast notification helper ──────────────────────────────────────────
+    function showToast(message, type = 'success') {
+        let toast = document.getElementById('portal-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'portal-toast';
+            toast.className = 'portal-toast';
+            toast.setAttribute('role', 'alert');
+            toast.style.cssText = `
+                position: fixed;
+                top: 24px;
+                right: 24px;
+                z-index: 99999;
+                background: ${type === 'success' ? '#166534' : '#1e3a8a'};
+                color: #ffffff;
+                padding: 14px 24px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 15px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+                transition: opacity 0.3s ease, transform 0.3s ease;
+                opacity: 0;
+                transform: translateY(-10px);
+                pointer-events: none;
+            `;
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.background = (type === 'success' ? '#166534' : '#1e3a8a');
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px)';
+        }, 4000);
+    }
+    window.showPortalToast = showToast;
+
+    // ── Stub download gates verification ───────────────────────────────────
+    function checkStubDownloadGates() {
+        document.querySelectorAll('.stub-download-gate').forEach(gate => {
+            const ref = gate.dataset.gateRef || activeReference;
+            const isDownloaded = ref ? localStorage.getItem('stub_downloaded_' + ref) === 'true' : false;
+            const lockMsg = gate.querySelector('.stub-download-lock-msg');
+            const uploadBox = gate.querySelector('.receipt-upload-container');
+
+            if (isDownloaded) {
+                if (lockMsg) lockMsg.style.display = 'none';
+                if (uploadBox) {
+                    uploadBox.style.display = 'block';
+                    uploadBox.querySelectorAll('input, select, button').forEach(el => el.disabled = false);
+                }
+            } else {
+                if (lockMsg) lockMsg.style.display = 'block';
+                if (uploadBox) {
+                    uploadBox.style.display = 'none';
+                    uploadBox.querySelectorAll('input, select, button').forEach(el => el.disabled = true);
+                }
+            }
+        });
+    }
+
+    // ── Print / Download stub event listener ──────────────────────────────
     document.addEventListener('click', event => {
-        const button = event.target.closest('[data-print-stub]');
+        const button = event.target.closest('[data-download-stub], [data-print-stub]');
         if (!button) return;
-        document.querySelectorAll('.selected-stub').forEach(stub => stub.classList.remove('selected-stub'));
-        button.closest('.payment-stub').classList.add('selected-stub');
+        const stub = button.closest('.payment-stub') || document.getElementById('payment-stub');
+        const ref = button.dataset.ref || (form.querySelector('[name="reference"]')?.value.trim() || activeReference);
+
+        if (ref) {
+            localStorage.setItem('stub_downloaded_' + ref, 'true');
+        }
+
+        document.querySelectorAll('.selected-stub').forEach(s => s.classList.remove('selected-stub'));
+        if (stub) stub.classList.add('selected-stub');
         document.body.classList.add('printing-guidance-stub');
         window.print();
+
+        setTimeout(() => {
+            checkStubDownloadGates();
+            showToast("Request Stub downloaded! Payment receipt upload unlocked.");
+        }, 500);
     });
+
     window.addEventListener('afterprint', () => {
         document.body.classList.remove('printing-guidance-stub');
         document.querySelectorAll('.selected-stub').forEach(stub => stub.classList.remove('selected-stub'));
+        checkStubDownloadGates();
     });
+
+    // ── Receipt Upload Handler ─────────────────────────────────────────────
     document.addEventListener('submit', async event => {
         const upload = event.target.closest('[data-guidance-receipt]');
         if (!upload) return;
@@ -53,15 +134,18 @@
             if (refInput && form.querySelector('[name="reference"]')) {
                 form.querySelector('[name="reference"]').value = refInput.value.trim();
             }
+            showToast("Payment receipt uploaded successfully!");
             form.requestSubmit();
         } catch(error) { if (message) message.textContent = error.message || 'Upload failed. Please retry.'; }
         finally { uploading = false; if (button) button.disabled = false; schedulePoll(); }
     });
+
     function schedulePoll(delay = 10000) {
         clearTimeout(pollTimer);
         pollTimer = null;
         if (activeReference) pollTimer = setTimeout(() => { pollTimer = null; lookup(true); }, delay);
     }
+
     async function lookup(background = false) {
         if (background && (document.hidden || uploading)) { schedulePoll(); return; }
         const reference = form.querySelector('[name="reference"]').value.trim();
@@ -86,8 +170,10 @@
             output.textContent = 'Request status: ' + data.status;
             if (data.status === 'Completed' || data.passes.length === 0) activeReference = '';
             const payload = JSON.stringify(data);
-            // Preserve a chosen receipt file, keyboard focus and the QR image on unchanged polls.
-            if (payload === lastPayload) return;
+            if (payload === lastPayload) {
+                checkStubDownloadGates();
+                return;
+            }
             if (background && passes.querySelector('input[type="file"]')?.files.length) return;
             lastPayload = payload;
             passes.replaceChildren();
@@ -118,9 +204,11 @@
                 }
                 passes.append(card);
             }
+            checkStubDownloadGates();
         } catch(error) { if (error.name !== 'AbortError' && version === lookupVersion) output.textContent = error.message || 'Unable to connect. Please retry.'; }
-        finally { if (version === lookupVersion) { button.disabled = false; if (!pollTimer) schedulePoll(); } }
+        finally { if (version === lookupVersion) { button.disabled = false; if (!pollTimer) schedulePoll(); checkStubDownloadGates(); } }
     }
+
     form.addEventListener('submit', event => { event.preventDefault(); lookup(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && activeReference) lookup(true); });
     const autoTrack = () => {
@@ -132,4 +220,7 @@
     window.addEventListener('hashchange', () => {
         if (window.location.hash === '#track') autoTrack();
     });
+
+    // Run initial gate check
+    checkStubDownloadGates();
 })();

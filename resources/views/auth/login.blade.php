@@ -40,7 +40,12 @@
                             </div>
                             <div class="col-12">
                                 <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-12 form-check">
                                 <input type="checkbox" class="form-check-input" id="remember" name="remember" value="1">
@@ -60,4 +65,26 @@
             </div>
         </div>
     </div>
+
+<script>
+function togglePasswordVisibility() {
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('togglePasswordIcon') || document.querySelector('#togglePassword i');
+    if (!passwordInput) return;
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        if (toggleIcon) {
+            toggleIcon.classList.remove('bi-eye');
+            toggleIcon.classList.add('bi-eye-slash');
+        }
+    } else {
+        passwordInput.type = 'password';
+        if (toggleIcon) {
+            toggleIcon.classList.remove('bi-eye-slash');
+            toggleIcon.classList.add('bi-eye');
+        }
+    }
+}
+</script>
 @endsection

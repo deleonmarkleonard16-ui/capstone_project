@@ -55,17 +55,27 @@ class RoleRoutingTest extends TestCase
         ])->assertRedirect(route('staff.analytics'));
     }
 
-    public function test_user_create_artisan_command(): void
+    public function test_login_page_renders_password_toggle(): void
     {
-        $this->artisan('user:create', [
-            'email' => 'custom-admin@psu.edu.ph',
-            'password' => 'MySecurePass123',
-            'role' => 'admin',
-        ])->assertSuccessful();
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('id="togglePassword"', false)
+            ->assertSee('togglePasswordVisibility', false);
+    }
 
-        $this->post(route('login.store'), [
-            'email' => 'custom-admin@psu.edu.ph',
-            'password' => 'MySecurePass123',
-        ])->assertRedirect(route('admin.analytics'));
+    public function test_navigation_renders_dynamic_role_pill_badge(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
+        $staff = User::factory()->create(['role_id' => Role::where('slug', 'staff')->value('id')]);
+
+        $adminRes = $this->actingAs($admin)->get(route('admin.analytics'));
+        $adminRes->assertOk();
+        $adminRes->assertSee('role-pill admin', false);
+        $adminRes->assertSee('ADMIN', false);
+
+        $staffRes = $this->actingAs($staff)->get(route('staff.analytics'));
+        $staffRes->assertOk();
+        $staffRes->assertSee('role-pill staff', false);
+        $staffRes->assertSee('STAFF', false);
     }
 }

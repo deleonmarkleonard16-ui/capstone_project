@@ -1,8 +1,10 @@
 @php
     $user        = auth()->user();
-    $role        = $user?->role ?? 'guest';
-    $isAdmin     = $role === 'admin';
-    $isStaff     = $role === 'staff';
+    $rawRole     = $user?->role ?? ($user?->role_id === 1 ? 'admin' : ($user?->role_id === 2 ? 'staff' : 'guest'));
+    $role        = strtolower((string) $rawRole);
+    $isAdmin     = $role === 'admin' || (int) ($user?->role_id ?? 0) === 1;
+    $isStaff     = $role === 'staff' || (int) ($user?->role_id ?? 0) === 2;
+    $displayRole = $isStaff ? 'STAFF' : ($isAdmin ? 'ADMIN' : strtoupper($role));
 
     // Detect active admission sub-page
     $admissionActive = request()->routeIs('admin.admission.*', 'admin.sessions.*')
@@ -30,8 +32,8 @@
             {{-- Account pill --}}
             <div class="sidebar-account">
                 <small>Signed in as</small>
-                <span class="role-pill {{ $isAdmin ? 'admin' : 'staff' }} text-uppercase">
-                    {{ $isAdmin ? 'ADMIN' : 'STAFF' }}
+                <span class="role-pill {{ $isStaff ? 'staff' : ($isAdmin ? 'admin' : 'secondary') }} text-uppercase">
+                    {{ $displayRole }}
                 </span>
             </div>
 

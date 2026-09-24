@@ -1,0 +1,55 @@
+/* Bootstrap-backed layouts do not load the Tailwind bundle. Keep these
+   component rules explicit so the responsive utilities work here as well. */
+.top-brand .brand-bar { padding: .5rem .75rem !important; }
+.brand-identity { flex: 1 1 auto; min-width: 0; }
+.brand-copy { min-width: 0; }
+.brand-copy .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-actions { flex: 0 0 auto; }
+.header-account { white-space: nowrap; }
+.header-account small { font-size: .625rem; line-height: 1; }
+.header-account .role-pill { font-size: .65rem; padding: .25rem .5rem; }
+.header-actions > .btn,
+.header-actions > .dropdown > .btn { width: 2.5rem; height: 2.5rem; padding: 0; }
+.analytics-heading > div { min-width: 0; }
+.analytics-actions { display: flex; gap: .5rem; }
+.analytics-metrics { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem !important; }
+.analytics-metric { min-width: 0; }
+.analytics-metric .card { padding: .75rem !important; }
+.analytics-metric .card > .d-flex { gap: .75rem; }
+.analytics-metric .card > .d-flex > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.executive-analytics .stat-value { font-size: 1.25rem; line-height: 1.25; }
+.stat-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 2.5rem; width: 2.5rem; height: 2.5rem; }
+.stat-icon .bi { font-size: 1.25rem !important; }
+@media (min-width: 640px) {
+    .analytics-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 768px) {
+    .top-brand .brand-bar { padding-inline: 1.5rem !important; }
+}
+@media (min-width: 1024px) {
+    .analytics-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 639.98px) {
+    .brand-copy .sub { display: none; }
+    .brand-copy .main { font-size: .8rem; }
+    .brand-logo { width: 2rem; height: 2rem; }
+}
+@media (max-width: 768px) {
+    main.executive-main { padding-block: .5rem !important; }
+    .executive-main > .container-fluid { padding-inline: .75rem !important; }
+    .executive-main .friendly-shell { padding: .5rem .75rem; }
+    .executive-analytics h1,
+    .executive-analytics .text-2xl { font-size: 1.15rem; line-height: 1.25; }
+    .executive-analytics p,
+    .executive-analytics .text-sm { font-size: .8rem; margin-bottom: .25rem !important; }
+    .executive-analytics .small,
+    .executive-analytics small { font-size: .8rem; }
+    .executive-analytics .mb-4 { margin-bottom: .75rem !important; }
+    .analytics-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+    .analytics-actions .btn { min-width: 0; justify-content: center; padding: .5rem !important; font-size: .8rem; line-height: 1.25; white-space: normal; }
+    .analytics-actions .bi { flex-shrink: 0; }
+    .executive-analytics .card-header,
+    .executive-analytics .card-body { padding: .75rem !important; }
+    .executive-analytics .card-header .h5 { font-size: 1rem; }
+    .executive-analytics .card-body .d-flex.justify-content-between { flex-wrap: wrap; gap: .5rem; }
+}

@@ -3,9 +3,9 @@
 @section('title', 'Executive Analytics Dashboard')
 
 @section('content')
-<div class="container-fluid px-0">
+<div class="executive-analytics container-fluid px-0">
     {{-- Header with Export Actions --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="analytics-heading d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1 small text-muted">
@@ -20,7 +20,7 @@
                 Comprehensive executive overview for Admission Testing, Guidance Testing Services, and Document Clearances across PSU San Carlos.
             </p>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="analytics-actions grid grid-cols-2 gap-2 w-full">
             <a href="{{ route($role . '.analytics.export.pdf') }}" target="_blank" class="btn btn-outline-danger btn-sm px-3 shadow-sm d-flex align-items-center gap-2">
                 <i class="bi bi-file-earmark-pdf-fill"></i>
                 <span>Export PDF Summary</span>
@@ -33,61 +33,61 @@
     </div>
 
     {{-- Executive Summary Stat Cards --}}
-    <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-xl-3">
+    <div class="analytics-metrics grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+        <div class="analytics-metric">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-4 border-primary">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="text-muted small fw-semibold text-uppercase tracking-wider">Total Institutional Volume</div>
-                        <div class="h2 fw-bold text-dark mb-0 mt-1">{{ number_format($totalRequests) }}</div>
+                        <div class="stat-value text-xl fw-bold text-dark mb-0 mt-1">{{ number_format($totalRequests) }}</div>
                         <div class="text-muted small mt-1">All 3 Core Modules</div>
                     </div>
-                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary">
+                    <div class="stat-icon w-10 h-10 rounded-circle bg-primary bg-opacity-10 text-primary">
                         <i class="bi bi-folder2-open fs-3"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-sm-6 col-xl-3">
+        <div class="analytics-metric">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-4 border-info">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="text-muted small fw-semibold text-uppercase tracking-wider">Admission Applicants</div>
-                        <div class="h2 fw-bold text-info mb-0 mt-1">{{ number_format($totalAdmissionApplicants) }}</div>
+                        <div class="stat-value text-xl fw-bold text-info mb-0 mt-1">{{ number_format($totalAdmissionApplicants) }}</div>
                         <div class="text-muted small mt-1">{{ number_format($qualifiedAdmissionCount) }} Qualified / Passed</div>
                     </div>
-                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info">
+                    <div class="stat-icon w-10 h-10 rounded-circle bg-info bg-opacity-10 text-info">
                         <i class="bi bi-mortarboard-fill fs-3"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-sm-6 col-xl-3">
+        <div class="analytics-metric">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-success">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="text-muted small fw-semibold text-uppercase tracking-wider">Testing Requests</div>
-                        <div class="h2 fw-bold text-success mb-0 mt-1">{{ number_format($testingServicesTotal) }}</div>
+                        <div class="stat-value text-xl fw-bold text-success mb-0 mt-1">{{ number_format($testingServicesTotal) }}</div>
                         <div class="text-muted small mt-1">{{ number_format($completedTests) }} Tests Completed</div>
                     </div>
-                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success">
+                    <div class="stat-icon w-10 h-10 rounded-circle bg-success bg-opacity-10 text-success">
                         <i class="bi bi-brain fs-3"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-sm-6 col-xl-3">
+        <div class="analytics-metric">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-4 border-warning">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <div class="text-muted small fw-semibold text-uppercase tracking-wider">Document Clearances</div>
-                        <div class="h2 fw-bold text-warning mb-0 mt-1">{{ number_format($goodMoralTotal + $exitFormTotal) }}</div>
+                        <div class="stat-value text-xl fw-bold text-warning mb-0 mt-1">{{ number_format($goodMoralTotal + $exitFormTotal) }}</div>
                         <div class="text-muted small mt-1">{{ number_format($goodMoralClaimed + $exitFormClaimed) }} Claimed &amp; Released</div>
                     </div>
-                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning">
+                    <div class="stat-icon w-10 h-10 rounded-circle bg-warning bg-opacity-10 text-warning">
                         <i class="bi bi-file-earmark-check-fill fs-3"></i>
                     </div>
                 </div>

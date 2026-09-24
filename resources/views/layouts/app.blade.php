@@ -137,6 +137,7 @@
                         url('{{ asset("images/psu-building.png") }}') center/cover no-repeat fixed;
         }
     </style>
+    <link href="{{ asset('css/executive-responsive.css') }}" rel="stylesheet">
 </head>
 <body class="@yield('body_class')">
 @php
@@ -157,14 +158,16 @@
 
 {{-- ═══ TOP BRAND BAR ═══ --}}
 <header class="top-brand {{ $user ? 'has-sidebar' : 'guest' }} sticky-top">
-    <div class="{{ $user ? 'container-fluid px-3' : 'container' }} d-flex align-items-center gap-3 w-100">
-        <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" class="brand-logo flex-shrink-0">
-        <div class="brand-copy flex-grow-1">
-            <div class="main">Pangasinan State University – San Carlos Campus</div>
-            <div class="sub">Digital Management System for Guidance Testing and Admission</div>
+    <div class="{{ $user ? 'container-fluid px-3' : 'container' }} brand-bar flex items-center justify-between px-3 md:px-6 py-2 d-flex align-items-center justify-content-between gap-2 w-100">
+        <div class="brand-identity d-flex align-items-center gap-2">
+            <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" class="brand-logo flex-shrink-0">
+            <div class="brand-copy flex-grow-1">
+                <div class="main truncate" title="Pangasinan State University - San Carlos Campus">Pangasinan State University – San Carlos Campus</div>
+                <div class="sub hidden sm:block">Digital Management System for Guidance Testing and Admission</div>
+            </div>
         </div>
         @if ($user)
-            <div class="d-flex align-items-center gap-2 ms-auto">
+            <div class="header-actions d-flex align-items-center gap-2 ms-auto">
                 @include('partials.header')
                 {{-- Notification bell (staff + admin) --}}
                 @if (in_array($role, ['admin','staff'], true))
@@ -193,7 +196,7 @@
                 {{-- Mobile menu toggle --}}
                 <button class="btn btn-outline-primary d-lg-none"
                         type="button" data-bs-toggle="offcanvas"
-                        data-bs-target="#appSidebar" aria-controls="appSidebar">
+                        data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Open navigation">
                     <i class="bi bi-list"></i>
                 </button>
             </div>
@@ -205,7 +208,7 @@
 @include('layouts.navigation')
 
 {{-- ═══ MAIN CONTENT ═══ --}}
-<main class="py-4 {{ $user ? 'has-sidebar' : '' }}">
+<main class="{{ request()->routeIs('admin.analytics', 'staff.analytics') ? 'executive-main' : '' }} py-4 {{ $user ? 'has-sidebar' : '' }}">
     <div class="{{ $user ? 'container-fluid px-3 px-lg-4' : 'container' }}">
 
         {{-- Flash messages --}}

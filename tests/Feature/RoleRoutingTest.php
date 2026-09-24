@@ -19,7 +19,7 @@ class RoleRoutingTest extends TestCase
                 'password' => 'valid-password-123',
             ]);
             $this->post(route('login.store'), ['email' => $user->email, 'password' => 'valid-password-123'])
-                ->assertRedirect(route($role.'.psychological.index'));
+                ->assertRedirect(route($role.'.analytics'));
             $this->post(route('logout'))->assertRedirect(route('login'));
         }
     }
@@ -45,14 +45,14 @@ class RoleRoutingTest extends TestCase
         $this->post(route('login.store'), [
             'email' => 'admin@psu-scc.test',
             'password' => 'password',
-        ])->assertRedirect(route('admin.psychological.index'));
+        ])->assertRedirect(route('admin.analytics'));
 
         $this->post(route('logout'));
 
         $this->post(route('login.store'), [
             'email' => 'staff@psu-scc.test',
             'password' => 'password',
-        ])->assertRedirect(route('staff.psychological.index'));
+        ])->assertRedirect(route('staff.analytics'));
     }
 
     public function test_user_create_artisan_command(): void
@@ -66,6 +66,6 @@ class RoleRoutingTest extends TestCase
         $this->post(route('login.store'), [
             'email' => 'custom-admin@psu.edu.ph',
             'password' => 'MySecurePass123',
-        ])->assertRedirect(route('admin.psychological.index'));
+        ])->assertRedirect(route('admin.analytics'));
     }
 }

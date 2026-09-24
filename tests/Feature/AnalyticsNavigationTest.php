@@ -14,8 +14,11 @@ class AnalyticsNavigationTest extends TestCase
     {
         foreach (['admin', 'staff'] as $role) {
             $this->actingAs(User::factory()->create(['role' => $role]));
-            $this->get(route($role.'.analytics'))->assertOk()->assertSee('Guidance Analytics')
-                ->assertViewHas('guidanceOnly', true)->assertViewHas('specialCategories', []);
+            $this->get(route($role.'.analytics'))->assertOk()
+                ->assertSee('Executive Institutional Analytics Dashboard')
+                ->assertViewHas('totalRequests')
+                ->assertViewHas('programTestingVolume')
+                ->assertViewHas('specialCategories');
         }
     }
 

@@ -26,7 +26,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route($request->user()->role.'.psychological.index');
+        return redirect()->route($request->user()->role.'.analytics');
     }
 
     public function destroy(): RedirectResponse

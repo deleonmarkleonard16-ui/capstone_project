@@ -168,7 +168,7 @@
             <tr>
                 <td><strong>Total Requests & Applications</strong></td>
                 <td class="text-center"><strong>{{ number_format($totalRequests) }}</strong></td>
-                <td>{{ $guidanceOnly ? 'Aggregated across Guidance Testing, Good Moral, and Exit Forms' : '{{ $guidanceOnly ? 'Aggregated across Guidance Testing, Good Moral, and Exit Forms' : 'Aggregated across Testing, Good Moral, Exit Forms, and Admission applicants' }}' }}</td>
+                <td>Aggregated across Testing Services, Document Requests, and Admission Applicants</td>
             </tr>
             <tr>
                 <td><strong>Completed Assessments</strong></td>

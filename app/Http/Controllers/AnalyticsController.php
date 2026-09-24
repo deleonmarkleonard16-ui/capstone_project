@@ -196,23 +196,49 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Compile comprehensive institutional analytics metrics.
+     * Compile comprehensive institutional analytics metrics across all 3 modules.
      */
     private function compileExecutiveMetrics(): array
     {
-        $guidanceOnly = true;
-        // ── 1. Executive Summary Cards ──
-        $serviceRequestsCount = ServiceRequest::count();
-        $standaloneAppointmentsCount = GuidanceAppointment::whereNull('service_request_id')->count();
-        $totalRequests = $serviceRequestsCount + $standaloneAppointmentsCount;
+        // ── 1. Admission Module Analytics ──
+        $totalAdmissionApplicants = AdmissionApplicant::count();
+        $qualifiedAdmissionCount = AdmissionApplicant::where('qualification_status', 'Qualified')->count();
+        $notQualifiedAdmissionCount = AdmissionApplicant::where('qualification_status', 'Not Qualified')->count();
+        $pendingAdmissionCount = AdmissionApplicant::where(function ($q) {
+            $q->whereNull('qualification_status')
+              ->orWhere('qualification_status', 'Pending')
+              ->orWhere('qualification_status', '');
+        })->count();
 
+        $admissionStatusBreakdown = [
+            'Qualified'     => $qualifiedAdmissionCount,
+            'Not Qualified' => $notQualifiedAdmissionCount,
+            'Pending'       => $pendingAdmissionCount,
+        ];
+
+        // ── 2. Request Testing Services Analytics ──
+        $psychologicalRequestsCount = ServiceRequest::where('service', 'psychological')->count()
+            + GuidanceAppointment::where(function ($q) {
+                $q->where('test_types', 'like', '%psychological%')
+                  ->orWhere('test_types', 'like', '%dass21%')
+                  ->orWhere('test_types', 'like', '%phq9%')
+                  ->orWhere('test_types', 'like', '%gad7%')
+                  ->orWhereNull('test_types');
+            })->count();
+
+        $personalityRequestsCount = ServiceRequest::where('service', 'personality')->count()
+            + GuidanceAppointment::where(function ($q) {
+                $q->where('test_types', 'like', '%personality%')
+                  ->orWhere('test_types', 'like', '%bfpi%');
+            })->count();
+
+        $careerRequestsCount = ServiceRequest::where('service', 'career')->count()
+            + GuidanceAppointment::where('test_types', 'like', '%career%')->count();
+
+        $testingServicesTotal = $psychologicalRequestsCount + $personalityRequestsCount + $careerRequestsCount;
         $completedTests = GuidanceAppointment::where('status', 'Completed')->count();
-        $activeRequests = ServiceRequest::whereIn('status', ServiceRequest::ACTIVE_STATUSES)->count()
-            + GuidanceAppointment::whereIn('status', ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'])->count();
-        $goodMoralCount = ServiceRequest::where('service', 'good-moral')->count();
-        $exitFormCount = ServiceRequest::where('service', 'exit-form')->count();
 
-        // ── 2. Psychometric Severity Distributions ──
+        // Psychometric Severity Distributions & Red Flags
         $responses = GuidanceTestResponse::with(['appointment.serviceRequest', 'appointment.applicant'])->get();
 
         $severityDistribution = [
@@ -337,11 +363,19 @@ class AnalyticsController extends Controller
 
         $redFlagsCount = count($redFlags);
 
-        // ── 3. Program Choice Distribution (10 official PSU San Carlos degree programs) ──
-        $officialPrograms = CourseCatalog::OPTIONS;
+        // Program Testing Volume (All campus degree programs dynamically merged)
+        $officialPrograms = CourseCatalog::allOptions();
         $programTestingVolume = [];
+        $admissionByProgram = [];
+
         foreach ($officialPrograms as $code => $title) {
             $programTestingVolume[$code] = 0;
+            $admissionByProgram[$code] = [
+                'code'      => $code,
+                'title'     => $title,
+                'total'     => 0,
+                'qualified' => 0,
+            ];
         }
 
         // Count across ServiceRequest
@@ -373,21 +407,44 @@ class AnalyticsController extends Controller
             }
         }
 
-        // ── 4. Socio-Demographic Breakdown ──
+        // Admission counts per program
+        $admCourseStats = AdmissionApplicant::selectRaw('course_choice, COUNT(*) as total, SUM(CASE WHEN qualification_status = "Qualified" THEN 1 ELSE 0 END) as qualified')
+            ->whereNotNull('course_choice')
+            ->groupBy('course_choice')
+            ->get();
+
+        foreach ($admCourseStats as $cs) {
+            $code = $cs->course_choice;
+            if (isset($admissionByProgram[$code])) {
+                $admissionByProgram[$code]['total'] = (int) $cs->total;
+                $admissionByProgram[$code]['qualified'] = (int) $cs->qualified;
+            }
+        }
+
+        // ── 3. Document Services & Clearances Analytics ──
+        $goodMoralTotal = ServiceRequest::where('service', 'good-moral')->count();
+        $goodMoralClaimed = ServiceRequest::where('service', 'good-moral')->whereIn('status', ['completed', 'claimed', 'ready'])->count();
+        $goodMoralPending = ServiceRequest::where('service', 'good-moral')->whereIn('status', ['pending', 'approved', 'proof_review'])->count();
+
+        $exitFormTotal = ServiceRequest::where('service', 'exit-form')->count();
+        $exitFormClaimed = ServiceRequest::where('service', 'exit-form')->whereIn('status', ['completed', 'claimed', 'ready'])->count();
+        $exitFormPending = ServiceRequest::where('service', 'exit-form')->whereIn('status', ['pending', 'approved', 'proof_review'])->count();
+
+        // ── 4. Socio-Demographics & Monthly Trends ──
         $maleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['male'])->count()
-            + Applicant::when($guidanceOnly, fn ($q) => $q->whereIn('id', GuidanceAppointment::select('applicant_id')))->whereHas('genderLookup', fn ($q) => $q->where('slug', 'male'))->count()
-            + ($guidanceOnly ? 0 : AdmissionApplicant::whereRaw('LOWER(gender) = ?', ['male'])->count());
+            + Applicant::whereHas('genderLookup', fn ($q) => $q->where('slug', 'male'))->count()
+            + AdmissionApplicant::whereRaw('LOWER(sex) = ?', ['male'])->count();
 
         $femaleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['female'])->count()
-            + Applicant::when($guidanceOnly, fn ($q) => $q->whereIn('id', GuidanceAppointment::select('applicant_id')))->whereHas('genderLookup', fn ($q) => $q->where('slug', 'female'))->count()
-            + ($guidanceOnly ? 0 : AdmissionApplicant::whereRaw('LOWER(gender) = ?', ['female'])->count());
+            + Applicant::whereHas('genderLookup', fn ($q) => $q->where('slug', 'female'))->count()
+            + AdmissionApplicant::whereRaw('LOWER(sex) = ?', ['female'])->count();
 
-        if (!$guidanceOnly && $maleCount === 0 && $femaleCount === 0) {
-            $maleCount = 1; // prevent division by zero in charts
+        if ($maleCount === 0 && $femaleCount === 0) {
+            $maleCount = 1;
             $femaleCount = 1;
         }
 
-        $specialCategories = $guidanceOnly ? [] : [
+        $specialCategories = [
             '4Ps' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%4Ps%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%4Ps%'))->count(),
             'OSY' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%OSY%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%OSY%'))->count(),
             'IP'  => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%IP%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%IP%'))->count(),
@@ -395,7 +452,7 @@ class AnalyticsController extends Controller
             'SP'  => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%SP%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%SP%'))->count(),
         ];
 
-        // ── 5. Monthly Request Trends (Past 6 Months) ──
+        // ── 5. Monthly Request Trends (Last 6 Months) ──
         $monthlyTrends = [];
         for ($i = 5; $i >= 0; $i--) {
             $monthDate = now()->subMonths($i);
@@ -404,30 +461,52 @@ class AnalyticsController extends Controller
             $end = $monthDate->copy()->endOfMonth();
 
             $count = ServiceRequest::whereBetween('created_at', [$start, $end])->count()
-                + GuidanceAppointment::whereNull('service_request_id')->whereBetween('created_at', [$start, $end])->count();
+                + GuidanceAppointment::whereNull('service_request_id')->whereBetween('created_at', [$start, $end])->count()
+                + AdmissionApplicant::whereBetween('created_at', [$start, $end])->count();
 
             $monthlyTrends[$monthKey] = $count;
         }
 
+        $totalRequests = ServiceRequest::count() + GuidanceAppointment::whereNull('service_request_id')->count() + $totalAdmissionApplicants;
+        $activeRequests = ServiceRequest::whereIn('status', ServiceRequest::ACTIVE_STATUSES)->count()
+            + GuidanceAppointment::whereIn('status', ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'])->count()
+            + $pendingAdmissionCount;
+
         return [
-            'guidanceOnly'          => $guidanceOnly,
-            'totalRequests'         => $totalRequests,
-            'completedTests'        => $completedTests,
-            'activeRequests'        => $activeRequests,
-            'goodMoralCount'        => $goodMoralCount,
-            'exitFormCount'         => $exitFormCount,
-            'redFlagsCount'         => $redFlagsCount,
-            'severityDistribution'  => $severityDistribution,
-            'scaleDistributions'    => $scaleDistributions,
-            'personalityTraits'     => $personalityTraits,
-            'programTestingVolume'  => $programTestingVolume,
-            'officialPrograms'      => $officialPrograms,
-            'maleCount'             => $maleCount,
-            'femaleCount'           => $femaleCount,
-            'specialCategories'     => $specialCategories,
-            'monthlyTrends'         => $monthlyTrends,
-            'redFlags'              => array_slice($redFlags, 0, 25), // Show top 25 recent red flags
-            'role'                  => auth()->user()?->role ?? 'admin',
+            'guidanceOnly'              => false,
+            'totalRequests'             => $totalRequests,
+            'completedTests'            => $completedTests,
+            'activeRequests'            => $activeRequests,
+            'totalAdmissionApplicants'  => $totalAdmissionApplicants,
+            'qualifiedAdmissionCount'   => $qualifiedAdmissionCount,
+            'notQualifiedAdmissionCount'=> $notQualifiedAdmissionCount,
+            'pendingAdmissionCount'     => $pendingAdmissionCount,
+            'admissionStatusBreakdown'  => $admissionStatusBreakdown,
+            'admissionByProgram'        => $admissionByProgram,
+            'psychologicalRequestsCount'=> $psychologicalRequestsCount,
+            'personalityRequestsCount'  => $personalityRequestsCount,
+            'careerRequestsCount'       => $careerRequestsCount,
+            'testingServicesTotal'      => $testingServicesTotal,
+            'goodMoralTotal'            => $goodMoralTotal,
+            'goodMoralClaimed'          => $goodMoralClaimed,
+            'goodMoralPending'          => $goodMoralPending,
+            'exitFormTotal'             => $exitFormTotal,
+            'exitFormClaimed'           => $exitFormClaimed,
+            'exitFormPending'           => $exitFormPending,
+            'goodMoralCount'            => $goodMoralTotal,
+            'exitFormCount'             => $exitFormTotal,
+            'redFlagsCount'             => $redFlagsCount,
+            'severityDistribution'      => $severityDistribution,
+            'scaleDistributions'        => $scaleDistributions,
+            'personalityTraits'         => $personalityTraits,
+            'programTestingVolume'      => $programTestingVolume,
+            'officialPrograms'          => $officialPrograms,
+            'maleCount'                 => $maleCount,
+            'femaleCount'               => $femaleCount,
+            'specialCategories'         => $specialCategories,
+            'monthlyTrends'             => $monthlyTrends,
+            'redFlags'                  => array_slice($redFlags, 0, 25),
+            'role'                      => auth()->user()?->role ?? 'admin',
         ];
     }
 }

@@ -207,22 +207,39 @@ class DocumentRequestController extends Controller
             $request->files->set('payment_slip', $file);
             $request->files->set('proof', $file);
         }
-        $request->validate(['receipt' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120']);
+        $request->validate(
+            ['receipt' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120'],
+            [
+                'receipt.required' => 'Please select a valid image file under 5 MB.',
+                'receipt.image' => 'Please upload a valid image file (JPG, PNG, WebP).',
+                'receipt.mimes' => 'Please upload a valid image file (JPG, PNG, WebP).',
+                'receipt.max' => 'The receipt file size must not exceed 5 MB.',
+            ]
+        );
         $batch = $this->documentBatch($token);
         abort_unless($batch->status === 'Pending Registration', 409, 'Batch registration is closed.');
         $identity = $request->session()->get('document_batch.'.$batch->getKey());
         $id = ($identity['until'] ?? 0) > time() ? ($identity['id'] ?? null) : null;
-        abort_unless($id, 403);
+        abort_unless($id, 403, 'Unauthorized access.');
         $path = $request->file('receipt')->store('document-receipts', 'local');
         abort_unless($path, 503, 'Receipt could not be saved.');
         try {
             DB::transaction(function () use ($batch, $id, $path) {
                 $entry = $batch->documentRequests()->whereKey($id)->lockForUpdate()->firstOrFail();
-                abort_unless(in_array($entry->status, ['pending', 'approved'], true), 409);
+                abort_unless(in_array($entry->status, ['pending', 'approved'], true), 409, 'This request is not awaiting payment.');
                 $entry->update(['proof_path' => $path, 'status' => 'proof_review']);
             }, 3);
         } catch (\Throwable $error) { Storage::disk('local')->delete($path); throw $error; }
-        return redirect()->route('document.batch.join', $token);
+
+        $message = 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.';
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'status' => 'Receipt Uploaded / Pending Verification',
+                'message' => $message,
+            ]);
+        }
+        return redirect()->route('document.batch.join', $token)->with('success', $message);
     }
 
     public function proof(ServiceRequest $serviceRequest)

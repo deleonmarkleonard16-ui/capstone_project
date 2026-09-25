@@ -23,10 +23,15 @@ class ReceiptTrackingTest extends TestCase
                 'student_status' => 'alumni', 'student_number' => 'STUDENT-'.$field,
                 'course' => 'BSIT', 'purpose' => 'Employment', 'status' => 'pending']);
             $date = now()->subDays(3)->toDateString();
-            $this->postJson(route('portal.receipt'), [
+            $response = $this->postJson(route('portal.receipt'), [
                 'reference' => $entry->reference, 'or_number' => 'OR-001234', 'or_date' => $date,
                 $field => $this->receipt(),
             ])->assertOk();
+            $response->assertJson([
+                'success' => true,
+                'status' => 'Receipt Uploaded / Pending Verification',
+                'message' => 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.',
+            ]);
             $entry->refresh();
             $this->assertSame('OR-001234', $entry->or_number);
             $this->assertSame($date, $entry->or_date->toDateString());
@@ -56,10 +61,15 @@ class ReceiptTrackingTest extends TestCase
             $this->assertSame('₱60.00', $entry->guidanceAppointments->first()->official_fee_formatted);
             $tracked = $this->postJson('/api/track-request', ['reference' => $entry->reference])->assertOk();
             $this->assertStringContainsString('₱60.00', $tracked->json('details_html'));
-            $this->postJson(route('guidance.receipt'), ['reference' => $entry->reference,
+            $res = $this->postJson(route('guidance.receipt'), ['reference' => $entry->reference,
                 'or_number' => 'OR-987', 'or_date' => now()->toDateString(),
                 ($category === 'personality' ? 'payment_slip' : 'proof') => $this->receipt(),
             ])->assertOk();
+            $res->assertJson([
+                'success' => true,
+                'status' => 'Receipt Uploaded / Pending Verification',
+                'message' => 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.',
+            ]);
             $appointment = $entry->guidanceAppointments()->firstOrFail();
             $this->assertSame('Receipt Uploaded', $appointment->status);
             $this->assertSame('OR-987', $appointment->or_number);
@@ -72,10 +82,14 @@ class ReceiptTrackingTest extends TestCase
 
     public function test_receipt_requires_image_and_valid_receipt_details(): void
     {
-        $this->postJson(route('guidance.receipt'), ['reference' => 'G-ABCD',
+        $response = $this->postJson(route('guidance.receipt'), ['reference' => 'G-ABCD',
             'or_date' => now()->addDay()->toDateString(),
             'proof' => UploadedFile::fake()->create('receipt.pdf', 20, 'application/pdf'),
         ])->assertUnprocessable()->assertJsonValidationErrors(['or_number', 'or_date', 'payment_slip']);
+
+        $this->assertSame('Official Receipt (OR) Number is required.', $response->json('errors.or_number.0'));
+        $this->assertSame('The Receipt Date cannot be in the future.', $response->json('errors.or_date.0'));
+        $this->assertSame('Please upload a valid image file (JPG, PNG, or WebP).', $response->json('errors.payment_slip.0'));
     }
 
     private function receipt(): UploadedFile

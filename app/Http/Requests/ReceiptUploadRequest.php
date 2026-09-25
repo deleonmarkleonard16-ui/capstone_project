@@ -50,4 +50,24 @@ class ReceiptUploadRequest extends FormRequest
             'proof'        => $fileRule,
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'reference.required' => 'The tracking reference is required.',
+            'or_number.required' => 'Official Receipt (OR) Number is required.',
+            'or_number.max' => 'The Official Receipt Number cannot exceed 50 characters.',
+            'or_date.required' => 'Receipt Date is required.',
+            'or_date.date' => 'Please enter a valid Receipt Date.',
+            'or_date.before_or_equal' => 'The Receipt Date cannot be in the future.',
+            'payment_slip.required' => 'Please select a valid image file under 5 MB.',
+            'payment_slip.image' => 'Please upload a valid image file (JPG, PNG, or WebP).',
+            'payment_slip.mimes' => 'Please upload a valid image file (JPG, PNG, WebP) or PDF under 5 MB.',
+            'payment_slip.max' => 'The receipt file size must be under 5 MB.',
+            'proof.required' => 'Please select a valid image file under 5 MB.',
+            'proof.image' => 'Please upload a valid image file (JPG, PNG, or WebP).',
+            'proof.mimes' => 'Please upload a valid image file (JPG, PNG, WebP) or PDF under 5 MB.',
+            'proof.max' => 'The receipt file size must be under 5 MB.',
+        ];
+    }
 }

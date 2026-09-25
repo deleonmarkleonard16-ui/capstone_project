@@ -234,10 +234,15 @@ class PsychologicalRequestController extends Controller
             ]);
         });
         $request->session()->put('portal_request_reference', $data['reference']);
-        if ($request->expectsJson() || $request->ajax()) {
-            return response()->json(['status' => 'Receipt Uploaded', 'message' => 'Paid stub or receipt uploaded. The guidance office will verify it and process your request.']);
+        $message = 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.';
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'status' => 'Receipt Uploaded / Pending Verification',
+                'message' => $message,
+            ]);
         }
-        return redirect()->route('portal.index')->with('portal_notice', 'Paid stub or receipt uploaded. The guidance office will verify it and process your request.');
+        return redirect()->route('portal.index')->with('portal_notice', $message);
     }
 
     public function proof(ServiceRequest $serviceRequest)

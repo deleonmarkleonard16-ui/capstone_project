@@ -49,7 +49,7 @@
     <li>Once marked ready, claim your requested document at the Guidance Office.</li>
     @endif
 </ol>
-<p><strong>Status:</strong> <span style="font-weight:bold; color:{{ $entry->status === 'ready' || $entry->status === 'completed' ? '#16a34a' : '#2563eb' }};">{{ ['pending'=>'Awaiting payment / paid stub','approved'=>'Approved — Paid/stamped stub required','proof_review'=>'Stub submitted — awaiting verification','processing'=>'Payment verified — processing document','ready'=>'Ready for pick-up at Guidance Office','scheduled'=>'Verified — scheduled for testing','completed'=>'Completed','declined'=>'Declined','cancelled'=>'Cancelled','void'=>'Void (5-day window expired)'][$entry->status] ?? ucfirst($entry->status) }}</span></p>
+<p><strong>Status:</strong> <span class="tracking-status-badge" style="font-weight:bold; color:{{ $entry->status === 'ready' || $entry->status === 'completed' ? '#16a34a' : '#2563eb' }};">{{ ['pending'=>'Awaiting payment / paid stub','approved'=>'Approved — Paid/stamped stub required','proof_review'=>'Receipt Uploaded / Pending Verification','processing'=>'Payment verified — processing document','ready'=>'Ready for pick-up at Guidance Office','scheduled'=>'Verified — scheduled for testing','completed'=>'Completed','declined'=>'Declined','cancelled'=>'Cancelled','void'=>'Void (5-day window expired)'][$entry->status] ?? ucfirst($entry->status) }}</span></p>
 @if($entry->staff_message)<p><strong>Office message:</strong> {{ $entry->staff_message }}</p>@endif
 
 @if($entry->service === 'testing')
@@ -72,17 +72,20 @@
             <div style="margin-bottom:12px">
                 <label for="portal-or_number-{{ $entry->id }}">Official Receipt Number</label>
                 <input id="portal-or_number-{{ $entry->id }}" name="or_number" type="text" maxlength="50" placeholder="Official Receipt Number" required>
+                <div class="field-error field-error-or_number" style="color:#dc2626;font-size:13px;font-weight:500;margin-top:4px;display:none;"></div>
             </div>
             <div style="margin-bottom:12px">
                 <label for="portal-or_date-{{ $entry->id }}">Receipt Date</label>
                 <input id="portal-or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
+                <div class="field-error field-error-or_date" style="color:#dc2626;font-size:13px;font-weight:500;margin-top:4px;display:none;"></div>
             </div>
             <div style="margin-bottom:12px">
                 <label for="proof-{{ $entry->id }}">Upload paid/stamped stub or receipt (JPG, PNG, WebP; up to 5 MB)</label>
                 <input id="proof-{{ $entry->id }}" name="payment_slip" type="file" accept="image/jpeg,image/png,image/webp" required>
+                <div class="field-error field-error-payment_slip" style="color:#dc2626;font-size:13px;font-weight:500;margin-top:4px;display:none;"></div>
             </div>
-            <button style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button>
-            <p data-upload-message role="status"></p>
+            <button type="submit" data-original-text="UPLOAD STUB FOR VERIFICATION" style="margin-top:16px">UPLOAD STUB FOR VERIFICATION</button>
+            <div data-upload-alert class="upload-alert-banner" style="display:none;margin-top:14px;"></div>
         </form>
     </div>
 </div>

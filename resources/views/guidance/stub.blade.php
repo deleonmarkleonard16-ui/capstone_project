@@ -42,17 +42,20 @@
                     <div style="margin-bottom:12px">
                         <label for="or_number-{{ $entry->id }}">Official Receipt Number</label>
                         <input id="or_number-{{ $entry->id }}" name="or_number" type="text" maxlength="50" placeholder="Official Receipt Number" required>
+                        <div class="field-error field-error-or_number" style="color:#dc2626;font-size:13px;font-weight:500;margin-top:4px;display:none;"></div>
                     </div>
                     <div style="margin-bottom:12px">
                         <label for="or_date-{{ $entry->id }}">Receipt Date</label>
                         <input id="or_date-{{ $entry->id }}" name="or_date" type="date" max="{{ date('Y-m-d') }}" required>
+                        <div class="field-error field-error-or_date" style="color:#dc2626;font-size:13px;font-weight:500;margin-top:4px;display:none;"></div>
                     </div>
                     <div style="margin-bottom:12px">
                         <label for="receipt-{{ $entry->id }}">Upload payment receipt (JPG, PNG, WebP; up to 5 MB)</label>
                         <input id="receipt-{{ $entry->id }}" name="payment_slip" type="file" accept="image/jpeg,image/png,image/webp" required>
+                        <div class="field-error field-error-payment_slip" style="color:#dc2626;font-size:13px;font-weight:500;margin-top:4px;display:none;"></div>
                     </div>
-                    <button style="margin-top:16px">Upload Receipt for Verification</button>
-                    <p data-upload-message role="status"></p>
+                    <button type="submit" data-original-text="Upload Receipt for Verification" style="margin-top:16px">Upload Receipt for Verification</button>
+                    <div data-upload-alert class="upload-alert-banner" style="display:none;margin-top:14px;"></div>
                 </form>
             </div>
         </div>
@@ -60,7 +63,10 @@
         <a class="button" href="/portal?service=testing#track">Track Existing Request / Upload Receipt</a>
         @endif
     @elseif($entry->status === 'proof_review')
-        <p class="notice">Receipt uploaded — awaiting staff verification. Your QR/link will appear here once approved.</p>
+        <div class="notice" style="background:#eff6ff;border-left:4px solid #3b82f6;color:#1e40af;padding:14px;border-radius:8px;">
+            <strong class="tracking-status-badge">Receipt Uploaded / Pending Verification</strong>
+            <p style="margin:6px 0 0 0;">Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.</p>
+        </div>
     @else
         <p class="notice">Receipt received. Check the assessment statuses and QR passes in Track Existing Request.</p>
     @endif

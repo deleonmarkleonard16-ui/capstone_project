@@ -39,6 +39,10 @@
             <div class="sidebar-caption">Main Navigation</div>
 
             <nav aria-label="Main navigation">
+                <a class="sidebar-link {{ request()->routeIs("{$role}.dashboard") ? 'active' : '' }}"
+                   href="{{ route("{$role}.dashboard") }}">
+                    <i class="bi bi-grid-1x2"></i> Dashboard
+                </a>
 
                 {{-- ── 1. ADMISSION TEST (Admin Only) ── --}}
                 @if ($isAdmin)

@@ -26,6 +26,7 @@ class NavigationAccessTest extends TestCase
         $this->loginAsRole('staff');
         $this->get('/staff/dashboard')->assertOk()
             ->assertSee('Staff Dashboard')->assertSee('Logout')
+            ->assertSee('href="'.route('staff.dashboard').'"', false)
             ->assertSee('Psychological Assessment')->assertSee('Personality Test')->assertSee('Career Test')
             ->assertDontSee('<summary>Admission</summary>', false)->assertDontSee('Create Test Session')
             ->assertDontSee('Recent Sessions');
@@ -55,6 +56,7 @@ class NavigationAccessTest extends TestCase
         $this->loginAsRole('admin');
         $this->get('/admin/admission-cycle')->assertOk()
             ->assertSee('Admission Cycle')->assertSee('Manage Applicants')->assertSee('Manage Test Sessions')->assertSee('Logout')
+            ->assertSee('href="'.route('admin.dashboard').'"', false)
             ->assertSee('href="'.route('admin.psychological.index').'"', false)
             ->assertSee('href="'.route('admin.personality.index').'"', false)
             ->assertSee('href="'.route('admin.career.index').'"', false)

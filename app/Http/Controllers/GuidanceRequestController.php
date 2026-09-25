@@ -3,20 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\ServiceRequest;
+use App\Services\GuidancePortalService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Schema;
 
-class StudentPortalController extends Controller
+class GuidanceRequestController extends Controller
 {
-    public function index()
-    {
-        $entry = session('portal_request_reference')
-            ? ServiceRequest::where('reference', session('portal_request_reference'))->first()
-            : null;
-        return response()->view('portal.index', ['recentRequest' => $entry])->header('Cache-Control', 'no-store');
-    }
-
+    /**
+     * Handle submission of guidance and testing service requests.
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -37,6 +33,7 @@ class StudentPortalController extends Controller
             'copies' => 'exclude_unless:service,good-moral,exit-form|required|integer|min:1|max:10',
             'consent' => 'accepted',
         ]);
+
         unset($data['consent']);
 
         $isAlumni = in_array($data['student_status'], ['alumni', 'Alumni'], true);
@@ -44,29 +41,38 @@ class StudentPortalController extends Controller
 
         if ($isAlumni) {
             $yearGrad = $data['year_graduated'] ?? $request->input('student_id') ?? $request->input('student_number');
-            $data['year_graduated'] = $yearGrad;
             $data['student_number'] = $yearGrad ? 'GRAD-' . $yearGrad : 'ALUMNI';
+            if (Schema::hasColumn('service_requests', 'year_graduated')) {
+                $data['year_graduated'] = $yearGrad;
+            } else {
+                unset($data['year_graduated']);
+            }
             unset($data['student_id']);
         } else {
             $idNum = $data['student_id'] ?? $data['student_number'] ?? $request->input('student_number') ?? '';
             $data['student_number'] = mb_strtoupper(trim((string) $idNum));
             $data['student_id'] = $data['student_number'];
-            $data['year_graduated'] = null;
+            if (Schema::hasColumn('service_requests', 'year_graduated')) {
+                $data['year_graduated'] = null;
+            } else {
+                unset($data['year_graduated']);
+            }
         }
 
         if (! empty($data['reason'])) {
             $data['purpose'] = $data['reason'] === 'Others' ? $data['other_reason'] : $data['reason'];
         }
         unset($data['reason'], $data['other_reason']);
-        // Normalise text fields to uppercase so every view shows consistent caps.
+
+        // Normalise text fields to uppercase for consistent presentation.
         foreach (['first_name', 'middle_name', 'last_name'] as $field) {
             if (isset($data[$field])) {
                 $data[$field] = mb_strtoupper(trim($data[$field]));
             }
         }
 
-        // ── Check for duplicate active request ─────────────────────────────
-        if (! empty($data['student_number'])) {
+        // Check for duplicate active request if student ID is present
+        if (! empty($data['student_number']) && $data['student_number'] !== 'ALUMNI') {
             $hasActive = false;
             if ($data['service'] === 'testing') {
                 $categories = $data['tests'] ?? ['psychological'];
@@ -114,74 +120,27 @@ class StudentPortalController extends Controller
         }
 
         $entry = $data['service'] === 'testing'
-            ? app(\App\Services\GuidancePortalService::class)->create($data)
+            ? app(GuidancePortalService::class)->create($data)
             : ServiceRequest::create($data + [
-            'reference' => ServiceRequest::newReference($data['service']),
-            'status' => 'approved',
-            'expires_at' => now()->addDays(5),
-        ]);
+                'reference' => ServiceRequest::newReference($data['service']),
+                'status' => 'approved',
+                'expires_at' => now()->addDays(5),
+            ]);
+
         $request->session()->put('portal_request_reference', $entry->reference);
 
         if ($request->expectsJson()) {
             $request->session()->flash('tracking_reference', $entry->reference);
             $request->session()->flash('request_reference', $entry->reference);
-            return response()->json(['request_code' => $entry->reference,
+            return response()->json([
+                'request_code' => $entry->reference,
                 'status' => $entry->service === 'testing' ? 'Pending Payment' : ucfirst($entry->status),
-                'redirect_url' => route('portal.index', ['service' => $entry->service]).'#track'], 201);
+                'redirect_url' => route('portal.index', ['service' => $entry->service]) . '#track',
+            ], 201);
         }
 
-        return redirect(route('portal.index', ['service' => $entry->service]).'#track')
+        return redirect(route('portal.index', ['service' => $entry->service]) . '#track')
             ->with('request_reference', $entry->reference)
             ->with('tracking_reference', $entry->reference);
-    }
-
-    public function track(Request $request)
-    {
-        $reference = strtoupper(trim((string) $request->input('reference')));
-        if (preg_match('/^(?:G-[A-Z0-9]{4}|(?:GT|TR)-[A-F0-9]{32})$/D', $reference)) {
-            return redirect('/portal?service=testing#track')->with('tracking_reference', $reference);
-        }
-        $request->merge(['reference' => is_string($request->input('reference')) ? strtoupper(trim($request->input('reference'))) : $request->input('reference')]);
-        $data = $request->validate(['reference' => ServiceRequest::referenceRules()]);
-        $data['reference'] = preg_match('/^(?:TR|GM|EF)-/i', $data['reference']) ? strtoupper($data['reference']) : strtolower($data['reference']);
-        $entry = ServiceRequest::where('reference', $data['reference'])->first();
-        if (! $entry) {
-            return back()->withErrors(['reference' => 'No request matches that reference.'])->withInput($request->only('reference'));
-        }
-
-        $entry->checkAndApplyExpiration();
-
-        return response()->view('portal.tracking', ['entry' => $entry])->header('Cache-Control', 'no-store');
-    }
-
-    public function inbox(Request $request)
-    {
-        ServiceRequest::expirePendingRequests();
-
-        $service = $request->route('service');
-        abort_unless(array_key_exists($service, ServiceRequest::SERVICES), 404);
-        $query = ServiceRequest::where('service', $service)->with('guidanceAppointments');
-        if ($test = $request->route('test')) {
-            $query->whereJsonContains('tests', $test);
-        }
-
-        $view = match ($service) {
-            'good-moral' => 'staff.good-moral',
-            'exit-form'  => 'staff.exit-form',
-            default      => 'staff.service-requests',
-        };
-
-        return view($view, [
-            'title' => $test ? ucfirst($test).' Testing Request' : ServiceRequest::SERVICES[$service],
-            'requests' => $query->latest()->paginate(15),
-        ]);
-    }
-
-    public function update(Request $request, ServiceRequest $serviceRequest)
-    {
-        if ($serviceRequest->service === 'testing') {
-            return app(PsychologicalRequestController::class)->update($request, $serviceRequest);
-        }
-        return app(DocumentRequestController::class)->update($request, $serviceRequest);
     }
 }

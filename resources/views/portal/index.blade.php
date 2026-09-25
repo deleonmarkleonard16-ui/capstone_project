@@ -21,10 +21,19 @@
 <div><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" name="{{ $field }}" type="text" value="{{ old($field) }}" maxlength="100" @required($field !== 'middle_name')></div>
 @endforeach
 <input type="hidden" name="service" id="service" value="{{ $selectedService }}">
-<div><label for="student_status">Student status</label><select id="student_status" name="student_status" required><option value="student" @selected(old('student_status') === 'student')>Currently enrolled</option><option value="alumni" @selected(old('student_status') === 'alumni')>Alumni</option></select></div>
-@foreach(['student_number'=>'Student ID number'] as $field=>$label)
-<div><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : 'text' }}" value="{{ old($field) }}" placeholder="{{ $field === 'student_number' ? '##-SC-####' : '' }}" maxlength="{{ ['first_name'=>100,'middle_name'=>100,'last_name'=>100,'student_number'=>50,'email'=>255,'contact_number'=>30,'course'=>150][$field] }}" @required(!in_array($field, ['middle_name', 'student_number']))>@if($field === 'student_number')<small id="student-id-help" class="muted">Required for currently enrolled students. Optional for alumni.</small>@endif</div>
-@endforeach
+<div><label for="student_status">Student status</label><select id="student_status" name="student_status" required><option value="student" @selected(old('student_status') === 'student' || old('student_status') === 'Currently Enrolled')>Currently enrolled</option><option value="alumni" @selected(old('student_status') === 'alumni' || old('student_status') === 'Alumni')>Alumni</option></select></div>
+<div id="student-identity-group">
+    <label for="student_identifier" id="student-id-label">{{ old('student_status') === 'alumni' || old('student_status') === 'Alumni' ? 'Year Graduated' : 'Student ID number' }}</label>
+    <input id="student_identifier" 
+           name="{{ old('student_status') === 'alumni' || old('student_status') === 'Alumni' ? 'year_graduated' : 'student_id' }}" 
+           type="text" 
+           value="{{ old('student_id', old('student_number', old('year_graduated'))) }}" 
+           placeholder="{{ old('student_status') === 'alumni' || old('student_status') === 'Alumni' ? 'e.g., 2023' : '##-SC-####' }}" 
+           maxlength="{{ old('student_status') === 'alumni' || old('student_status') === 'Alumni' ? '4' : '50' }}" 
+           @if(old('student_status') === 'alumni' || old('student_status') === 'Alumni') pattern="[0-9]{4}" inputmode="numeric" @endif 
+           required>
+    <small id="student-id-help" class="muted">{{ old('student_status') === 'alumni' || old('student_status') === 'Alumni' ? 'Enter your graduation year (e.g., 2023).' : 'Required for currently enrolled students.' }}</small>
+</div>
 <div><label for="course">Course / program</label><select id="course" name="course" required><option value="">Select a program</option>@foreach(\App\Support\CourseCatalog::activeOptions() as $code=>$title)<option value="{{ $code }}" @selected(old('course') === $code)>{{ $title }} ({{ $code }})</option>@endforeach</select></div>
 <div class="full" id="test-fields"><label for="requested-test">Requested testing</label><select id="requested-test" name="tests[]" required>@foreach(['psychological'=>'Psychological Assessment','personality'=>'Personality Test','career'=>'Career Test'] as $key=>$label)<option value="{{ $key }}" @selected(in_array($key, (array) old('tests', ['psychological'])))>{{ $label }}</option>@endforeach</select></div>
 <div id="copy-fields"><label for="copies">Number of copies</label><input id="copies" type="number" name="copies" min="1" max="10" value="{{ old('copies', 1) }}"></div>
@@ -67,6 +76,36 @@
 <script src="{{ asset('js/guidance-tracking.js') }}" defer></script>
 <script>
 const service = document.getElementById('service');
+const statusSelect = document.getElementById('student_status');
+const idLabel = document.getElementById('student-id-label');
+const idInput = document.getElementById('student_identifier');
+const idHelp = document.getElementById('student-id-help');
+
+function handleStudentStatusToggle() {
+    if (!statusSelect || !idLabel || !idInput || !idHelp) return;
+    const isAlumni = statusSelect.value === 'alumni' || statusSelect.value === 'Alumni';
+    if (isAlumni) {
+        idLabel.textContent = 'Year Graduated';
+        idInput.name = 'year_graduated';
+        idInput.placeholder = 'e.g., 2023';
+        idInput.setAttribute('maxlength', '4');
+        idInput.setAttribute('pattern', '[0-9]{4}');
+        idInput.setAttribute('inputmode', 'numeric');
+        idInput.title = 'Please enter a 4-digit graduation year (e.g., 2023)';
+        idHelp.textContent = 'Enter your graduation year (e.g., 2023).';
+    } else {
+        idLabel.textContent = 'Student ID number';
+        idInput.name = 'student_id';
+        idInput.placeholder = '##-SC-####';
+        idInput.setAttribute('maxlength', '50');
+        idInput.removeAttribute('pattern');
+        idInput.removeAttribute('inputmode');
+        idInput.removeAttribute('title');
+        idHelp.textContent = 'Required for currently enrolled students.';
+    }
+    idInput.required = true;
+}
+
 function updateFields(){
     document.getElementById('request-banner').textContent=service.value==='testing'?'Psychological, Personality, and Career Test Request':({'good-moral':'Good Moral Request','exit-form':'Exit Form'})[service.value];
     for(const [id, active] of [['test-fields',service.value==='testing'],['copy-fields',['good-moral','exit-form'].includes(service.value)]]){
@@ -77,9 +116,7 @@ function updateFields(){
 const form=document.getElementById('request-form');
 const review=document.getElementById('review-panel');
 function requirements(){
-    const enrolled=document.getElementById('student_status').value==='student';
-    document.getElementById('student_number').required=enrolled;
-    document.getElementById('student-id-help').textContent=enrolled?'Student ID is required for currently enrolled students.':'Student ID is optional for alumni. Enter it if you remember it.';
+    handleStudentStatusToggle();
     const testing=service.value==='testing';
     const other=document.getElementById('reason').value==='Others';
     for(const [container,id,active] of [['testing-reason','reason',true],['other-reason-fields','other_reason',other]]){
@@ -103,8 +140,13 @@ document.getElementById('review-button').addEventListener('click',()=>{
         card.append(dt,dd);details.append(card);
     }
     summary('Student Name',['first_name','middle_name','last_name'].map(key=>(data.get(key)||'').trim()).filter(Boolean).join(' '));
-    summary('Student ID Number',data.get('student_number'));
-    summary('Student Status',data.get('student_status')==='student'?'Currently Enrolled':'Alumni');
+    const isAlumni = data.get('student_status') === 'alumni' || data.get('student_status') === 'Alumni';
+    if (isAlumni) {
+        summary('Year Graduated', data.get('year_graduated') || data.get('student_id') || data.get('student_number'));
+    } else {
+        summary('Student ID Number', data.get('student_id') || data.get('student_number'));
+    }
+    summary('Student Status', isAlumni ? 'Alumni' : 'Currently Enrolled');
     summary('Course',data.get('course'));
     if(testing){
         const labels={psychological:'Psychological Assessment',personality:'Personality Test',career:'Career Test'};

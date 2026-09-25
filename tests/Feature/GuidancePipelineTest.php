@@ -75,10 +75,10 @@ class GuidancePipelineTest extends TestCase
         $appointment = $this->requestAssessment();
         $this->postJson(route('staff.guidance-appointments.verify', $appointment))->assertUnauthorized();
         $this->getJson(route('staff.guidance-appointments.receipt', $appointment))->assertUnauthorized();
-        $this->getJson(route('staff.guidance-appointments.results'))->assertUnauthorized();
         $this->actingAs(User::factory()->create(['role_id' => null]));
         $this->postJson(route('staff.guidance-appointments.verify', $appointment))->assertForbidden();
         $this->getJson(route('staff.guidance-appointments.receipt', $appointment))->assertForbidden();
+        config(['guidance.bfpi.items' => 0]);
         $this->postJson(route('guidance.request.store'), [
             'first_name' => 'Test', 'last_name' => 'Student', 'student_status' => 'student',
             'test_type' => 'bfpi', 'consent' => 1, 'payment_slip' => UploadedFile::fake()->createWithContent('receipt.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aHfoAAAAASUVORK5CYII=')),

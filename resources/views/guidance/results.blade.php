@@ -59,9 +59,19 @@
             <div class="alert alert-info">No score summary available for this appointment.</div>
         @else
             @foreach($tests as $testKey => $testData)
+                @php
+                    $testLabel = \App\Services\GuidanceTestScoringService::LABELS[$testKey] ?? strtoupper($testKey);
+                    $instrumentLabel = [
+                        'dass21' => 'DASS-21',
+                        'phq9' => 'PHQ-9',
+                        'gad7' => 'GAD-7',
+                    ][$testKey] ?? null;
+                @endphp
                 <div class="card bg-light border mb-4">
                     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                        <strong class="text-uppercase">{{ \App\Services\GuidanceTestScoringService::LABELS[$testKey] ?? strtoupper($testKey) }}</strong>
+                        <strong class="text-uppercase">
+                            {{ $testLabel }}@if($instrumentLabel) <span class="text-primary">&mdash; {{ $instrumentLabel }}</span>@endif
+                        </strong>
                         @if(isset($testData['completion']))
                             <span class="badge {{ $testData['completion'] === 'Completed' ? 'text-bg-success' : 'text-bg-warning' }}">
                                 {{ $testData['completion'] }} ({{ $testData['answered_items'] ?? 0 }}/{{ $testData['total_items'] ?? 0 }} items)

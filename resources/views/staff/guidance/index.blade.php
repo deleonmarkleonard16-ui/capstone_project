@@ -39,7 +39,7 @@
                 <div class="col-lg-5">
                     <div class="brand-panel rounded-4 p-4 h-100">
                         <div class="d-flex align-items-center gap-3 mb-3">
-                            <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" style="width: 72px; height: 72px; object-fit: contain; background: #fff; border-radius: 50%;">
+                            <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" style="width: 72px; height: 72px; object-fit: contain; background: transparent;">
                             <div>
                                 <div class="fw-bold fs-5">Planned Testing Workspace</div>
                                 <div class="small text-white-50">Modules remain disabled until your final tools and process are confirmed.</div>

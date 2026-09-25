@@ -83,7 +83,8 @@ class GuidanceTrackingController extends Controller
         if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'status' => 'Receipt Uploaded / Pending Verification',
+                'status' => $request->routeIs('api.upload-receipt') ? 'Receipt Uploaded' : 'Receipt Uploaded / Pending Verification',
+                'display_status' => 'Receipt Uploaded / Pending Verification',
                 'message' => $message,
             ]);
         }

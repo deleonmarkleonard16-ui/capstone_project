@@ -8,7 +8,7 @@
         *{box-sizing:border-box}
         body{margin:0;background:#f0f4fc;color:#19345e;font:16px/1.5 system-ui,sans-serif}
         header{background:white;border-bottom:4px solid #194896;padding:18px max(20px,calc((100% - 1060px)/2));display:flex;gap:14px;align-items:center}
-        header img{width:50px;height:50px}
+        header img{width:50px;height:50px;object-fit:contain;background:transparent}
         header small{display:block;color:#65748a}
         main{max-width:1100px;margin:30px auto;padding:0 20px}
         h1{font-size:28px}

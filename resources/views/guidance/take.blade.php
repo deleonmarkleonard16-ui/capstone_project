@@ -293,13 +293,7 @@ body { user-select:none; -webkit-user-select:none; }
                                                 $isChecked = ($currentVal !== null && (string) $currentVal === (string) $choice);
                                             @endphp
                                             <label class="choice-item-label" for="{{ $fieldId }}-{{ $choice }}">
-                                                <input class="choice-radio-input" 
-                                                       id="{{ $fieldId }}-{{ $choice }}" 
-                                                       type="radio" 
-                                                       name="{{ $inputName }}" 
-                                                       value="{{ $choice }}" 
-                                                       @checked($isChecked) 
-                                                       required>
+                                                <input class="choice-radio-input" id="{{ $fieldId }}-{{ $choice }}" type="radio" name="{{ $inputName }}" value="{{ $choice }}" @checked($isChecked) required>
                                                 <span class="choice-text-span">{{ $choiceText }}</span>
                                             </label>
                                         @endforeach

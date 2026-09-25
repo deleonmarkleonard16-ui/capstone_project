@@ -170,7 +170,7 @@ class StudentPortalTest extends TestCase
 
     public function test_unconfigured_instruments_do_not_receive_a_pass(): void
     {
-        config(['guidance.career.items' => 0]);
+        config(['guidance.career.items' => 0, 'guidance.bfpi.items' => 0]);
         $data = $this->payload(); $data['tests'] = ['personality','career'];
         $this->post('/portal/requests', $data)->assertSessionHasNoErrors();
         $this->uploadReceipt(ServiceRequest::firstOrFail());

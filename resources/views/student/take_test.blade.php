@@ -46,8 +46,7 @@
             width: 40px;
             height: 40px;
             object-fit: contain;
-            border-radius: 50%;
-            background: #ffffff;
+            background: transparent;
         }
 
         .brand-text-block {

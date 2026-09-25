@@ -126,6 +126,7 @@ class GuidanceReviewTest extends TestCase
         $entry = app(GuidancePortalService::class)->create($this->payload('personality'));
         $this->upload($entry);
         $personality = $entry->guidanceAppointments->first();
+        config(['guidance.bfpi.items' => 0]);
         $this->postJson(route('staff.guidance-appointments.verify', $personality))->assertUnprocessable();
         $this->assertSame('Receipt Uploaded', $personality->fresh()->status);
         $this->assertNull($personality->fresh()->qrCode);

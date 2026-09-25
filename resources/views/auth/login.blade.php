@@ -20,7 +20,7 @@
                     </div>
                     <div class="col-lg-5 p-5 bg-white d-flex flex-column justify-content-center">
                         <div class="d-flex align-items-center gap-3 mb-4">
-                            <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" style="width: 72px; height: 72px; object-fit: contain;">
+                            <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" style="width: 72px; height: 72px; object-fit: contain; background: transparent;">
                             <div>
                                 <p class="text-uppercase text-primary fw-semibold mb-1">Staff Access</p>
                                 <h2 class="h3 mb-0">Sign in to continue</h2>

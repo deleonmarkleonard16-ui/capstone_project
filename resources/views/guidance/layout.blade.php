@@ -12,7 +12,7 @@
         body.guidance-student { background:var(--tint); color:var(--ink); font:16px/1.5 system-ui,sans-serif; min-height:100vh; }
         .psu-header { background:#fff; border-bottom:4px solid var(--accent); }
         .psu-header-inner { max-width:1100px; margin:auto; padding:16px 20px; display:flex; align-items:center; gap:14px; }
-        .psu-header img { width:50px; height:50px; object-fit:contain; flex:none; }
+        .psu-header img { width:50px; height:50px; object-fit:contain; flex:none; background:transparent; }
         .psu-header strong { display:block; line-height:1.25; }
         .psu-header small { display:block; color:var(--muted); line-height:1.35; }
         .guidance-main { max-width:1100px; padding:30px 20px; }

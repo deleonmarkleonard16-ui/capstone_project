@@ -36,8 +36,7 @@
             display: flex; align-items: center;
         }
         .top-brand.guest { background: rgba(255,255,255,.22); border-bottom-color: rgba(255,255,255,.15); }
-        .brand-logo { width: 42px; height: 42px; object-fit: contain; border-radius: 50%;
-                      background: #fff; box-shadow: 0 .5rem 1rem rgba(8,43,109,.14); }
+        .brand-logo { width: 42px; height: 42px; object-fit: contain; background: transparent; }
         .brand-copy { line-height: 1.15; }
         .brand-copy .main { font-weight: 700; font-size: .95rem; color: var(--psu-blue-deep); }
         .brand-copy .sub  { font-size: .72rem; color: var(--ink-soft); }

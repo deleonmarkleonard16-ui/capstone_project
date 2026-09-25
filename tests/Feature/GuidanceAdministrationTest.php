@@ -117,7 +117,14 @@ class GuidanceAdministrationTest extends TestCase
         $this->assertFalse($appointment->fresh()->is_archived);
         $this->post($url, ['ids' => [$appointment->getKey()], 'archive' => 1])->assertSessionHasNoErrors();
         $this->assertTrue($appointment->fresh()->is_archived);
-        $this->get(route('staff.guidance-appointments.show-results', $appointment))->assertOk()->assertSee('Raw Item Choices')->assertSee('Extremely Severe');
+        $this->get(route('staff.guidance-appointments.show-results', $appointment))
+            ->assertOk()
+            ->assertSee('Raw Item Choices')
+            ->assertSee('Extremely Severe')
+            ->assertSee('Psychological Assessment')
+            ->assertSee('DASS-21')
+            ->assertSee('PHQ-9')
+            ->assertSee('GAD-7');
     }
 
     public function test_analytics_query_json_and_include_archived_high_severity_and_legacy_phq_totals(): void

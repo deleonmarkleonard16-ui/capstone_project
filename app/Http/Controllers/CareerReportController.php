@@ -58,6 +58,6 @@ class CareerReportController extends Controller
                 ->header('Content-Disposition', 'attachment; filename="career-assessment-evaluation.pdf"');
         }
 
-        return response($html);
+        return response($html)->header('Cache-Control', 'no-store, private');
     }
 }

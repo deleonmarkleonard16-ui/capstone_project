@@ -29,7 +29,7 @@
         <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.encoding-sheet', ['cycle_id' => $cycle->id]) }}">
             <i class="bi bi-grid-3x3 me-1"></i> Masterlist Encoding Sheet
         </a>
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.sessions.index') }}">
+        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.sessions.index') }}">
             <i class="bi bi-calendar3 me-1"></i> Open Test Sessions
         </a>
         <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rangeAllocationModal" @disabled($isLocked)>

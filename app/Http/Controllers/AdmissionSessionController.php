@@ -7,6 +7,7 @@ use App\Models\AdmissionCycle;
 use App\Models\AdmissionSession;
 use App\Services\AdmissionScoringService;
 use App\Support\CourseCatalog;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -14,10 +15,14 @@ use Illuminate\Validation\Rule;
 /**
  * PSU-CAT Admission Session Controller
  *
- * Handles CRUD for Admission Sessions (Session A, Session B, …) and
- * the Dynamic Session Range Allocation feature (Spec §5).
+ * Handles Test Session Management for the Active Admission Cycle.
+ * Configuration requirements:
+ * 1. Session Name (e.g., "Session A - Batch 1")
+ * 2. Start Date & Start Time
+ * 3. Masterlist Range Assignment (Start Index # and End Index #)
  *
- * Routes are nested under /admin/admission with middleware 'admission.cycle'.
+ * Execution starts at Start Time and remains open until manually
+ * marked as 'Completed' or until all assigned applicants submit exams.
  */
 class AdmissionSessionController extends Controller
 {
@@ -37,11 +42,22 @@ class AdmissionSessionController extends Controller
     public function index(Request $request)
     {
         $cycle = $this->active();
-        if (!$cycle) return $this->gatekeeperRedirect();
+        if (!$cycle) {
+            return $this->gatekeeperRedirect();
+        }
 
-        $sessions = $cycle->sessions()->withCount('applicants')->latest()->get();
+        $sessions = $cycle->sessions()
+            ->withCount([
+                'applicants',
+                'applicants as submitted_count' => fn ($q) => $q->whereNotNull('submitted_at'),
+            ])
+            ->orderBy('start_time', 'asc')
+            ->get();
 
-        return view('admin.admission.sessions.index', compact('cycle', 'sessions'));
+        $totalApplicants = $cycle->applicants()->count();
+        $courses = CourseCatalog::activeOptions();
+
+        return view('admin.admission.sessions.index', compact('cycle', 'sessions', 'totalApplicants', 'courses'));
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -49,15 +65,11 @@ class AdmissionSessionController extends Controller
     public function create()
     {
         $cycle = $this->active();
-        if (!$cycle) return $this->gatekeeperRedirect();
+        if (!$cycle) {
+            return $this->gatekeeperRedirect();
+        }
 
-        return view('admin.admission.sessions.form', [
-            'cycle'   => $cycle,
-            'session' => new AdmissionSession(),
-            'method'  => 'POST',
-            'action'  => route('admin.admission.sessions.store'),
-            'courses' => CourseCatalog::activeOptions(),
-        ]);
+        return redirect()->route('admin.admission.sessions.index');
     }
 
     // ── Store ─────────────────────────────────────────────────────────────────
@@ -65,36 +77,32 @@ class AdmissionSessionController extends Controller
     public function store(Request $request, AdmissionScoringService $scoring)
     {
         $cycle = $this->active();
-        if (!$cycle) return $this->gatekeeperRedirect();
+        if (!$cycle) {
+            return $this->gatekeeperRedirect();
+        }
         abort_if($cycle->isCompleted(), 422, 'Cannot add sessions to an archived cycle.');
 
         $data = $request->validate([
-            'session_name'     => 'required|string|max:120',
-            'start_number'     => 'required|integer|min:1',
-            'end_number'       => 'required|integer|gte:start_number',
-            'room'             => 'nullable|string|max:120',
-            'exam_date'        => 'nullable|date',
-            'start_time'       => 'nullable|date_format:H:i',
-            'end_time'         => 'nullable|date_format:H:i',
-            'duration_minutes' => 'nullable|integer|min:1|max:480',
-            'batch_group'      => 'nullable|string|max:100',
-            'course_filter'    => 'nullable|string|max:30',
+            'session_name'  => 'required|string|max:120',
+            'start_time'    => 'required|date',
+            'start_number'  => 'required|integer|min:1',
+            'end_number'    => 'required|integer|gte:start_number',
+            'room'          => 'nullable|string|max:120',
+            'batch_group'   => 'nullable|string|max:100',
+            'course_filter' => 'nullable|string|max:30',
         ]);
 
         $session = $cycle->sessions()->create([
-            'session_name'     => $data['session_name'],
-            'start_number'     => $data['start_number'],
-            'end_number'       => $data['end_number'],
-            'room'             => $data['room'] ?? null,
-            'exam_date'        => $data['exam_date'] ?? null,
-            'start_time'       => $data['start_time'] ?? null,
-            'end_time'         => $data['end_time'] ?? null,
-            'duration_minutes' => $data['duration_minutes'] ?? 40,
-            'qr_token'         => Str::random(64),
-            'status'           => 'Active',
+            'session_name' => $data['session_name'],
+            'start_time'   => Carbon::parse($data['start_time']),
+            'start_number' => (int) $data['start_number'],
+            'end_number'   => (int) $data['end_number'],
+            'room'         => $data['room'] ?? null,
+            'qr_token'     => Str::random(64),
+            'status'       => AdmissionSession::STATUS_SCHEDULED,
         ]);
 
-        // ── Range-Based Auto-Assign (Spec §5) ──────────────────────────────────
+        // ── Masterlist Range Assignment ────────────────────────────────────────
         $start = (int) $data['start_number'];
         $end   = (int) $data['end_number'];
         $limit = ($end - $start) + 1;
@@ -118,8 +126,8 @@ class AdmissionSessionController extends Controller
 
         $scoring->evaluate($cycle);
 
-        return redirect()->route('admin.admission.sessions.show', $session)
-            ->with('success', "Session '{$session->session_name}' created and {$targets->count()} applicant(s) assigned (Range: {$start}–{$end}).");
+        return redirect()->route('admin.admission.sessions.index')
+            ->with('success', "Session '{$session->session_name}' created successfully. {$targets->count()} applicant(s) assigned (Masterlist Range: #{$start}–#{$end}).");
     }
 
     // ── Show / Roster ─────────────────────────────────────────────────────────
@@ -127,7 +135,15 @@ class AdmissionSessionController extends Controller
     public function show(AdmissionSession $session)
     {
         $cycle = $session->cycle;
-        $applicants = $session->applicants()->orderBy('last_name')->get();
+        if (!$cycle) {
+            return $this->gatekeeperRedirect();
+        }
+
+        $applicants = $session->applicants()
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
         return view('admin.admission.sessions.show', compact('session', 'cycle', 'applicants'));
     }
 
@@ -138,39 +154,89 @@ class AdmissionSessionController extends Controller
         $cycle = $session->cycle;
         abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot edit sessions on an archived cycle.');
 
-        return view('admin.admission.sessions.form', [
-            'cycle'   => $cycle,
-            'session' => $session,
-            'method'  => 'PUT',
-            'action'  => route('admin.admission.sessions.update', $session),
-            'courses' => CourseCatalog::activeOptions(),
-        ]);
+        return redirect()->route('admin.admission.sessions.index');
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
 
-    public function update(Request $request, AdmissionSession $session)
+    public function update(Request $request, AdmissionSession $session, AdmissionScoringService $scoring)
     {
         $cycle = $session->cycle;
         abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot edit sessions on an archived cycle.');
 
         $data = $request->validate([
-            'session_name'     => 'required|string|max:120',
-            'room'             => 'nullable|string|max:120',
-            'exam_date'        => 'nullable|date',
-            'start_time'       => 'nullable|date_format:H:i',
-            'end_time'         => 'nullable|date_format:H:i',
-            'duration_minutes' => 'nullable|integer|min:1|max:480',
-            'status'           => ['nullable', Rule::in(['Active', 'Completed', 'Cancelled'])],
+            'session_name' => 'required|string|max:120',
+            'start_time'   => 'required|date',
+            'start_number' => 'required|integer|min:1',
+            'end_number'   => 'required|integer|gte:start_number',
+            'room'         => 'nullable|string|max:120',
+            'status'       => ['nullable', Rule::in(AdmissionSession::STATUSES)],
         ]);
 
-        $session->update($data);
+        $prevStart = $session->start_number;
+        $prevEnd   = $session->end_number;
 
-        // Sync session_label on assigned applicants
-        AdmissionApplicant::where('admission_session_id', $session->id)
-            ->update(['session_label' => $session->session_name]);
+        $session->update([
+            'session_name' => $data['session_name'],
+            'start_time'   => Carbon::parse($data['start_time']),
+            'start_number' => (int) $data['start_number'],
+            'end_number'   => (int) $data['end_number'],
+            'room'         => $data['room'] ?? null,
+            'status'       => $data['status'] ?? $session->status,
+        ]);
 
-        return back()->with('success', "Session '{$session->session_name}' updated.");
+        // If applicant range changed, reallocate applicants
+        $newStart = (int) $data['start_number'];
+        $newEnd   = (int) $data['end_number'];
+        if ($prevStart !== $newStart || $prevEnd !== $newEnd) {
+            // Unlink current applicants
+            AdmissionApplicant::where('admission_session_id', $session->id)
+                ->update(['admission_session_id' => null, 'session_label' => null]);
+
+            $limit = ($newEnd - $newStart) + 1;
+            $targets = $cycle->applicants()->orderBy('id')->skip($newStart - 1)->take($limit)->get();
+            foreach ($targets as $applicant) {
+                $applicant->update([
+                    'admission_session_id' => $session->id,
+                    'session_label'        => $session->session_name,
+                ]);
+            }
+        } else {
+            // Sync session_label if session name changed
+            AdmissionApplicant::where('admission_session_id', $session->id)
+                ->update(['session_label' => $session->session_name]);
+        }
+
+        $scoring->evaluate($cycle);
+
+        return redirect()->route('admin.admission.sessions.index')
+            ->with('success', "Session '{$session->session_name}' updated successfully.");
+    }
+
+    // ── Status Transition (Start / In-Progress / Complete) ─────────────────────
+
+    public function updateStatus(Request $request, AdmissionSession $session)
+    {
+        $cycle = $session->cycle;
+        abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot update session status on an archived cycle.');
+
+        $data = $request->validate([
+            'status' => ['required', Rule::in(AdmissionSession::STATUSES)],
+        ]);
+
+        $session->update(['status' => $data['status']]);
+
+        return back()->with('success', "Session '{$session->session_name}' status changed to {$session->status}.");
+    }
+
+    public function complete(AdmissionSession $session)
+    {
+        $cycle = $session->cycle;
+        abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot complete session on an archived cycle.');
+
+        $session->update(['status' => AdmissionSession::STATUS_COMPLETED]);
+
+        return back()->with('success', "Session '{$session->session_name}' has been marked as Completed.");
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────────
@@ -180,7 +246,7 @@ class AdmissionSessionController extends Controller
         $cycle = $session->cycle;
         abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot delete sessions on an archived cycle.');
 
-        // Unlink applicants
+        // Unlink assigned applicants
         AdmissionApplicant::where('admission_session_id', $session->id)
             ->update(['admission_session_id' => null, 'session_label' => null]);
 

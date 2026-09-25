@@ -188,6 +188,9 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::post('/quotas', [$c, 'quota'])->name('quotas.save');
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
+        Route::resource('sessions', \App\Http\Controllers\AdmissionSessionController::class);
+        Route::post('/sessions/{session}/status', [\App\Http\Controllers\AdmissionSessionController::class, 'updateStatus'])->name('sessions.status');
+        Route::post('/sessions/{session}/complete', [\App\Http\Controllers\AdmissionSessionController::class, 'complete'])->name('sessions.complete');
         Route::post('/sessions/assign-range', [$c, 'assignSessionRange'])->name('sessions.assign-range');
         Route::get('/encoding-sheet', [$c, 'encodingSheet'])->name('encoding-sheet');
         Route::post('/encoding-sheet', [$c, 'saveEncodingSheet'])->name('encoding-sheet.save');

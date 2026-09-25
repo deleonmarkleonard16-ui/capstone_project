@@ -18,7 +18,7 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.sessions.index') }}">
+        <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.admission.sessions.index') }}">
             <i class="bi bi-calendar3 me-1"></i> Open Test Sessions
         </a>
         <a class="btn btn-outline-secondary btn-sm"

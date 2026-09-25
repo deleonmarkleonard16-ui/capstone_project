@@ -21,7 +21,7 @@
                             <tr>
                                 <td>{{ $session->title }}</td>
                                 <td>{{ $session->exam_date->format('M d, Y') }}</td>
-                                <td>{{ $session->start_time }} - {{ $session->end_time }}</td>
+                                <td>{{ $session->start_time ? date('h:i A', strtotime($session->start_time)) : '-' }}</td>
                                 <td>{{ $session->duration_minutes }} minutes</td>
                                 <td>{{ $session->room ?: '-' }}</td>
                                 <td><span class="badge text-bg-secondary">{{ ucfirst(str_replace('_', ' ', $session->status)) }}</span></td>

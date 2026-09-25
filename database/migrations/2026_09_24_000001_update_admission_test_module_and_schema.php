@@ -26,15 +26,12 @@ return new class extends Migration {
                 $table->id();
                 $table->foreignId('admission_cycle_id')->constrained('admission_cycles')->cascadeOnDelete();
                 $table->string('session_name');
+                $table->dateTime('start_time');
                 $table->unsignedInteger('start_number');
                 $table->unsignedInteger('end_number');
                 $table->string('room')->nullable();
-                $table->date('exam_date')->nullable();
-                $table->time('start_time')->nullable();
-                $table->time('end_time')->nullable();
-                $table->unsignedInteger('duration_minutes')->default(40);
                 $table->string('qr_token', 64)->unique()->nullable();
-                $table->string('status', 30)->default('Active');
+                $table->enum('status', ['Scheduled', 'In-Progress', 'Completed'])->default('Scheduled');
                 $table->timestamps();
             });
         }

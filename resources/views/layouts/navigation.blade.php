@@ -59,8 +59,8 @@
                            href="{{ route('admin.admission.index') }}">
                             <i class="bi bi-arrow-repeat"></i> Admission Cycle
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.sessions.*') ? 'active' : '' }}"
-                           href="{{ route('admin.sessions.index') }}">
+                        <a class="sidebar-link {{ request()->routeIs('admin.admission.sessions.*', 'admin.sessions.*') ? 'active' : '' }}"
+                           href="{{ route('admin.admission.sessions.index') }}">
                             <i class="bi bi-calendar3"></i> Sessions
                         </a>
                         <a class="sidebar-link {{ request()->routeIs('admin.admission.masterlist') ? 'active' : '' }}"

@@ -17,9 +17,9 @@ class TestSessionRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'exam_date' => ['required', 'date'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
-            'duration_minutes' => ['required', 'integer', 'min:1', 'max:240'],
+            'start_time' => ['required'],
+            'end_time' => ['nullable'],
+            'duration_minutes' => ['nullable', 'integer', 'min:1', 'max:240'],
             'room' => ['nullable', 'string', 'max:255'],
             'status' => ['required', Rule::exists('test_session_statuses', 'slug')],
             'start_number' => ['nullable', 'integer', 'min:1'],

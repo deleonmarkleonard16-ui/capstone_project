@@ -24,12 +24,8 @@
                             <input type="time" class="form-control" name="start_time" value="{{ old('start_time', $session->start_time) }}" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">End Time</label>
-                            <input type="time" class="form-control" name="end_time" value="{{ old('end_time', $session->end_time) }}" required>
-                        </div>
-                        <div class="col-md-4">
                             <label class="form-label">Duration (minutes)</label>
-                            <input type="number" class="form-control" name="duration_minutes" value="{{ old('duration_minutes', $session->duration_minutes ?: 40) }}" required>
+                            <input type="number" class="form-control" name="duration_minutes" value="{{ old('duration_minutes', $session->duration_minutes ?: 40) }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Room</label>

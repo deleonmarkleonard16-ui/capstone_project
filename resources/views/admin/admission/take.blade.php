@@ -45,7 +45,7 @@
         #timer.danger { background: #7c1e1e; color: #ff6060; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-        /* Answer grid: 4 vertical balanced columns of 20 items */
+        /* Answer grid: 4 vertical balanced columns (auto-split) */
         .exam-columns-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         @media (max-width: 992px) { .exam-columns-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 576px) { .exam-columns-grid { grid-template-columns: 1fr; } }
@@ -114,7 +114,7 @@
             <li>Exiting fullscreen, switching tabs, or losing window focus counts as a <strong>security strike</strong>.</li>
             <li>Using Print Screen, Ctrl+P, or similar keys is <strong>prohibited</strong>.</li>
             <li>3 strikes result in <strong>automatic exam submission</strong>.</li>
-            <li>There are <strong>80 questions</strong>. Choose A, B, C, or D for each item.</li>
+            <li>There are <strong>{{ $totalItems }} questions</strong>. Choose A, B, C, or D for each item.</li>
         </ul>
     </div>
 
@@ -136,15 +136,20 @@
         <div id="timer">00:00</div>
     </div>
 
-    <div id="answered-count">Answered: <span id="ans-count">0</span> / 80</div>
+    <div id="answered-count">Answered: <span id="ans-count">0</span> / {{ $totalItems }}</div>
 
     <form id="exam-form">
         @csrf
+        @php
+            $cols = 4;
+            $rows = (int) ceil($totalItems / $cols);
+        @endphp
         <div class="exam-columns-grid">
-            @for($col = 0; $col < 4; $col++)
+            @for($col = 0; $col < $cols; $col++)
                 <div class="exam-column">
-                    @for($row = 1; $row <= 20; $row++)
-                        @php($i = $col * 20 + $row)
+                    @for($row = 1; $row <= $rows; $row++)
+                        @php($i = $col * $rows + $row)
+                        @if($i > $totalItems) @break @endif
                         <div class="question-card" id="qcard-{{ $i }}" data-item="{{ $i }}">
                             <div class="q-num">{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}.</div>
                             <div class="choices">
@@ -189,6 +194,7 @@ const STRIKE_URL  = @json(route('admission.strike', $token));
 const COMPLETE_URL = @json(route('admission.complete'));
 const CSRF        = document.querySelector('meta[name="csrf-token"]').content;
 const INITIAL_STRIKES = {{ (int)$applicant->strike_count }};
+const TOTAL_ITEMS = {{ (int)$totalItems }};
 
 const kioskLock    = document.getElementById('kiosk-lock');
 const examShell    = document.getElementById('exam-shell');
@@ -226,7 +232,8 @@ function updateAnswerCount() {
         const checked = card.querySelector('input:checked');
         card.classList.toggle('answered', !!checked);
     });
-    submitBtn.disabled = (n < 80 || !started || sending);
+    // Enable submit only when ALL items are answered
+    submitBtn.disabled = (n < TOTAL_ITEMS || !started || sending);
 }
 
 document.getElementById('exam-form').addEventListener('change', updateAnswerCount);

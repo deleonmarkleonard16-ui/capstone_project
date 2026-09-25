@@ -21,18 +21,24 @@ class AdmissionExamController extends Controller
     public function take(string $token)
     {
         $applicant = $this->applicant($token);
+        $totalItems = max(1, (int) ($applicant->cycle?->total_items ?: 80));
+
         $count = DB::table('admission_answer_keys')
             ->where('admission_cycle_id', $applicant->admission_cycle_id)
             ->count();
-        abort_if($count < 80, 409, 'The examination is not configured. Please contact the proctor.');
-        return view('admin.admission.take', compact('applicant', 'token'));
+
+        abort_if($count < $totalItems, 409, 'The examination is not configured. Please contact the proctor.');
+
+        return view('admin.admission.take', compact('applicant', 'token', 'totalItems'));
     }
 
     public function submit(Request $request, string $token, AdmissionScoringService $scoring)
     {
         $applicant = $this->applicant($token);
+        $totalItems = max(1, (int) ($applicant->cycle?->total_items ?: 80));
+
         $data = $request->validate([
-            'answers'   => 'nullable|array:' . implode(',', range(1, 80)),
+            'answers'   => 'nullable|array:' . implode(',', range(1, $totalItems)),
             'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
         $scoring->submit($applicant, $data['answers'] ?? []);
@@ -48,17 +54,17 @@ class AdmissionExamController extends Controller
      */
     public function strike(Request $request, string $token, AdmissionScoringService $scoring)
     {
+        $applicantPreCheck = $this->applicant($token);
+        $totalItems = max(1, (int) ($applicantPreCheck->cycle?->total_items ?: 80));
+
         $data = $request->validate([
             'incident_type' => ['required', Rule::in([
                 'back_button', 'print_screen', 'print', 'focus_loss',
                 'fullscreen_exit', 'screenshot', 'tab_switch',
             ])],
-            'answers'   => 'nullable|array:' . implode(',', range(1, 80)),
+            'answers'   => 'nullable|array:' . implode(',', range(1, $totalItems)),
             'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
-
-        // Validate token is still active before acquiring lock
-        $this->applicant($token);
 
         $applicant = DB::transaction(function () use ($token, $data, $scoring) {
             $applicant = AdmissionApplicant::where('exam_token', $token)

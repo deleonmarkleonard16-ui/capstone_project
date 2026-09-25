@@ -23,7 +23,8 @@
 
 <div id="paper-scanner"
      data-lookup="{{ route('admin.admission.scan-paper.lookup') }}"
-     data-csrf="{{ csrf_token() }}">
+     data-csrf="{{ csrf_token() }}"
+     data-total-items="{{ $totalItems ?? 80 }}">
 
     {{-- ── 4-STEP PROGRESS INDICATOR ── --}}
     <div class="row g-2 mb-4">
@@ -155,7 +156,7 @@
                     <form id="answers" method="post" hidden>
                         @csrf
                         <div class="alert alert-info py-2 small mb-3">
-                            <i class="bi bi-info-circle me-1"></i> Review all 80 detected bubbles against the paper. Unshaded or ambiguous items require confirmation.
+                            <i class="bi bi-info-circle me-1"></i> Review all <strong>{{ $totalItems ?? 80 }}</strong> detected bubbles against the paper. Unshaded or ambiguous items require confirmation.
                         </div>
 
                         <div id="answer-review" class="row g-1 mb-3" style="max-height:220px; overflow-y:auto;"></div>
@@ -163,7 +164,7 @@
                         <div class="form-check mb-3 small">
                             <input class="form-check-input" type="checkbox" id="confirm-match" required>
                             <label class="form-check-label fw-semibold" for="confirm-match">
-                                I verified the examinee's ID and confirmed the 80 detected answers against the physical paper.
+                                I verified the examinee's ID and confirmed all <strong>{{ $totalItems ?? 80 }}</strong> detected answers against the physical paper.
                             </label>
                         </div>
 

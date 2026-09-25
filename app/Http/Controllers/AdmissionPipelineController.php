@@ -30,6 +30,7 @@ class AdmissionPipelineController extends Controller
             'academic_year' => 'nullable|string|max:50',
             'status' => ['nullable', Rule::in(array_merge(AdmissionCycle::STATUSES, ['Maintenance', 'Archived']))],
             'passing_stanine' => 'nullable|integer|between:1,9',
+            'total_items' => 'nullable|integer|between:10,200',
             'exam_weight' => 'nullable|numeric|between:0,100',
             'gwa_weight' => 'nullable|numeric|between:0,100',
             'interview_weight' => 'nullable|numeric|between:0,100',
@@ -64,6 +65,7 @@ class AdmissionPipelineController extends Controller
         $record->cycle_name = $cycleName;
         $record->academic_year = $academicYear;
         $record->passing_stanine = (int) ($data['passing_stanine'] ?? 4);
+        $record->total_items = (int) ($data['total_items'] ?? ($record->total_items ?: 80));
         $record->exam_weight = $examWeight;
         $record->gwa_weight = $gwaWeight;
         $record->interview_weight = $interviewWeight;
@@ -89,9 +91,9 @@ class AdmissionPipelineController extends Controller
         app(AdmissionScoringService::class)->evaluate($record);
 
         $msg = match(true) {
-            $shouldActivate  => "Admission cycle '{$record->displayName}' initialized and set as Active.",
+            $shouldActivate  => "Admission cycle '{$record->displayName}' initialized with {$record->total_items} items and set as Active.",
             $isMaintenance   => "Admission cycle '{$record->displayName}' placed in Maintenance Mode. Encoding and masterlist access is suspended.",
-            default          => "Admission cycle '{$record->displayName}' saved.",
+            default          => "Admission cycle '{$record->displayName}' saved with {$record->total_items} items.",
         };
 
         return back()->with('success', $msg);
@@ -152,12 +154,28 @@ class AdmissionPipelineController extends Controller
 
         abort_if($cycle->isCompleted(), 422, 'Cannot edit answer key on an archived cycle.');
 
+        $totalItems = (int) ($request->input('total_items') ?: ($cycle->total_items ?: 80));
+        $request->merge(['total_items' => $totalItems]);
+
         $data = $request->validate([
-            'answers' => 'required|array:' . implode(',', range(1, 80)) . '|size:80',
+            'total_items' => 'required|integer|min:10|max:200',
+            'answers' => 'required|array:' . implode(',', range(1, $totalItems)) . '|size:' . $totalItems,
             'answers.*' => ['required', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
 
-        DB::transaction(function () use ($cycle, $data) {
+        DB::transaction(function () use ($cycle, $totalItems, $data) {
+            if ($cycle->total_items !== $totalItems) {
+                $cycle->total_items = $totalItems;
+                $cycle->save();
+            }
+
+            // Prune excess items beyond dynamic count
+            DB::table('admission_answer_keys')
+                ->where('admission_cycle_id', $cycle->id)
+                ->where('item_number', '>', $totalItems)
+                ->delete();
+
+            // Sync answer key items 1..total_items
             foreach ($data['answers'] as $item => $answer) {
                 DB::table('admission_answer_keys')->updateOrInsert(
                     ['admission_cycle_id' => $cycle->id, 'item_number' => (int) $item],
@@ -167,7 +185,7 @@ class AdmissionPipelineController extends Controller
         });
 
         app(AdmissionScoringService::class)->rescoreCycle($cycle);
-        return back()->with('success', 'Answer key saved and cycle re-scored.');
+        return back()->with('success', "Answer key for {$totalItems} items saved and cycle re-scored.");
     }
 
     public function masterlist(Request $request)
@@ -538,14 +556,16 @@ class AdmissionPipelineController extends Controller
     {
         $cycle = $applicant->cycle ?? $this->active();
         if (!$cycle) return $this->gatekeeperRedirect();
-        return view('admin.admission.paper', compact('applicant'));
+        $totalItems = (int) ($cycle->total_items ?: 80);
+        return view('admin.admission.paper', compact('applicant', 'totalItems'));
     }
 
     public function scanner()
     {
         $cycle = $this->active();
         if (!$cycle) return $this->gatekeeperRedirect();
-        return view('admin.admission.scanner');
+        $totalItems = $cycle->total_items ?: 80;
+        return view('admin.admission.scanner', compact('cycle', 'totalItems'));
     }
 
     public function scan(Request $request)
@@ -568,7 +588,8 @@ class AdmissionPipelineController extends Controller
         $cycle = $applicant->cycle;
         if (!$cycle) return $this->gatekeeperRedirect();
         abort_if($cycle->isCompleted(), 422, 'Cannot encode answers on an archived cycle.');
-        return view('admin.admission.encode', compact('applicant'));
+        $totalItems = $cycle->total_items ?: 80;
+        return view('admin.admission.encode', compact('applicant', 'totalItems'));
     }
 
     public function submitPaper(Request $request, AdmissionApplicant $applicant, AdmissionScoringService $scoring)
@@ -576,8 +597,9 @@ class AdmissionPipelineController extends Controller
         $cycle = $applicant->cycle;
         if (!$cycle) return $this->gatekeeperRedirect();
         abort_if($cycle->isCompleted(), 422, 'Cannot submit answers on an archived cycle.');
+        $totalItems = $cycle->total_items ?: 80;
         $data = $request->validate([
-            'answers' => 'required|array:' . implode(',', range(1, 80)) . '|size:80',
+            'answers' => 'required|array:' . implode(',', range(1, $totalItems)) . '|size:' . $totalItems,
             'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
         $scoring->submit($applicant, $data['answers']);

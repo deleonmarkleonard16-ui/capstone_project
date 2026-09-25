@@ -25,6 +25,8 @@
             <code>{{ $applicant->application_number }}</code>
             &nbsp;·&nbsp;
             <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ $applicant->course_choice }}</span>
+            &nbsp;·&nbsp;
+            <span class="badge bg-info-subtle text-info border border-info-subtle">{{ $totalItems }} Items</span>
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -45,7 +47,7 @@
         <div>
             This applicant's answers were <strong>already submitted</strong>
             ({{ $applicant->submitted_at->format('M d, Y g:i A') }}).
-            Exam Score: <strong>{{ $applicant->exam_score ?? '—' }}</strong> ·
+            Exam Score: <strong>{{ $applicant->exam_score ?? '—' }} / {{ $totalItems }}</strong> ·
             Stanine: <strong>{{ $applicant->stanine_score ?? '—' }}</strong> ·
             Status: <strong>{{ $applicant->qualification_status ?? 'Pending' }}</strong>
         </div>
@@ -70,7 +72,7 @@
             </div>
             <div class="col-md-3 small">
                 <span class="text-muted d-block">Current Score</span>
-                <strong>{{ $applicant->exam_score !== null ? $applicant->exam_score . ' / 80' : 'Not yet scored' }}</strong>
+                <strong>{{ $applicant->exam_score !== null ? $applicant->exam_score . ' / ' . $totalItems : 'Not yet scored' }}</strong>
             </div>
         </div>
     </div>
@@ -81,8 +83,8 @@
     <div class="card-header bg-white py-3">
         <h2 class="h6 mb-0 fw-bold">
             <i class="bi bi-grid me-1"></i>
-            Answer Grid — 80 Items
-            <span class="badge bg-secondary ms-2 fw-normal" id="filled-count">0 / 80 filled</span>
+            Answer Grid — {{ $totalItems }} Items
+            <span class="badge bg-secondary ms-2 fw-normal" id="filled-count">0 / {{ $totalItems }} filled</span>
         </h2>
     </div>
     <div class="card-body p-4">
@@ -103,7 +105,7 @@
             {{-- Horizontal answer grid: each row = one question, columns = A B C D --}}
             <div class="row g-0" id="answer-grid">
                 @php $existingAnswers = old('answers', []); @endphp
-                @for ($i = 1; $i <= 80; $i++)
+                @for ($i = 1; $i <= $totalItems; $i++)
                 <div class="col-12 col-md-6 col-xl-4">
                     <div class="d-flex align-items-center border-bottom py-2 px-3 answer-row {{ isset($existingAnswers[$i]) && $existingAnswers[$i] ? 'answered' : '' }}"
                          data-item="{{ $i }}">
@@ -147,10 +149,12 @@
 
 @push('scripts')
 <script>
+const TOTAL_ITEMS = {{ (int)$totalItems }};
+
 // ── Live filled counter ──
 function updateCount() {
     const filled = document.querySelectorAll('.answer-radio:checked').length;
-    document.getElementById('filled-count').textContent = `${filled} / 80 filled`;
+    document.getElementById('filled-count').textContent = `${filled} / ${TOTAL_ITEMS} filled`;
     document.querySelectorAll('.answer-row').forEach(row => {
         const item = row.dataset.item;
         const checked = row.querySelector(`input[name="answers[${item}]"]:checked`);

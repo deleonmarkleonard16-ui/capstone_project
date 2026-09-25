@@ -4,6 +4,8 @@ const root = document.getElementById('paper-scanner');
 const byId = id => document.getElementById(id);
 const canvas = byId('sheet'), context = canvas.getContext('2d', {willReadFrequently:true});
 const message = byId('message'), video = byId('preview'), form = byId('answers');
+// Read the active cycle's total item count injected by scanner.blade.php
+const TOTAL_ITEMS = parseInt(root.dataset.totalItems, 10) || 80;
 let stream, pixels, points = [], applicant, timer, lookupBusy = false;
 const stop = () => { clearTimeout(timer); stream?.getTracks().forEach(track=>track.stop()); };
 window.addEventListener('pagehide', stop);
@@ -68,7 +70,7 @@ canvas.onclick = event => {
     points.push(point); context.fillStyle = '#e11'; context.beginPath(); context.arc(...point,5,0,Math.PI*2); context.fill();
     if (points.length < 4) { message.textContent = `Marker ${points.length} selected. Select marker ${points.length+1}.`; return; }
     try {
-        const answers = detectAnswers(pixels, points);
+        const answers = detectAnswers(pixels, points, TOTAL_ITEMS);
         for (const result of answers) {
             const label = document.createElement('label'); label.className = 'col-6 col-md-3';
             label.textContent = `Item ${result.item}: ${result.reason}`;
@@ -78,7 +80,7 @@ canvas.onclick = event => {
             select.value = result.answer ?? ''; label.append(select); byId('answer-review').append(label);
         }
         form.hidden = false; byId('record').disabled = !applicant;
-        message.textContent = `${answers.filter(row=>!row.answer).length} rows require review. Confirm the applicant and all answers before saving.`;
+        message.textContent = `${answers.filter(row=>!row.answer).length} of ${TOTAL_ITEMS} rows require review. Confirm the applicant and all answers before saving.`;
     } catch(error) { message.textContent = error.message; points = []; }
 };
 form.addEventListener('submit', event => {

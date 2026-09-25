@@ -1,4 +1,13 @@
-// OMR v1 coordinates are shared with admin/admission/paper.blade.php.
+// OMR v2 — Dynamic item count support.
+// Coordinates are derived from the SVG layout in admin/admission/paper.blade.php.
+// The projective transform maps webcam/image pixel coords → SVG viewBox coords.
+// SVG layout constants (must stay in sync with paper.blade.php):
+//   colStartX  = 40 + col * 260
+//   bubbleX    = colStartX + 85 + optionIndex * 36
+//   rowY (first item in col) = 54, step = 21
+//   4 corner markers at: TL(20,160), TR(1080,160), BR(1080,620), BL(20,620)
+//   (these are the approximate midpoints of the markers in scan space)
+
 export function projectiveMap(corners) {
     const source = [[20, 160], [1080, 160], [1080, 620], [20, 620]];
     const matrix = [];
@@ -27,7 +36,15 @@ export function projectiveMap(corners) {
     };
 }
 
-export function detectAnswers(image, corners) {
+/**
+ * Detect shaded bubble answers from a captured image.
+ *
+ * @param {ImageData} image      - Pixel data from canvas.getImageData()
+ * @param {number[][]} corners   - Four [x,y] corner marker points (TL,TR,BR,BL clockwise)
+ * @param {number} totalItems    - Total exam items (default 80, matches active cycle total_items)
+ * @returns {Array<{item,answer,fills,reason}>}
+ */
+export function detectAnswers(image, corners, totalItems = 80) {
     // Reject reversed, crossing, or severely compressed quadrilaterals.
     const turns = corners.map((p, i) => {
         const q = corners[(i+1)%4], r = corners[(i+2)%4];
@@ -41,10 +58,24 @@ export function detectAnswers(image, corners) {
         const offset = (v*image.width+u)*4;
         return .299*image.data[offset]+.587*image.data[offset+1]+.114*image.data[offset+2];
     };
-    return Array.from({length:80}, (_, index) => {
-        const column = Math.floor(index/20), row = index%20, y = 190+row*21;
-        const fills = Array.from({length:4}, (_, option) => {
-            const x = 100+column*270+option*36;
+
+    // ── Dynamic column/row layout (mirrors paper.blade.php SVG math) ──
+    const COLS        = 4;
+    const rowsPerCol  = Math.ceil(totalItems / COLS);  // e.g. 80→20, 100→25, 120→30, 144→36
+
+    return Array.from({length: totalItems}, (_, index) => {
+        // Which column and row within that column?
+        const column = Math.floor(index / rowsPerCol);
+        const row    = index % rowsPerCol;
+
+        // SVG coordinates (must match paper.blade.php colStartX + bubbleX formula)
+        // colStartX = 40 + column * 260; bubbleX = colStartX + 85 + optionIndex * 36
+        // rowY = 54 + row * 21
+        const colStartX = 40 + column * 260;
+        const y = 54 + row * 21;           // same as $rowY in blade
+
+        const fills = Array.from({length: 4}, (_, option) => {
+            const x = colStartX + 85 + option * 36;  // same as $bubbleX in blade
             // Local paper brightness compensates for smooth lighting gradients.
             const paper = [gray(x-11,y), gray(x+11,y), gray(x,y-9), gray(x,y+9)].sort((a,b)=>a-b)[2];
             if (paper < 90) throw new Error('Image is too dark. Improve lighting and recapture.');

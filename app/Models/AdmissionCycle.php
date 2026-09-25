@@ -48,6 +48,7 @@ class AdmissionCycle extends Model
             'interview_weight'=> 'decimal:2',
             'passing_rate'    => 'decimal:2',
             'passing_stanine' => 'integer',
+            'total_items'     => 'integer',
             'start_date'      => 'date',
             'end_date'        => 'date',
         ];
@@ -81,6 +82,11 @@ class AdmissionCycle extends Model
     public function getNameAttribute($value): string
     {
         return $value ?: ($this->attributes['cycle_name'] ?? '');
+    }
+
+    public function getTotalItemsAttribute($value): int
+    {
+        return (int) ($value ?: 80);
     }
 
     // ── Scopes & Static Queries ───────────────────────────────────────────────

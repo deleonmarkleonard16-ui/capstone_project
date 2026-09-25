@@ -283,6 +283,13 @@
                                                     <input type="number" name="passing_stanine" value="{{ $cycle->passing_stanine }}" min="1" max="9" class="form-control form-control-sm">
                                                 </div>
                                                 <div class="col-4">
+                                                    <label class="form-label form-label-sm fw-semibold">
+                                                        Total Items
+                                                        <span class="text-danger">*</span>
+                                                    </label>
+                                                    <input type="number" name="total_items" value="{{ $cycle->total_items ?: 80 }}" min="10" max="200" class="form-control form-control-sm" required>
+                                                </div>
+                                                <div class="col-4">
                                                     <label class="form-label form-label-sm fw-semibold">Exam %</label>
                                                     <input type="number" name="exam_weight" value="{{ $cycle->exam_weight }}" class="form-control form-control-sm">
                                                 </div>
@@ -294,6 +301,14 @@
                                                     <label class="form-label form-label-sm fw-semibold">Interview %</label>
                                                     <input type="number" name="interview_weight" value="{{ $cycle->interview_weight }}" class="form-control form-control-sm">
                                                 </div>
+                                                @if($cycle->total_items && $cycle->total_items !== 80)
+                                                <div class="col-12">
+                                                    <div class="alert alert-warning py-2 small mb-0">
+                                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                                        Changing Total Items will resize the answer key grid and may trigger a rescore of all existing submissions.
+                                                    </div>
+                                                </div>
+                                                @endif
                                             </div>
                                             <div class="modal-footer">
                                                 <button class="btn btn-primary btn-sm">Save Changes</button>
@@ -347,19 +362,36 @@
 
         {{-- Answer Key --}}
         <div class="card page-card shadow-sm" id="answer-key">
-            <div class="card-header bg-white py-3">
-                <h2 class="h6 section-title mb-0 fw-bold">Official Answer Key (80 Items) — {{ $active->displayName }}</h2>
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h2 class="h6 section-title mb-0 fw-bold">
+                    <i class="bi bi-list-ol me-1"></i>
+                    Official Answer Key
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1" id="key-item-badge">{{ $active->total_items }} Items</span>
+                    — {{ $active->displayName }}
+                </h2>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="form-label form-label-sm mb-0 fw-semibold text-muted" for="total_items_setter">Total Items:</label>
+                    <input type="number" id="total_items_setter" class="form-control form-control-sm"
+                           style="width:90px" min="10" max="200"
+                           value="{{ $active->total_items ?: 80 }}"
+                           title="Set total exam item count (10–200). Changing this will dynamically resize the grid below.">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="applyItemCount" title="Apply new item count to grid">
+                        <i class="bi bi-arrow-repeat me-1"></i> Apply
+                    </button>
+                </div>
             </div>
             <div class="card-body p-4">
-                <form method="post" action="{{ route('admin.admission.answer-key.save') }}">
+                <form method="post" action="{{ route('admin.admission.answer-key.save') }}" id="answerKeyForm">
                     @csrf
+                    <input type="hidden" name="total_items" id="hidden_total_items" value="{{ $active->total_items ?: 80 }}">
                     @php
                         $keys = \Illuminate\Support\Facades\DB::table('admission_answer_keys')
                             ->where('admission_cycle_id', $active->id)
                             ->pluck('correct_answer', 'item_number');
+                        $configuredItems = (int) ($active->total_items ?: 80);
                     @endphp
-                    <div class="row g-1" style="max-height:300px;overflow-y:auto">
-                        @for ($i = 1; $i <= 80; $i++)
+                    <div class="row g-1" id="answerKeyGrid" style="max-height:380px;overflow-y:auto">
+                        @for ($i = 1; $i <= $configuredItems; $i++)
                         <div class="col-6 col-md-3">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text" style="min-width:36px">{{ $i }}</span>
@@ -373,9 +405,15 @@
                         </div>
                         @endfor
                     </div>
-                    <button class="btn btn-primary btn-sm mt-3">
-                        <i class="bi bi-save me-1"></i> Save Answer Key
-                    </button>
+                    <div class="d-flex align-items-center gap-3 mt-3 flex-wrap">
+                        <button class="btn btn-primary btn-sm">
+                            <i class="bi bi-save me-1"></i> Save Answer Key &amp; Re-Score
+                        </button>
+                        <span class="small text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Saving updates <strong id="item-count-label">{{ $configuredItems }}</strong> answer slots and re-scores all existing submissions.
+                        </span>
+                    </div>
                 </form>
             </div>
         </div>
@@ -423,6 +461,25 @@
                         </div>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label form-label-sm fw-semibold" for="new-total-items">
+                            Total Exam Items <span class="text-danger">*</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">PSU-CAT</span>
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control form-control-sm" id="new-total-items" name="total_items"
+                                   value="80" min="10" max="200" required>
+                            <span class="input-group-text text-muted">items (10–200)</span>
+                        </div>
+                        <div class="form-text">
+                            Common PSU-CAT configurations:
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="document.getElementById('new-total-items').value=80">80</button>,
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="document.getElementById('new-total-items').value=100">100</button>,
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="document.getElementById('new-total-items').value=120">120</button>,
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" onclick="document.getElementById('new-total-items').value=144">144</button>
+                        </div>
+                    </div>
+
                     <div class="row g-2 mb-3">
                         <div class="col-4">
                             <label class="form-label form-label-sm fw-semibold">Exam %</label>
@@ -460,4 +517,81 @@
     </div>
 </div>
 
+@push('scripts')
+<script>
+{{-- ── DYNAMIC ANSWER KEY GRID RESIZER ── --}}
+(function () {
+    const grid = document.getElementById('answerKeyGrid');
+    const setter = document.getElementById('total_items_setter');
+    const hiddenInput = document.getElementById('hidden_total_items');
+    const badge = document.getElementById('key-item-badge');
+    const label = document.getElementById('item-count-label');
+    const form = document.getElementById('answerKeyForm');
+
+    if (!grid || !setter) return;
+
+    function buildItem(i, savedAnswer) {
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-3';
+        const group = document.createElement('div');
+        group.className = 'input-group input-group-sm';
+        const span = document.createElement('span');
+        span.className = 'input-group-text';
+        span.style.minWidth = '36px';
+        span.textContent = i;
+        const sel = document.createElement('select');
+        sel.name = `answers[${i}]`;
+        sel.className = 'form-select form-select-sm';
+        sel.required = true;
+        [['', '–'], ['A','A'], ['B','B'], ['C','C'], ['D','D']].forEach(([val, text]) => {
+            const opt = new Option(text, val);
+            if (savedAnswer && val === savedAnswer) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        group.appendChild(span);
+        group.appendChild(sel);
+        col.appendChild(group);
+        return col;
+    }
+
+    document.getElementById('applyItemCount').addEventListener('click', function () {
+        const newCount = parseInt(setter.value, 10);
+        if (isNaN(newCount) || newCount < 10 || newCount > 200) {
+            setter.classList.add('is-invalid');
+            return;
+        }
+        setter.classList.remove('is-invalid');
+
+        const currentItems = grid.querySelectorAll('select');
+        const currentCount = currentItems.length;
+
+        // Preserve existing answers
+        const saved = {};
+        currentItems.forEach(sel => {
+            const m = sel.name.match(/answers\[(\d+)\]/);
+            if (m) saved[m[1]] = sel.value;
+        });
+
+        if (newCount > currentCount) {
+            // Append new items
+            for (let i = currentCount + 1; i <= newCount; i++) {
+                grid.appendChild(buildItem(i, saved[i] || ''));
+            }
+        } else if (newCount < currentCount) {
+            // Remove excess items from end
+            const items = grid.querySelectorAll('.col-6');
+            for (let i = items.length - 1; i >= newCount; i--) {
+                items[i].remove();
+            }
+        }
+
+        hiddenInput.value = newCount;
+        if (badge) badge.textContent = `${newCount} Items`;
+        if (label) label.textContent = newCount;
+    });
+})();
+</script>
+@endpush
+
 @endsection
+

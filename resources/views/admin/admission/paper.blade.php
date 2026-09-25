@@ -144,10 +144,19 @@
         </tr>
     </table>
 
-    {{-- OMR Answer Grid with 4 Corner Markers (Width: 1080, Height: 500) --}}
-    <svg class="omr-grid" viewBox="0 0 1080 480" xmlns="http://www.w3.org/2000/svg" aria-label="PSU-CAT Answer Sheet Matrix">
+    {{-- OMR Answer Grid with 4 Corner Markers (Width: 1080, Height: dynamic) --}}
+    @php
+        $omrCols      = 4;
+        $omrRowsPerCol = (int) ceil($totalItems / $omrCols);
+        // Scale SVG height based on rows: header(54) + rows*21 + bottom-pad(16)
+        $omrSvgHeight = 54 + ($omrRowsPerCol * 21) + 16;
+        // Ensure corner markers fit (min 480)
+        $omrSvgHeight = max($omrSvgHeight, 480);
+        $markerBottom  = $omrSvgHeight - 24;
+    @endphp
+    <svg class="omr-grid" viewBox="0 0 1080 {{ $omrSvgHeight }}" xmlns="http://www.w3.org/2000/svg" aria-label="PSU-CAT Answer Sheet Matrix — {{ $totalItems }} Items">
         <!-- Sheet Background -->
-        <rect width="1080" height="480" fill="#ffffff"/>
+        <rect width="1080" height="{{ $omrSvgHeight }}" fill="#ffffff"/>
 
         <!-- 4 Precise High-Contrast Corner Markers for Webcam / Scanner Computer Vision -->
         <!-- Top-Left -->
@@ -155,12 +164,12 @@
         <!-- Top-Right -->
         <rect x="1056" y="10" width="14" height="14" fill="#000000"/>
         <!-- Bottom-Right -->
-        <rect x="1056" y="456" width="14" height="14" fill="#000000"/>
+        <rect x="1056" y="{{ $markerBottom }}" width="14" height="14" fill="#000000"/>
         <!-- Bottom-Left -->
-        <rect x="10" y="456" width="14" height="14" fill="#000000"/>
+        <rect x="10" y="{{ $markerBottom }}" width="14" height="14" fill="#000000"/>
 
-        <!-- 4 Columns of 20 Items Each = 80 Items Total -->
-        @for ($col = 0; $col < 4; $col++)
+        <!-- {{ $omrCols }} Columns of {{ $omrRowsPerCol }} Rows = {{ $totalItems }} Items Total -->
+        @for ($col = 0; $col < $omrCols; $col++)
             @php $colStartX = 40 + ($col * 260); @endphp
 
             <!-- Column Header (Letters A, B, C, D) -->
@@ -170,10 +179,11 @@
                 @endforeach
             </g>
 
-            <!-- 20 Question Rows -->
-            @for ($row = 0; $row < 20; $row++)
+            <!-- {{ $omrRowsPerCol }} Question Rows -->
+            @for ($row = 0; $row < $omrRowsPerCol; $row++)
                 @php
-                    $qNum = ($col * 20) + $row + 1;
+                    $qNum = ($col * $omrRowsPerCol) + $row + 1;
+                    if ($qNum > $totalItems) continue; // skip phantom items
                     $rowY = 54 + ($row * 21);
                 @endphp
 
@@ -197,7 +207,7 @@
 
             <!-- Column Separator Line (except last column) -->
             @if ($col < 3)
-                <line x1="{{ $colStartX + 248 }}" y1="20" x2="{{ $colStartX + 248 }}" y2="465"
+                <line x1="{{ $colStartX + 248 }}" y1="20" x2="{{ $colStartX + 248 }}" y2="{{ $markerBottom + 10 }}"
                       stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3"/>
             @endif
         @endfor
@@ -206,7 +216,7 @@
     {{-- Footer Info --}}
     <div class="footer-note">
         <span>OMR Engine v2.0 – PSU San Carlos Campus Guidance Office</span>
-        <span>IMPORTANT: Keep the 4 black square corner markers completely visible. Do not fold or crease.</span>
+        <span>{{ $totalItems }}-Item Sheet · IMPORTANT: Keep 4 black corner markers fully visible. Do not fold or crease.</span>
         <span>Form No. GC-CAT-01</span>
     </div>
 </div>

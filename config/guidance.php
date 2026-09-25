@@ -3,7 +3,41 @@
 return [
     // Fill these from the exact paper instruments approved by the guidance office.
     // No item key is inferred from the legacy demonstration questionnaires.
-    'bfpi' => ['items' => 0, 'subscales' => [], 'reverse_items' => [], 'overlap' => 'Average'],
+    /*
+    |--------------------------------------------------------------------------
+    | BFPI — Big Five Personality Test (BFI-44, 44 items, 5-point Likert scale)
+    | Source: PSU Guidance Office instrument (BFI-44 paper answer sheet)
+    | Scale: 1 = Disagree (D) | 2 = Slightly Disagree (SD) | 3 = Neutral (N)
+    |        4 = Slightly Agree (SA) | 5 = Agree (A)
+    | Reverse items: score = 6 − raw answer (5=1, 4=2, 3=3, 2=4, 1=5)
+    |--------------------------------------------------------------------------
+    */
+    'bfpi' => [
+        'items'         => 44,
+        'min'           => 1,
+        'max'           => 5,
+        'overlap'       => 'Average',
+
+        'choices' => [
+            1 => 'Disagree (D)',
+            2 => 'Slightly Disagree (SD)',
+            3 => 'Neutral (N)',
+            4 => 'Slightly Agree (SA)',
+            5 => 'Agree (A)',
+        ],
+
+        // Subscale item keys (1-indexed, matching the 5 columns on the paper sheet).
+        'subscales' => [
+            'Extraversion'      => [1, 6, 11, 16, 21, 26, 31, 36],
+            'Agreeableness'     => [2, 7, 12, 17, 22, 27, 32, 37, 42],
+            'Conscientiousness' => [3, 8, 13, 18, 23, 28, 33, 38, 43],
+            'Neuroticism'       => [4, 9, 14, 19, 24, 29, 34, 39],
+            'Openness'          => [5, 10, 15, 20, 25, 30, 35, 40, 41, 44],
+        ],
+
+        // Items that are reverse-scored (marked with asterisk * in the rubric column).
+        'reverse_items' => [2, 6, 8, 9, 11, 12, 18, 21, 23, 24, 27, 31, 34, 35, 37, 41, 43],
+    ],
     // Existing six-item RIASEC questionnaire, selected by the guidance office.
     'career' => [
         'items' => 6, 'min' => 1, 'max' => 5,

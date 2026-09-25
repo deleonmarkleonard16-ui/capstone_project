@@ -125,13 +125,30 @@
                             @foreach($testData['scores'] as $trait => $score)<tr><td>{{ $trait }}</td><td>{{ $score }}</td><td>{{ $testData['interpretation'][$trait] }}</td></tr>@endforeach
                             </tbody></table><p class="small text-muted">{{ $testData['interpretation']['review'] }}</p>
                         @elseif($testKey === 'bfpi' && isset($testData['scores']))
-                            <div class="row g-2">
+                            <div class="row g-3">
                                 @foreach($testData['scores'] as $trait => $mean)
-                                    <div class="col-md-4">
-                                        <div class="border rounded p-2 bg-white">
-                                            <span class="fw-semibold text-capitalize">{{ $trait }}:</span>
-                                            <span>{{ number_format($mean, 2) }}</span>
-                                            <span class="badge text-bg-primary ms-1">{{ $testData['interpretation'][$trait] ?? '' }}</span>
+                                    @php
+                                        $rawSum = $testData['raw_sums'][$trait] ?? null;
+                                        $interp = $testData['interpretation'][$trait] ?? 'Average';
+                                        $badgeColor = match($interp) {
+                                            'Very High' => 'success',
+                                            'High' => 'primary',
+                                            'Average' => 'info',
+                                            'Low' => 'warning',
+                                            'Very Low' => 'secondary',
+                                            default => 'dark'
+                                        };
+                                    @endphp
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="border rounded p-3 bg-white h-100 shadow-sm">
+                                            <div class="text-muted small fw-bold text-uppercase">{{ $trait }}</div>
+                                            <div class="fs-4 fw-bold my-1 text-primary">
+                                                {{ number_format($mean, 2) }}
+                                                @if($rawSum !== null)
+                                                    <span class="fs-6 text-muted fw-normal">(Sum: {{ $rawSum }})</span>
+                                                @endif
+                                            </div>
+                                            <span class="badge text-bg-{{ $badgeColor }} fs-6">{{ $interp }}</span>
                                         </div>
                                     </div>
                                 @endforeach

@@ -136,8 +136,10 @@ class GuidanceTestScoringService
             $result['instrument_key'] = $definition;
         } elseif ($test === 'bfpi') {
             foreach ($definition['subscales'] as $scale => $items) {
-                $mean = round(array_sum(array_map(fn ($i) => in_array($i, $definition['reverse_items']) ? 6 - $answers[$i] : (float) $answers[$i], $items)) / count($items), 2);
+                $rawSum = array_sum(array_map(fn ($i) => in_array($i, $definition['reverse_items']) ? 6 - (int) $answers[$i] : (int) $answers[$i], $items));
+                $mean = round($rawSum / count($items), 2);
                 $result['scores'][$scale] = $mean;
+                $result['raw_sums'][$scale] = $rawSum;
                 $result['interpretation'][$scale] = match (true) {
                     $mean >= 4.20 => 'Very High',
                     $mean >= 3.40 => 'High',

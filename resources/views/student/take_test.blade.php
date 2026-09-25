@@ -483,6 +483,20 @@
             ],
             'submitText'  => 'Submit GAD-7',
         ],
+        'bfpi' => [
+            'title'       => 'Big Five Personality Test Answer Sheet',
+            'tag'         => 'Big Five Personality Inventory (BFI-44)',
+            'instruction' => 'Rate each item from 1 (Disagree) to 5 (Agree) using your paper question booklet.',
+            'count'       => 44,
+            'choices'     => [
+                1 => 'Disagree (D)',
+                2 => 'Slightly Disagree (SD)',
+                3 => 'Neutral (N)',
+                4 => 'Slightly Agree (SA)',
+                5 => 'Agree (A)',
+            ],
+            'submitText'  => 'Submit Personality Test',
+        ],
     ];
 
     $cfg = $testConfigs[$currentTest] ?? $testConfigs['dass21'];

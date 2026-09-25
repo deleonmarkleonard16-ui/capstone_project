@@ -274,7 +274,7 @@ body { user-select:none; -webkit-user-select:none; }
                 @endphp
 
                 <div class="assessment-step" data-step="{{ $stepNum }}" data-test="{{ $test }}" @if($stepNum !== 1) hidden @endif>
-                    @if(in_array($test, ['dass21', 'phq9', 'gad7'], true))
+                    @if(in_array($test, ['dass21', 'phq9', 'gad7', 'bfpi'], true))
                         {{-- ── 2-COLUMN QUESTION CARDS GRID (MATCHING SCREENSHOTS) ── --}}
                         <div class="questions-two-col-grid">
                             @foreach($section['items'] as $item)

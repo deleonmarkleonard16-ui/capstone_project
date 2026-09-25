@@ -118,16 +118,66 @@ body { user-select:none; -webkit-user-select:none; }
         $testTypes = $appointment->testTypes();
         $totalSteps = count($sections);
         $remainingSeconds = $sessionState['remaining_seconds'] ?? 600;
+        $applicant = $appointment->applicant;
     @endphp
 
-    <div class="sticky-assessment-header d-flex flex-wrap justify-content-between align-items-center">
-        <div>
-            <h2 class="h5 mb-0 fw-bold">{{ $appointment->testLabel() }}</h2>
-            <small class="text-muted">Paper-Based Answer Sheet · Step <span id="current-step-label">1</span> of {{ $totalSteps }}</small>
+    {{-- ═══ 1. TOP HEADER SECTION & FLOW STEPPER ═══ --}}
+    <div class="sticky-assessment-header">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <div>
+                <h2 class="h5 mb-0 fw-bold text-primary">{{ $appointment->testLabel() }}</h2>
+                <small class="text-muted">Digital Answer Sheet · Step <span id="current-step-label">1</span> of {{ $totalSteps }}</small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="small text-muted d-none d-sm-inline">Time Remaining:</span>
+                <span id="timer-display" class="badge text-bg-primary timer-badge px-3 py-2">10:00</span>
+            </div>
         </div>
-        <div class="d-flex align-items-center gap-3">
-            <span class="small text-muted d-none d-sm-inline">Time Remaining:</span>
-            <span id="timer-display" class="badge text-bg-primary timer-badge px-3 py-2">10:00</span>
+
+        {{-- Psychological Assessment Flow Stepper (Done / Current / Pending) --}}
+        <div class="d-flex flex-wrap align-items-center gap-2 pt-2 border-top border-slate-100">
+            <span class="small text-muted fw-semibold">Flow:</span>
+            @foreach($sections as $sIdx => $sec)
+                @php
+                    $stepNum = $sIdx + 1;
+                    $isActive = ($stepNum === 1);
+                    $secLabel = strtoupper($sec['test']);
+                @endphp
+                <span class="badge {{ $isActive ? 'bg-primary text-white' : 'bg-light text-secondary border' }} px-2.5 py-1.5 stepper-flow-badge" id="flow-badge-{{ $stepNum }}">
+                    {{ $secLabel }}
+                </span>
+                @if(!$loop->last)
+                    <i class="bi bi-chevron-right text-muted small"></i>
+                @endif
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ═══ 2. RESPONDENT PROFILE METADATA BLOCK (2-COLUMN GRID) ═══ --}}
+    <div class="card mb-3 border shadow-sm" style="border-radius: 12px; background: #ffffff;">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom">
+                <i class="bi bi-person-badge text-primary"></i>
+                <span class="fw-bold small text-dark text-uppercase">Respondent Information</span>
+            </div>
+            <div class="row g-2 small">
+                <div class="col-12 col-md-6">
+                    <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">Respondent Name</span>
+                    <strong class="text-dark">{{ $applicant ? strtoupper($applicant->full_name) : 'REGISTERED APPLICANT' }}</strong>
+                </div>
+                <div class="col-12 col-md-6">
+                    <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">Student ID / App Number</span>
+                    <strong class="text-dark font-monospace">{{ $applicant?->application_number ?? 'N/A' }}</strong>
+                </div>
+                <div class="col-12 col-md-6">
+                    <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">O.R. # / Request Code</span>
+                    <strong class="text-dark font-monospace">{{ $appointment->request_code ?? 'N/A' }}</strong>
+                </div>
+                <div class="col-12 col-md-6">
+                    <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">Date of Assessment</span>
+                    <strong class="text-dark">{{ now()->format('F d, Y') }}</strong>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -175,7 +225,7 @@ body { user-select:none; -webkit-user-select:none; }
                                             $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
                                             $fieldId = "item-{$test}-{$item}";
                                         @endphp
-                                        <div class="d-flex flex-column vertical-item-row" id="card-{{ $test }}-{{ $item }}" data-item="{{ $item }}">
+                                        <div class="d-flex flex-column vertical-item-row item-card" id="card-{{ $test }}-{{ $item }}" data-item="{{ $item }}">
                                             @if(!empty($def['questions'][$item]))
                                                 <div class="small text-muted mb-1 fw-medium">{{ $def['questions'][$item] }}</div>
                                             @endif

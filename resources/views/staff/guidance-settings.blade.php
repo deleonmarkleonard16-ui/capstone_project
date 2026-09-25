@@ -18,20 +18,22 @@
     @endif
 </div>
 
-<ul class="nav nav-tabs mb-4 module-tabs" role="tablist" aria-label="System settings">
-    <li class="nav-item">
+<div class="module-tabs-wrapper mb-4">
+<ul class="nav nav-tabs module-tabs" role="tablist" aria-label="System settings">
+    <li class="nav-item flex-shrink-0">
         <a class="nav-link {{ request('tab', 'courses') === 'courses' ? 'active fw-bold' : '' }}"
            href="{{ route(auth()->user()->role.'.settings.index', ['tab' => 'courses']) }}">
-            <i class="bi bi-mortarboard me-1"></i> Course / Program Management
+            <i class="bi bi-mortarboard me-1"></i><span class="tab-label">Course / Program Management</span>
         </a>
     </li>
-    <li class="nav-item">
+    <li class="nav-item flex-shrink-0">
         <a class="nav-link {{ request('tab') === 'staff' ? 'active fw-bold' : '' }}"
            href="{{ route(auth()->user()->role.'.settings.index', ['tab' => 'staff']) }}">
-            <i class="bi bi-person-gear me-1"></i> Guidance Staff Account Management
+            <i class="bi bi-person-gear me-1"></i><span class="tab-label">Guidance Staff Account Management</span>
         </a>
     </li>
 </ul>
+</div>
 
 @if(request('tab', 'courses') === 'courses')
 {{-- ── COMPACT COURSE / PROGRAM TABLE ── --}}

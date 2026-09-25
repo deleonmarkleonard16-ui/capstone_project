@@ -53,3 +53,81 @@
     .executive-analytics .card-header .h5 { font-size: 1rem; }
     .executive-analytics .card-body .d-flex.justify-content-between { flex-wrap: wrap; gap: .5rem; }
 }
+
+/* ── Responsive Module Nav Tabs (Admin & Staff) ────────────────────────── */
+
+/* Wrapper: clips and hides the overflow; no bottom-margin duplication. */
+.module-tabs-wrapper {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+/* The <ul>/<nav> scroll container */
+.module-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;             /* Firefox */
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 0;
+    gap: .25rem;
+    margin-bottom: 0 !important;       /* wrapper handles margin */
+}
+.module-tabs::-webkit-scrollbar { display: none; }
+
+/* Every direct child shrinks by default — never wrap to next line */
+.module-tabs > .nav-item,
+.module-tabs > .nav-link { flex-shrink: 0; }
+
+/* Mobile first: compact padding & font size */
+.module-tabs .nav-link {
+    white-space: nowrap;
+    padding: .4rem .75rem !important;
+    font-size: .75rem !important;
+    font-weight: 500;
+    border-radius: 8px 8px 0 0;
+    transition: background .15s, color .15s;
+}
+
+/* Active state — clear blue underline accent */
+.module-tabs .nav-link.active {
+    background: #fff !important;
+    border-color: #dee2e6 #dee2e6 #fff !important;
+    border-bottom: 2px solid #0f3f97 !important;
+    color: #082b6d !important;
+    font-weight: 700 !important;
+}
+
+/* Inactive state */
+.module-tabs .nav-link:not(.active) { color: #5f6f8b !important; }
+.module-tabs .nav-link:not(.active):hover {
+    color: #17305f !important;
+    background: rgba(15,63,151,.06) !important;
+}
+
+/* ≥ 768 px: restore comfortable desktop padding */
+@media (min-width: 768px) {
+    .module-tabs { gap: .35rem; }
+    .module-tabs .nav-link {
+        padding: .55rem 1.1rem !important;
+        font-size: .85rem !important;
+        font-weight: 600;
+    }
+}
+
+/* Mobile adjustments for pages with a sidebar */
+@media (max-width: 767.98px) {
+    main.has-sidebar .module-tabs-wrapper,
+    .friendly-shell .module-tabs-wrapper {
+        margin-inline: -.25rem;        /* allow full-bleed edge-to-edge scroll */
+    }
+    .module-tabs-wrapper { overflow: hidden; }
+
+    /* Reduce outer friendly-shell side-padding on very small screens */
+    .friendly-shell { padding-inline: .65rem !important; }
+
+    /* Keep main body container comfortable */
+    main.has-sidebar { padding-top: .75rem !important; }
+}
+

@@ -125,11 +125,31 @@
         .timer-box{ position:sticky; top:1rem; z-index:1000; }
 
         /* ── Module nav tabs ── */
-        .module-tabs .nav-link {
-            color: var(--psu-blue); font-size: .85rem; font-weight: 600;
-            border-radius: 8px 8px 0 0; padding: .55rem 1.1rem;
+        .module-tabs {
+            display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+            gap: .35rem; border-bottom: 1px solid #dee2e6; padding-bottom: 0; margin-bottom: 1rem;
+            scrollbar-width: none; /* Firefox */
         }
-        .module-tabs .nav-link.active { background: #fff; border-color: #dee2e6 #dee2e6 #fff; color: var(--psu-blue-deep); }
+        .module-tabs::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+        .module-tabs .nav-item { flex-shrink: 0; }
+        .module-tabs .nav-link {
+            white-space: nowrap; color: var(--psu-blue); font-size: .75rem; font-weight: 500;
+            border-radius: 8px 8px 0 0; padding: .4rem .75rem;
+            transition: background .15s, color .15s;
+        }
+        .module-tabs .nav-link:not(.active) { color: #5f6f8b; }
+        .module-tabs .nav-link:not(.active):hover {
+            color: #17305f; background: rgba(15,63,151,.06); border-bottom-color: transparent;
+        }
+        .module-tabs .nav-link.active {
+            background: #fff; border-color: #dee2e6 #dee2e6 #fff;
+            color: var(--psu-blue-deep); font-weight: 700;
+            border-bottom: 2px solid var(--psu-blue);
+        }
+        @media (min-width: 768px) {
+            .module-tabs { flex-wrap: nowrap; gap: .5rem; }
+            .module-tabs .nav-link { font-size: .85rem; padding: .55rem 1.1rem; font-weight: 600; }
+        }
 
         /* ── Login page ── */
         .login-body {

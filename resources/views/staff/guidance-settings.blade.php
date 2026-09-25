@@ -209,7 +209,7 @@
         </div>
         <div class="col-lg-3">
             <label class="form-label form-label-sm fw-semibold" for="new-staff-password">Temporary Password</label>
-            <input id="new-staff-password" type="password" name="password" minlength="12" class="form-control form-control-sm" required autocomplete="new-password">
+            <input id="new-staff-password" type="password" name="password" minlength="8" class="form-control form-control-sm" required autocomplete="new-password" placeholder="Min. 8 characters">
         </div>
         <div class="col-lg-3">
             <button class="btn btn-primary btn-sm w-100">Create Staff Account</button>
@@ -260,7 +260,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label form-label-sm fw-semibold">Reset Password</label>
-                                <input type="password" name="password" minlength="12" class="form-control form-control-sm" autocomplete="new-password" placeholder="Leave blank to keep">
+                                <input type="password" name="password" minlength="8" class="form-control form-control-sm" autocomplete="new-password" placeholder="Leave blank to keep (min. 8 chars)">
                             </div>
                             <div class="col-md-2">
                                 <div class="form-check form-switch mb-0">

@@ -19,7 +19,7 @@ class StaffSettingsController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($staff->id)],
             'current_password' => ['required', 'current_password'],
-            'password' => ['nullable', 'string', 'min:12', 'confirmed'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
         unset($data['current_password']);
         if (empty($data['password'])) unset($data['password']);

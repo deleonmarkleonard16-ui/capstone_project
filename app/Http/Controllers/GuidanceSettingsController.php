@@ -94,7 +94,7 @@ class GuidanceSettingsController extends Controller
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user?->id)],
             'is_active' => 'required|boolean',
-            'password' => [$user ? 'nullable' : 'required', 'string', 'min:12'],
+            'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
         ]);
         if (empty($data['password'])) unset($data['password']);
         if ($user) $user->update($data); else User::create($data + ['role' => 'staff']);

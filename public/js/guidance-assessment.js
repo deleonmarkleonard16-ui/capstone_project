@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
     const form = document.getElementById('assessment-form');
     if (!form) return;
     const lock = document.getElementById('assessment-lock');
@@ -105,10 +105,28 @@
         steps.forEach((step, i) => { step.hidden = i !== index; });
         currentStep = index;
         document.getElementById('current-step-label').textContent = index + 1;
+
+        // -- Fix 1a: Sync progress-bar stepper pills --
         document.querySelectorAll('.stepper-pill').forEach((pill, i) => {
             pill.classList.toggle('active', i === index);
             pill.classList.toggle('completed', i < index);
         });
+
+        // -- Fix 1b: Sync assessment-flow badge highlights --
+        document.querySelectorAll('.stepper-flow-badge').forEach((badge, i) => {
+            const isActive = i === index;
+            const isDone   = i < index;
+            badge.classList.toggle('bg-primary',            isActive);
+            badge.classList.toggle('text-white',            isActive);
+            badge.classList.toggle('bg-success-subtle',     isDone);
+            badge.classList.toggle('text-success-emphasis', isDone);
+            badge.classList.toggle('bg-light',              !isActive && !isDone);
+            badge.classList.toggle('text-secondary',        !isActive && !isDone);
+            badge.classList.toggle('border',                !isActive);
+        });
+
+        // -- Fix 2: Smooth scroll to top on every step transition --
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function validateStep(index) {
         const missing = [...steps[index].querySelectorAll('.item-card')].filter(card => !card.querySelector('input:checked'));

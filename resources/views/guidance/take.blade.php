@@ -376,10 +376,15 @@ body { user-select:none; -webkit-user-select:none; }
 </section>
 
 <section id="assessment-complete" hidden>
-    <div class="alert alert-success p-4 shadow-sm text-center">
-        <h2 class="h4 fw-bold">Assessment Completed</h2>
-        <p class="mb-3">Your responses have been successfully recorded and processed for Guidance Counselor review. This QR pass is now permanently inactive.</p>
-        <a class="btn btn-primary" href="/portal?service=good-moral#track">Return to Tracking Portal</a>
+    <div class="card border-0 shadow-sm p-4 p-md-5 text-center mx-auto" style="max-width: 560px; border-radius: 16px;">
+        <div class="mb-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10" style="width:64px;height:64px;">
+                <i class="bi bi-check-circle-fill text-success" style="font-size:2rem;"></i>
+            </span>
+        </div>
+        <h2 class="h4 fw-bold mb-2">Assessment completed</h2>
+        <p class="text-muted mb-4">Your saved responses have been recorded for Guidance Office review. Wait for the printed result that will be provided by the Guidance Office.</p>
+        <a class="btn btn-primary px-4" href="/portal?service=good-moral#track">Return to portal</a>
     </div>
 </section>
 @endsection

@@ -9,10 +9,70 @@ class GuidanceTestScoringService
 {
     public const LABELS = ['dass21' => 'Psychological Assessment', 'phq9' => 'Psychological Assessment', 'gad7' => 'Psychological Assessment', 'bfpi' => 'BFPI', 'career' => 'Career Test', 'exit' => 'Exit Form'];
 
+    /**
+     * DASS-21 4-point rating scale (0–3).
+     * 0 = Did not apply to me at all — NEVER
+     * 1 = Applied to me to some degree, or some of the time — SOMETIMES
+     * 2 = Applied to me to a considerable degree, or a good part of time — OFTEN
+     * 3 = Applied to me very much, or most of the time — ALMOST ALWAYS
+     */
+    public const DASS21_CHOICES = [
+        0 => 'Never',
+        1 => 'Sometimes',
+        2 => 'Often',
+        3 => 'Almost Always',
+    ];
+
+    /**
+     * PHQ-9 & GAD-7 4-point frequency scale (0–3) — over the last 2 weeks.
+     * 0 = Not at all
+     * 1 = Several days
+     * 2 = More than half the days
+     * 3 = Nearly every day
+     */
+    public const PHQ_GAD_CHOICES = [
+        0 => 'Not at all',
+        1 => 'Several days',
+        2 => 'More than half the days',
+        3 => 'Nearly every day',
+    ];
+
+    /**
+     * PHQ-9 Item 10 / GAD-7 difficulty rating (stored as `difficulty_rating`).
+     * NOT included in the subscale total score — counselor reference only.
+     */
+    public const DIFFICULTY_CHOICES = [
+        0 => 'Not difficult at all',
+        1 => 'Somewhat difficult',
+        2 => 'Very difficult',
+        3 => 'Extremely difficult',
+    ];
+
+    /** Resolve a difficulty_rating value (0–3) to its human-readable label. */
+    public static function difficultyLabel(int $value): string
+    {
+        return self::DIFFICULTY_CHOICES[$value] ?? "Unknown ($value)";
+    }
+
     public function definition(string $test): array
     {
-        if (in_array($test, ['dass21', 'phq9', 'gad7'], true)) {
-            return ['items' => ['dass21' => 21, 'phq9' => 9, 'gad7' => 7][$test], 'min' => 0, 'max' => 3];
+        if ($test === 'dass21') {
+            return [
+                'items'   => 21,
+                'min'     => 0,
+                'max'     => 3,
+                'choices' => self::DASS21_CHOICES,
+            ];
+        }
+
+        if (in_array($test, ['phq9', 'gad7'], true)) {
+            return [
+                'items'              => $test === 'phq9' ? 9 : 7,
+                'min'                => 0,
+                'max'                => 3,
+                'choices'            => self::PHQ_GAD_CHOICES,
+                'difficulty_choices' => self::DIFFICULTY_CHOICES,
+            ];
         }
         $definition = config("guidance.$test", []);
         if (! isset(self::LABELS[$test]) || ($definition['items'] ?? 0) < 1) {

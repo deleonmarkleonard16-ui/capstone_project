@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GuidanceTestSubmission;
 use App\Models\ServiceRequest;
+use App\Services\GuidanceTestScoringService;
 use Illuminate\Http\Request;
 
 class GuidanceAssessmentController extends Controller
@@ -53,26 +54,56 @@ class GuidanceAssessmentController extends Controller
 
         abort_unless(array_key_exists($test, self::TESTS), 404);
 
-        $questions = $this->getQuestionsFor($test);
+        /** @var GuidanceTestScoringService $scoringService */
+        $scoringService = app(GuidanceTestScoringService::class);
+        $definition     = $scoringService->definition($test);
+        $itemCount      = $definition['items'];
+        $min            = $definition['min'];
+        $max            = $definition['max'];
+
+        // ── Build per-item validation rules ─────────────────────────────────
         $rules = [];
-        foreach ($questions as $index => $q) {
-            $rules["answers.$index"] = 'required|integer';
+        for ($i = 1; $i <= $itemCount; $i++) {
+            $rules["answers.$i"] = [
+                'required',
+                $test === 'bfpi' ? 'numeric' : 'integer',
+                "between:$min,$max",
+            ];
         }
-        $data = $request->validate($rules);
+
+        // PHQ-9 Item 10 / GAD-7 difficulty rating — optional, 0–3, not scored
+        $hasDifficulty = in_array($test, ['phq9', 'gad7'], true);
+        if ($hasDifficulty) {
+            $rules['difficulty_rating'] = ['nullable', 'integer', 'between:0,3'];
+        }
+
+        $data    = $request->validate($rules);
         $answers = $data['answers'] ?? [];
 
-        $scoringResult = $this->scoreTest($test, $answers);
+        // ── Score via GuidanceTestScoringService (single source of truth) ──
+        $scoringResult = $scoringService->score($test, $answers);
+
+        // Enrich the stored payload with the difficulty rating when provided
+        if ($hasDifficulty && isset($data['difficulty_rating'])) {
+            $diffVal = (int) $data['difficulty_rating'];
+            $scoringResult['difficulty_rating']       = $diffVal;
+            $scoringResult['difficulty_rating_label'] = GuidanceTestScoringService::difficultyLabel($diffVal);
+        }
 
         $submission = GuidanceTestSubmission::updateOrCreate(
             [
                 'service_request_id' => $entry->id,
-                'test_type' => $test,
+                'test_type'          => $test,
             ],
             [
-                'answers' => $answers,
-                'scores' => $scoringResult['scores'],
-                'interpretation' => $scoringResult['interpretation'],
-                'completed_at' => now(),
+                'answers'        => $answers,
+                'scores'         => $scoringResult['scores'],
+                'interpretation' => $scoringResult['interpretation'] + array_filter([
+                    'scoring_version'        => $scoringResult['scoring_version'] ?? null,
+                    'difficulty_rating'      => $scoringResult['difficulty_rating'] ?? null,
+                    'difficulty_rating_label' => $scoringResult['difficulty_rating_label'] ?? null,
+                ]),
+                'completed_at'   => now(),
             ]
         );
 
@@ -169,112 +200,4 @@ class GuidanceAssessmentController extends Controller
         };
     }
 
-    private function scoreTest(string $test, array $answers): array
-    {
-        if ($test === 'dass21') {
-            $depressionItems = [3, 5, 10, 13, 16, 17, 21];
-            $anxietyItems = [2, 4, 7, 9, 15, 19, 20];
-            $stressItems = [1, 6, 8, 11, 12, 14, 18];
-
-            $depScore = 0; foreach ($depressionItems as $i) $depScore += (int)($answers[$i] ?? 0);
-            $anxScore = 0; foreach ($anxietyItems as $i) $anxScore += (int)($answers[$i] ?? 0);
-            $strScore = 0; foreach ($stressItems as $i) $strScore += (int)($answers[$i] ?? 0);
-
-            $depLevel = match (true) {
-                $depScore <= 4 => 'Normal',
-                $depScore <= 6 => 'Mild',
-                $depScore <= 10 => 'Moderate',
-                $depScore <= 13 => 'Severe',
-                default => 'Extremely Severe',
-            };
-
-            $anxLevel = match (true) {
-                $anxScore <= 3 => 'Normal',
-                $anxScore <= 5 => 'Mild',
-                $anxScore <= 7 => 'Moderate',
-                $anxScore <= 9 => 'Severe',
-                default => 'Extremely Severe',
-            };
-
-            $strLevel = match (true) {
-                $strScore <= 7 => 'Normal',
-                $strScore <= 9 => 'Mild',
-                $strScore <= 12 => 'Moderate',
-                $strScore <= 16 => 'Severe',
-                default => 'Extremely Severe',
-            };
-
-            return [
-                'scores' => [
-                    'depression' => $depScore,
-                    'anxiety' => $anxScore,
-                    'stress' => $strScore,
-                    'total' => $depScore + $anxScore + $strScore,
-                ],
-                'interpretation' => [
-                    'depression' => $depLevel,
-                    'anxiety' => $anxLevel,
-                    'stress' => $strLevel,
-                ],
-            ];
-        }
-
-        if ($test === 'phq9') {
-            $total = 0;
-            foreach ($answers as $val) $total += (int)$val;
-            $level = match (true) {
-                $total <= 4 => 'Minimal or None',
-                $total <= 9 => 'Mild Depression',
-                $total <= 14 => 'Moderate Depression',
-                $total <= 19 => 'Moderately Severe Depression',
-                default => 'Severe Depression',
-            };
-            return ['scores' => ['total' => $total], 'interpretation' => ['severity' => $level]];
-        }
-
-        if ($test === 'gad7') {
-            $total = 0;
-            foreach ($answers as $val) $total += (int)$val;
-            $level = match (true) {
-                $total <= 4 => 'Minimal Anxiety',
-                $total <= 9 => 'Mild Anxiety',
-                $total <= 14 => 'Moderate Anxiety',
-                default => 'Severe Anxiety',
-            };
-            return ['scores' => ['total' => $total], 'interpretation' => ['severity' => $level]];
-        }
-
-        if ($test === 'bfpi') {
-            $total = count($answers) ? array_sum($answers) : 0;
-            $mean = count($answers) ? round($total / count($answers), 2) : 0;
-            $level = match (true) {
-                $mean >= 4.20 => 'Very High',
-                $mean >= 3.14 => 'High',
-                $mean >= 2.60 => 'Average',
-                $mean >= 1.80 => 'Low',
-                default => 'Very Low',
-            };
-            return [
-                'scores' => ['mean' => $mean, 'total' => $total],
-                'interpretation' => ['overall_level' => $level],
-            ];
-        }
-
-        if ($test === 'career') {
-            $traits = ['Realistic', 'Investigative', 'Artistic', 'Social', 'Enterprising', 'Conventional'];
-            $scores = [];
-            foreach ($answers as $idx => $score) {
-                $traitName = $traits[($idx - 1) % 6] ?? "Trait $idx";
-                $scores[$traitName] = (int)$score;
-            }
-            arsort($scores);
-            $topTraits = array_slice(array_keys($scores), 0, 3);
-            return [
-                'scores' => $scores,
-                'interpretation' => ['top_traits' => implode(' - ', $topTraits)],
-            ];
-        }
-
-        return ['scores' => [], 'interpretation' => []];
-    }
 }

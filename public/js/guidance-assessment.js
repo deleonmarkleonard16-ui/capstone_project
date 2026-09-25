@@ -125,8 +125,6 @@
             badge.classList.toggle('border',                !isActive);
         });
 
-        // -- Fix 2: Smooth scroll to top on every step transition --
-        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function validateStep(index) {
         const missing = [...steps[index].querySelectorAll('.item-card')].filter(card => !card.querySelector('input:checked'));
@@ -171,9 +169,15 @@
         saveTimer = setTimeout(save, 400);
     });
     form.querySelectorAll('.next-step').forEach(button => button.addEventListener('click', () => {
-        if (validateStep(currentStep)) submit();
+        if (validateStep(currentStep)) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            submit();
+        }
     }));
-    form.querySelectorAll('.prev-step').forEach(button => button.addEventListener('click', () => showStep(currentStep - 1)));
+    form.querySelectorAll('.prev-step').forEach(button => button.addEventListener('click', () => {
+        showStep(currentStep - 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }));
 
     async function submit(timedOut = false) {
         if (!sessionReady || submitting || finished) return;

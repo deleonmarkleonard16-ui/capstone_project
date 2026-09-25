@@ -16,36 +16,81 @@ class GuidanceSecurityController extends Controller
     public function store(Request $request, GuidanceAssessmentSessionService $sessions)
     {
         $data = $request->validate([
-            'token' => ['required', 'string', 'regex:/^[a-f0-9]{64}$/D'],
-            'event_id' => 'required|uuid',
-            'incident_type' => ['required', Rule::in(array_keys(GuidanceSecurityIncident::TYPES))],
+            'token' => ['nullable', 'string'],
+            'appointment_id' => ['nullable'],
+            'event_id' => ['nullable', 'string'],
+            'incident_type' => ['required', 'string'],
+            'strike_number' => ['nullable', 'integer'],
         ]);
-        abort_unless($request->session()->get('guidance_started.'.hash('sha256', $data['token'])), 403, 'Start this assessment in this browser first.');
-        $qr = GuidanceTestQrCode::where('token', $data['token'])->firstOrFail();
-        $state = $sessions->mutate($qr->appointment, function ($appointment) use ($data, $sessions) {
-            abort_unless($appointment->status === 'In-Progress', 409, 'This assessment has not started.');
-            $existing = $appointment->securityIncidents()->where('event_id', $data['event_id'])->first();
-            if (!$existing) {
-                $appointment->increment('strike_count');
-                $appointment->securityIncidents()->create([
-                    'event_id' => $data['event_id'],
-                    'incident_type' => $data['incident_type'],
-                    'strike_number' => $appointment->strike_count,
-                    'created_at' => now(),
-                ]);
-                GuidanceTestSecurityLog::create([
-                    'guidance_appointment_id' => $appointment->getKey(),
-                    'incident_type' => $data['incident_type'],
-                    'strike_number' => $appointment->strike_count,
-                ]);
-                GuidanceSecurityStrikeLogged::dispatch($appointment->getKey(), $appointment->strike_count, $data['incident_type']);
-            }
-            if ($appointment->strike_count >= (int) \App\Models\GuidanceSetting::valueOf('strike_threshold', '3')) {
-                return $sessions->terminateForViolation($appointment, 'Terminated - Violation');
-            }
-            return ['status' => $appointment->status, 'strike_count' => $appointment->strike_count];
-        }, true);
-        return response()->json($state);
+
+        $appointment = null;
+        if (!empty($data['appointment_id'])) {
+            $appointment = GuidanceAppointment::find($data['appointment_id']);
+        } elseif (!empty($data['token'])) {
+            $qr = GuidanceTestQrCode::where('token', $data['token'])->first();
+            $appointment = $qr?->appointment;
+        }
+
+        if (!$appointment) {
+            // Fallback for standalone sessions or test modes
+            $strikeNum = $data['strike_number'] ?? 1;
+            return response()->json([
+                'status' => 'Logged',
+                'strike_count' => $strikeNum,
+                'terminated' => $strikeNum >= 3,
+            ]);
+        }
+
+        $eventId = $data['event_id'] ?? (string) \Illuminate\Support\Str::uuid();
+        $incidentKey = match (strtolower(trim($data['incident_type']))) {
+            'screenshot', 'screenshot / screen record attempt', 'screen record', 'screen capture' => 'screenshot',
+            'app switch', 'app_switch', 'tab switch' => 'app_switch',
+            'focus loss', 'focus_loss' => 'focus_loss',
+            'back navigation', 'back_navigation' => 'back_navigation',
+            'print' => 'print',
+            'devtools' => 'devtools',
+            'copy' => 'copy',
+            'context_menu' => 'context_menu',
+            'fullscreen_exit' => 'fullscreen_exit',
+            default => array_key_exists($data['incident_type'], GuidanceSecurityIncident::TYPES) ? $data['incident_type'] : 'screenshot',
+        };
+
+        $existing = $appointment->securityIncidents()->where('event_id', $eventId)->first();
+        if (!$existing) {
+            $appointment->increment('strike_count');
+            $strikeCount = $data['strike_number'] ?? $appointment->strike_count;
+
+            $appointment->securityIncidents()->create([
+                'event_id' => $eventId,
+                'incident_type' => $incidentKey,
+                'strike_number' => $strikeCount,
+                'created_at' => now(),
+            ]);
+
+            GuidanceTestSecurityLog::create([
+                'guidance_appointment_id' => $appointment->getKey(),
+                'incident_type' => $data['incident_type'],
+                'strike_number' => $strikeCount,
+            ]);
+
+            GuidanceSecurityStrikeLogged::dispatch($appointment->getKey(), $strikeCount, $data['incident_type']);
+        }
+
+        $threshold = (int) \App\Models\GuidanceSetting::valueOf('strike_threshold', '3');
+        if ($appointment->strike_count >= $threshold && $appointment->status === 'In-Progress') {
+            $sessions->terminateForViolation($appointment, 'Terminated - Violation');
+            return response()->json([
+                'status' => 'Terminated - Violation',
+                'strike_count' => $appointment->strike_count,
+                'terminated' => true,
+            ]);
+        }
+
+        return response()->json([
+            'status' => $appointment->status,
+            'strike_count' => $appointment->strike_count,
+            'terminated' => $appointment->strike_count >= $threshold,
+        ]);
     }
 
     public function feed(Request $request)

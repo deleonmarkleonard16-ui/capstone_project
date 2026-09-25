@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
     const form = document.getElementById('assessment-form');
     if (!form) return;
     const lock = document.getElementById('assessment-lock');
@@ -262,23 +262,24 @@
     function showWarningModal(type, strikeNum) {
         if (!modalEl || !modalMsg || !modalBadge || !modalTitle) return;
         let warningText = '';
-        if (type === 'back_navigation') {
-            if (strikeNum === 1) warningText = 'WARNING (Strike 1/2): Navigating away is prohibited.';
-            else if (strikeNum === 2) warningText = 'CRITICAL WARNING (Strike 2/2): One more attempt will terminate your assessment.';
-            else warningText = 'CRITICAL WARNING (Strike 3/3): Assessment terminated due to prohibited navigation.';
-        } else if (type === 'screenshot' || type === 'print') {
-            if (strikeNum === 1) warningText = 'WARNING (Strike 1/2): Screenshots and screen recordings are strictly prohibited.';
-            else if (strikeNum === 2) warningText = 'CRITICAL WARNING (Strike 2/2): Further screenshot attempts will terminate your exam.';
-            else warningText = 'CRITICAL WARNING (Strike 3/3): Assessment terminated due to unauthorized capture attempt.';
+        if (strikeNum === 1) {
+            warningText = 'Screenshots, screen recordings, and navigating away are strictly prohibited during this assessment. Your screen was blacked out and this incident has been logged and sent to the Guidance Office.';
+            modalTitle.textContent = '⚠️ WARNING (Strike 1/2)';
+            modalBadge.textContent = 'Strike 1 of 2';
+            if (modalAck) modalAck.textContent = 'Resume Assessment';
+        } else if (strikeNum === 2) {
+            warningText = 'You attempted to capture or leave the screen again. Any further violation will result in immediate exam termination and automatic submission of your answers.';
+            modalTitle.textContent = '🔴 CRITICAL WARNING (Strike 2/2)';
+            modalBadge.textContent = 'Strike 2 of 2';
+            if (modalAck) modalAck.textContent = 'Return to Assessment';
         } else {
-            if (strikeNum === 1) warningText = 'WARNING (Strike 1/2): Navigating away or switching apps is prohibited.';
-            else if (strikeNum === 2) warningText = 'CRITICAL WARNING (Strike 2/2): One more attempt will terminate your assessment.';
-            else warningText = 'CRITICAL WARNING (Strike 3/3): Assessment terminated due to multiple policy violations.';
+            warningText = 'Assessment terminated due to repeated security protocol violations. Your saved responses are being automatically submitted.';
+            modalTitle.textContent = '🔴 EXAM TERMINATED (Strike 3/3)';
+            modalBadge.textContent = 'Strike 3 of 3 — Violation';
+            if (modalAck) modalAck.textContent = 'Assessment Terminated';
         }
 
         modalMsg.textContent = warningText;
-        modalBadge.textContent = strikeNum >= 3 ? 'Strike 3 of 3 — Violation' : `Strike ${strikeNum} of 3`;
-        modalTitle.textContent = strikeNum >= 2 ? 'CRITICAL SECURITY WARNING' : 'SECURITY WARNING';
 
         if (window.bootstrap?.Modal) {
             const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);

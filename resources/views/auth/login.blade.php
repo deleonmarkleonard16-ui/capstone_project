@@ -3,22 +3,45 @@
 @section('body_class', 'login-body')
 
 @section('content')
-    <div class="row justify-content-center align-items-center min-vh-100">
-        <div class="col-xl-11">
-            <div class="card page-card overflow-hidden border-0" style="background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px);">
+    <style>
+        .login-hero-panel {
+            background-image: linear-gradient(rgba(15, 23, 42, 0.70), rgba(15, 23, 42, 0.70)), url('{{ asset("images/psu-building.jpg") }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 640px;
+        }
+
+        @media (max-width: 991.98px) {
+            .login-hero-panel {
+                min-height: 360px;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .login-hero-panel {
+                min-height: 280px;
+            }
+        }
+    </style>
+
+    <div class="row justify-content-center align-items-center min-vh-100 py-3 py-lg-4">
+        <div class="col-12 col-xl-11">
+            <div class="card page-card overflow-hidden border-0 shadow-lg" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 1rem;">
                 <div class="row g-0">
-                    <div class="col-lg-7 position-relative">
-                        <div class="h-100 p-5 d-flex flex-column justify-content-end text-white" style="background: linear-gradient(rgba(8, 25, 61, 0.28), rgba(8, 25, 61, 0.68)), url('{{ asset('images/psu-building.png') }}') center/cover no-repeat; min-height: 640px;">
-                            <div class="mb-auto">
-                                <span class="badge rounded-pill text-bg-warning text-dark px-3 py-2">PSU San Carlos Campus</span>
+                    <div class="col-12 col-lg-7 position-relative">
+                        <div class="login-hero-panel h-100 p-4 p-md-5 d-flex flex-column justify-content-end text-white"
+                             style="background-image: linear-gradient(rgba(15, 23, 42, 0.70), rgba(15, 23, 42, 0.70)), url('{{ asset("images/psu-building.jpg") }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+                            <div class="mb-auto pb-4">
+                                <span class="badge rounded-pill text-bg-warning text-dark px-3 py-2 fw-semibold shadow-sm">PSU San Carlos Campus</span>
                             </div>
-                            <div class="col-lg-10">
-                                <h1 class="display-5 fw-bold">Guidance Testing and Admission made easier for staff and applicants.</h1>
-                                <p class="lead mb-0 mt-3" style="color: rgba(255,255,255,0.88);">Use one session QR code, verify examinees quickly, monitor attendance live, and manage answer encoding with a cleaner workflow.</p>
+                            <div class="col-12 col-xl-11">
+                                <h1 class="display-6 fw-bold text-white mb-3" style="text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);">Guidance Testing and Admission made easier for staff and applicants.</h1>
+                                <p class="lead mb-0 text-white-50" style="color: rgba(255, 255, 255, 0.92) !important; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);">Use one session QR code, verify examinees quickly, monitor attendance live, and manage answer encoding with a cleaner workflow.</p>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-5 p-5 bg-white d-flex flex-column justify-content-center">
+                    <div class="col-12 col-lg-5 p-4 p-md-5 bg-white d-flex flex-column justify-content-center">
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" style="width: 72px; height: 72px; object-fit: contain; background: transparent;">
                             <div>

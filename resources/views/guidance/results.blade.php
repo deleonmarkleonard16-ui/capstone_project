@@ -23,12 +23,16 @@
 
         <div class="row g-3 mb-4 pb-3 border-bottom">
             <div class="col-md-4">
-                <span class="text-muted small d-block">Student / Applicant</span>
+                <span class="text-muted small d-block">Name</span>
                 <strong>{{ $appointment->applicant->full_name }}</strong>
             </div>
             <div class="col-md-4">
-                <span class="text-muted small d-block">Student ID / Course</span>
+                <span class="text-muted small d-block">Student Number / Course</span>
                 <strong>{{ $appointment->serviceRequest?->student_number ?: 'N/A' }} · {{ $appointment->serviceRequest?->course ?: 'N/A' }}</strong>
+            </div>
+            <div class="col-md-4">
+                <span class="text-muted small d-block">Course / Section</span>
+                <strong>{{ $appointment->serviceRequest?->courseLabel() ?: 'N/A' }}{{ $appointment->serviceRequest?->year_section ? ' / '.$appointment->serviceRequest->year_section : '' }}</strong>
             </div>
             <div class="col-md-4">
                 <span class="text-muted small d-block">Status</span>
@@ -39,7 +43,7 @@
                 <code>{{ $appointment->serviceRequest?->reference ?? $appointment->request_code }}</code>
             </div>
             <div class="col-md-4">
-                <span class="text-muted small d-block">Date Completed</span>
+                <span class="text-muted small d-block">Date</span>
                 <strong>{{ $appointment->response?->created_at?->timezone('Asia/Manila')->format('M d, Y g:i A') ?? 'N/A' }}</strong>
             </div>
             <div class="col-md-4">
@@ -176,7 +180,9 @@
         <div class="mt-4 pt-4 border-top">
             <h3 class="h5">Raw Item Choices</h3>
             @foreach($tests as $testKey => $testData)
-                @php($rawAnswers = $appointment->response->answers[$testKey] ?? (!$appointment->test_types ? $appointment->response->answers : []))
+                @php
+                    $rawAnswers = $appointment->response->answers[$testKey] ?? (!$appointment->test_types ? $appointment->response->answers : []);
+                @endphp
                 <h4 class="h6 mt-3">{{ \App\Services\GuidanceTestScoringService::LABELS[$testKey] ?? $testKey }}</h4>
                 <div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Item</th><th>Selected choice</th></tr></thead><tbody>
                 @for($item = 1; $item <= ($testData['total_items'] ?? count($rawAnswers)); $item++)
@@ -186,6 +192,48 @@
             @endforeach
             <p class="small text-muted">Psychological Assessment scores shown above are raw subscale sums (0–21), classified using raw-score cutoffs. Screening severity is for counselor review.</p>
         </div>
+        <section class="hard-copy-packet">
+            @php
+                foreach ($tests as $testKey => $testData) {
+            @endphp
+                @php
+                    $definition = app(\App\Services\GuidanceTestScoringService::class)->definition($testKey);
+                    $questions = app(\App\Http\Controllers\GuidanceAssessmentController::class)->getQuestionsFor($testKey);
+                    $rawAnswers = $appointment->response->answers[$testKey] ?? (!$appointment->test_types ? $appointment->response->answers : []);
+                    $itemCount = $testData['total_items'] ?? $definition['items'];
+                    $instrument = ['dass21' => 'DASS-21', 'phq9' => 'PHQ-9', 'gad7' => 'GAD-7', 'bfpi' => 'BFPI', 'career' => 'RIASEC'][$testKey] ?? strtoupper($testKey);
+                @endphp
+                <article class="hard-copy-test">
+                    <div class="hard-copy-heading">
+                        <div><div class="small text-uppercase">Guidance and Counseling Services Office</div><h3>Hard-Copy Questionnaire &amp; Answer Sheet — {{ $instrument }}</h3></div>
+                        <div class="text-end small">Date: {{ $appointment->response?->created_at?->timezone('Asia/Manila')->format('M d, Y') ?? 'N/A' }}</div>
+                    </div>
+                    <div class="hard-copy-profile">
+                        <span><b>Name:</b> {{ $appointment->applicant->full_name }}</span>
+                        <span><b>Course / Section:</b> {{ $appointment->serviceRequest?->courseLabel() ?: 'N/A' }}{{ $appointment->serviceRequest?->year_section ? ' / '.$appointment->serviceRequest->year_section : '' }}</span>
+                        <span><b>Student Number:</b> {{ $appointment->serviceRequest?->student_number ?: 'N/A' }}</span>
+                    </div>
+                    <p class="hard-copy-instruction">Questionnaire with recorded answers. The filled circle is the response saved for this assessment.</p>
+                    <div class="hard-copy-questions">
+                        @forelse($questions as $item => $question)
+                            <div class="hard-copy-question"><span class="question-no">{{ $item }}.</span><span>{{ $question }}</span></div>
+                        @empty
+                            <p class="text-muted">Use the approved questionnaire booklet for this instrument.</p>
+                        @endforelse
+                        @if($testKey === 'bfpi' && count($questions) < $itemCount)
+                            <p class="small text-muted mb-0">Continue with the approved BFPI question booklet for items {{ count($questions) + 1 }}–{{ $itemCount }}.</p>
+                        @endif
+                    </div>
+                    <h4 class="hard-copy-answer-title">Recorded Answer Sheet</h4>
+                    <table class="hard-copy-answer-sheet">
+                        <thead><tr><th>Item</th>@foreach($definition['choices'] as $choice => $choiceLabel)<th>{{ $choice }}</th>@endforeach</tr></thead>
+                        <tbody>@for($item = 1; $item <= $itemCount; $item++)<tr><td>{{ $item }}</td>@foreach($definition['choices'] as $choice => $choiceLabel)<td class="{{ isset($rawAnswers[$item]) && (string) $rawAnswers[$item] === (string) $choice ? 'selected' : '' }}">{{ isset($rawAnswers[$item]) && (string) $rawAnswers[$item] === (string) $choice ? '●' : '○' }}</td>@endforeach</tr>@endfor</tbody>
+                    </table>
+                </article>
+            @php
+                }
+            @endphp
+        </section>
         <div class="mt-4 pt-4 border-top">
             <h4 class="h6 fw-bold">Counselor Remarks &amp; Recommendations:</h4>
             <div class="border rounded p-3 bg-light mb-4" style="min-height: 80px;">
@@ -204,10 +252,26 @@
 </div>
 
 <style>
+.hard-copy-packet { display: none; }
 @media print {
     .no-print, nav, header, footer, .sidebar { display: none !important; }
     body { background: #fff !important; margin: 0; padding: 0; font-size: 12pt; }
     .print-card { border: none !important; box-shadow: none !important; }
+    .hard-copy-packet { display: block; }
+    .hard-copy-test { break-before: page; page-break-before: always; font-size: 10pt; color: #000; }
+    .hard-copy-heading { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 10px; }
+    .hard-copy-heading h3 { font-size: 15pt; margin: 3px 0 0; }
+    .hard-copy-profile { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; padding: 8px 0; border-bottom: 1px solid #777; }
+    .hard-copy-profile span:last-child { grid-column: span 2; }
+    .hard-copy-instruction { margin: 10px 0; font-style: italic; }
+    .hard-copy-questions { columns: 2; column-gap: 28px; }
+    .hard-copy-question { break-inside: avoid; display: flex; gap: 5px; margin-bottom: 7px; line-height: 1.25; }
+    .question-no { font-weight: 700; min-width: 22px; }
+    .hard-copy-answer-title { font-size: 12pt; margin: 14px 0 5px; }
+    .hard-copy-answer-sheet { width: 100%; border-collapse: collapse; text-align: center; font-size: 9pt; }
+    .hard-copy-answer-sheet th, .hard-copy-answer-sheet td { border: 1px solid #444; padding: 3px 5px; }
+    .hard-copy-answer-sheet th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .hard-copy-answer-sheet .selected { background: #d9d9d9 !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>
 @endsection

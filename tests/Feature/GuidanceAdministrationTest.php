@@ -124,7 +124,10 @@ class GuidanceAdministrationTest extends TestCase
             ->assertSee('Psychological Assessment')
             ->assertSee('DASS-21')
             ->assertSee('PHQ-9')
-            ->assertSee('GAD-7');
+            ->assertSee('GAD-7')
+            ->assertSee('Hard-Copy Questionnaire &amp; Answer Sheet', false)
+            ->assertSee('Course / Section')
+            ->assertSee('Student Number');
     }
 
     public function test_analytics_query_json_and_include_archived_high_severity_and_legacy_phq_totals(): void

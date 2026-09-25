@@ -73,6 +73,58 @@
         .review-dialog{text-transform:uppercase}
         #first_name,#middle_name,#last_name,#student_number{text-transform:uppercase}
 
+        /* ── Track Request Form Alignment & Sizing ── */
+        .track-form-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            max-width: 560px;
+        }
+        .track-input-group {
+            flex: 1;
+            min-width: 0;
+        }
+        .track-input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .track-input-group input {
+            width: 100%;
+            height: 44px;
+            padding: 9px 13px;
+            border: 1px solid #b7c5d8;
+            border-radius: 7px;
+            font: inherit;
+            box-sizing: border-box;
+            margin: 0;
+        }
+        .track-submit-btn,
+        #guidance-track button {
+            height: 44px;
+            padding: 0 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            border: 0;
+            border-radius: 7px;
+            background: var(--accent);
+            color: white;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            margin: 0;
+            transition: background 0.15s ease;
+        }
+        .track-submit-btn:hover,
+        #guidance-track button:hover {
+            background: var(--accent-deep);
+        }
+
         /* ── Compact Mobile Portal UI Optimization (@media (max-width: 768px)) ── */
         @media (max-width: 768px) {
             body { font-size: 14px; }
@@ -129,20 +181,24 @@
                 font-size: 12px;
                 margin-bottom: 8px;
             }
-            #guidance-track .grid {
-                grid-template-columns: 1fr auto;
-                gap: 6px;
+            .track-form-row {
+                gap: 8px;
                 align-items: flex-end;
+                max-width: 100%;
             }
-            #guidance-track label {
-                display: none;
+            .track-input-group label {
+                font-size: 12.5px;
+                margin-bottom: 3px;
             }
-            #guidance-track input {
+            .track-input-group input {
+                height: 38px;
                 padding: 6px 10px !important;
                 font-size: 13px !important;
             }
+            .track-submit-btn,
             #guidance-track button {
-                padding: 7px 14px !important;
+                height: 38px;
+                padding: 0 14px !important;
                 font-size: 13px !important;
                 white-space: nowrap;
             }

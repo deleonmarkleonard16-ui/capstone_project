@@ -39,15 +39,29 @@
     <div class="review-actions"><button type="button" id="edit-request" class="secondary">EDIT INPUTS</button><button type="submit" id="confirm-submit">SUBMIT</button></div>
 </dialog>
 </div></form></section>
-<section class="card" id="track"><h2>Track an existing request</h2>
-@if(session('request_reference'))
-<div class="notice" role="status"><strong>Your request has been submitted.</strong><br>Save your tracking reference: <strong>{{ session('request_reference') }}</strong><br>Your details, printable stub, next steps, and receipt upload are below.</div>
-@endif
-<p class="muted">Enter your private tracking reference shown after submission.</p><form id="guidance-track" method="POST" action="{{ route('api.track-request') }}" data-auto-track="{{ session('tracking_reference') || session('guidance_request_code') ? 'true' : 'false' }}">@csrf<div class="grid"><div><label for="reference">Tracking reference</label><input id="reference" name="reference" value="{{ $trackingReference }}" required autocomplete="off"></div><div><button>Track request</button></div></div></form><div id="tracking-result" role="status" aria-live="polite"></div><div id="tracking-passes">
-@if($recentRequest && $recentRequest->reference === $trackingReference)
-@include('portal.stub', ['entry' => $recentRequest, 'tracking' => true])
-@endif
-</div></section>
+<section class="card" id="track">
+    <h2>Track an existing request</h2>
+    @if(session('request_reference'))
+        <div class="notice" role="status"><strong>Your request has been submitted.</strong><br>Save your tracking reference: <strong>{{ session('request_reference') }}</strong><br>Your details, printable stub, next steps, and receipt upload are below.</div>
+    @endif
+    <p class="muted">Enter your private tracking reference shown after submission.</p>
+    <form id="guidance-track" method="POST" action="{{ route('api.track-request') }}" data-auto-track="{{ session('tracking_reference') || session('guidance_request_code') ? 'true' : 'false' }}">
+        @csrf
+        <div class="track-form-row">
+            <div class="track-input-group">
+                <label for="reference">Tracking reference</label>
+                <input id="reference" name="reference" value="{{ $trackingReference }}" required autocomplete="off" placeholder="Enter tracking reference">
+            </div>
+            <button type="submit" class="track-submit-btn">Track request</button>
+        </div>
+    </form>
+    <div id="tracking-result" role="status" aria-live="polite"></div>
+    <div id="tracking-passes">
+        @if($recentRequest && $recentRequest->reference === $trackingReference)
+            @include('portal.stub', ['entry' => $recentRequest, 'tracking' => true])
+        @endif
+    </div>
+</section>
 @endsection
 @push('scripts')
 <script src="{{ asset('js/guidance-tracking.js') }}" defer></script>

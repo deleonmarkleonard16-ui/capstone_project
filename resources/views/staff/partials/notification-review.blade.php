@@ -24,7 +24,7 @@
     <dt>Status</dt><dd>{{ ucfirst(str_replace('_', ' ', $entry->status)) }}</dd>
 </dl>
 <div class="notification-review-actions" data-notification-review-actions>
-@if($entry->hasReceipt())
+@if($entry->hasReceipt() && !in_array($moduleType, ['good-moral', 'exit-form'], true))
     <button class="btn btn-outline-primary btn-sm" data-receipt="{{ in_array($moduleType, ['good-moral', 'exit-form'], true) ? route(auth()->user()->role.'.documents.proof', $entry) : route(auth()->user()->role.'.'.$moduleType.'.proof', $entry) }}">Review receipt</button>
 @endif
 @if(in_array($moduleType, ['good-moral', 'exit-form'], true))

@@ -1,6 +1,37 @@
 @extends('layouts.app')
 @section('content')
 
+<style>
+    .cycle-roster-actions { min-width: 330px; vertical-align: middle; }
+    .cycle-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: stretch;
+        gap: .25rem;
+        white-space: nowrap;
+    }
+    .cycle-actions > form { display: flex; margin: 0; }
+    .cycle-actions .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .4rem;
+        min-height: 38px;
+        white-space: nowrap;
+    }
+    .cycle-actions .btn i { margin-right: 0 !important; line-height: 1; }
+
+    @media (max-width: 575.98px) {
+        .cycle-roster-actions { min-width: 280px; }
+        .cycle-actions {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            align-items: stretch;
+        }
+        .cycle-actions .btn { min-height: 36px; }
+    }
+</style>
+
 {{-- ═══════════════════════════════════════════════════════════
      PSU-CAT ADMISSION CYCLE LIFECYCLE & ARCHIVING ENGINE
      Gatekeeper, Active State Machine, and Archived Cycle Inspector
@@ -194,10 +225,10 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="pe-3 text-end">
-                                    <div class="btn-group btn-group-sm">
+                                <td class="pe-3 text-end cycle-roster-actions">
+                                    <div class="cycle-actions">
                                         @if ($cycle->isDraft())
-                                            <form method="post" action="{{ route('admin.admission.cycles.activate', $cycle) }}" class="d-inline">
+                                            <form method="post" action="{{ route('admin.admission.cycles.activate', $cycle) }}">
                                                 @csrf
                                                 <button class="btn btn-sm btn-outline-success" title="Set as the ONE active admission cycle">
                                                     <i class="bi bi-lightning-fill me-1"></i> Activate
@@ -227,7 +258,7 @@
 
                                             {{-- ── MAINTENANCE MODE TOGGLE ── --}}
                                             @if($cycle->status === 'Maintenance')
-                                                <form method="post" action="{{ route('admin.admission.cycles.activate', $cycle) }}" class="d-inline"
+                                                <form method="post" action="{{ route('admin.admission.cycles.activate', $cycle) }}"
                                                       onsubmit="return confirm('Exit Maintenance Mode and re-activate this cycle?');">
                                                     @csrf
                                                     <button class="btn btn-sm btn-warning fw-semibold" title="Exit Maintenance Mode">
@@ -235,7 +266,7 @@
                                                     </button>
                                                 </form>
                                             @elseif($cycle->isActive())
-                                                <form method="post" action="{{ route('admin.admission.cycles.save', $cycle) }}" class="d-inline"
+                                                <form method="post" action="{{ route('admin.admission.cycles.save', $cycle) }}"
                                                       onsubmit="return confirm('Put this cycle in Maintenance Mode? The encoding sheet and masterlist will be locked until you exit maintenance.');">
                                                     @csrf
                                                     <input type="hidden" name="status" value="Maintenance">
@@ -247,7 +278,7 @@
 
                                             <form method="post" action="{{ route('admin.admission.cycles.archive', $cycle) }}"
                                                   onsubmit="return confirm('Archive this cycle? It will become read-only.');"
-                                                  class="d-inline">
+                                                  >
                                                 @csrf
                                                 <button class="btn btn-sm btn-outline-danger" title="Archive cycle">
                                                     <i class="bi bi-archive"></i>

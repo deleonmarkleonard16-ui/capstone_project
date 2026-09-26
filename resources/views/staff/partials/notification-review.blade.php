@@ -28,7 +28,21 @@
     <button class="btn btn-outline-primary btn-sm" data-receipt="{{ in_array($moduleType, ['good-moral', 'exit-form'], true) ? route(auth()->user()->role.'.documents.proof', $entry) : route(auth()->user()->role.'.'.$moduleType.'.proof', $entry) }}">Review receipt</button>
 @endif
 @if(in_array($moduleType, ['good-moral', 'exit-form'], true))
-    @include('staff.partials.document-actions')
+    @if($entry->status === 'ready')
+        <form method="post" action="{{ route(auth()->user()->role.'.'.$entry->service.'.update', $entry) }}"
+              onsubmit="return confirm('Mark this document as claimed and completed?');">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="action" value="claim">
+            <input type="hidden" name="or_number" value="{{ $entry->or_number }}">
+            <input type="hidden" name="or_date" value="{{ $entry->or_date?->format('Y-m-d') }}">
+            <button class="btn btn-success btn-sm">
+                <i class="bi bi-box-arrow-down me-1"></i> Mark as Claimed / Completed
+            </button>
+        </form>
+    @else
+        @include('staff.partials.document-actions')
+    @endif
 @elseif($appointment)
     <a class="btn btn-outline-primary btn-sm" href="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}" target="_blank" rel="noopener">Open assessment details</a>
 @endif

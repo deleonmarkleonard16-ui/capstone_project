@@ -7,7 +7,6 @@ use App\Services\GuidanceTestScoringService;
 use App\Services\GuidanceQueueService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class AdminGuidanceController extends Controller
@@ -75,8 +74,16 @@ class AdminGuidanceController extends Controller
             $test = $data['test_type'] ?? $locked->test_type;
             foreach ($locked->test_types ?: [$test] as $instrument) $scoring->definition($instrument);
 
-            $receiptPath = $locked->payment_slip_path ?: $locked->serviceRequest?->proof_path;
-            abort_unless($receiptPath, 422, 'Receipt has not been uploaded.');
+            if ($locked->hasReceipt()) {
+                $locked->qrCode()->create(['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
+                $locked->update(['test_type' => $test, 'status' => 'Approved', 'verified_by' => $request->user()->id, 'verified_at' => now()]);
+                $locked->serviceRequest?->update(['status' => 'processing']);
+                return;
+            }
+
+            /*
+            $receiptPath = null;
+            abort_unless($locked->hasReceipt(), 422, 'Receipt has not been uploaded.');
 
             // In cloud environments (e.g. Render ephemeral storage / container restart),
             // the physical file may have been wiped on a container reboot.
@@ -84,7 +91,7 @@ class AdminGuidanceController extends Controller
             // endpoints do not 404 on the next request. We trust the DB path column
             // as the source of truth for whether a receipt was previously uploaded —
             // never block admin verification over a transient filesystem state.
-            if (! Storage::disk('local')->exists($receiptPath)) {
+            if (false && ! Storage::disk('local')->exists($receiptPath)) {
                 if (! app()->environment('testing')) {
                     Storage::disk('local')->put(
                         $receiptPath,
@@ -93,10 +100,11 @@ class AdminGuidanceController extends Controller
                 }
             }
 
-            abort_unless(Storage::disk('local')->exists($receiptPath), 422, 'Receipt has not been uploaded.');
+            // The receipt is stored in the database and was validated above.
             $locked->qrCode()->create(['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
-            $locked->update(['test_type' => $test, 'payment_slip_path' => $receiptPath, 'status' => 'Approved', 'verified_by' => $request->user()->id, 'verified_at' => now()]);
+            $locked->update(['test_type' => $test, 'status' => 'Approved', 'verified_by' => $request->user()->id, 'verified_at' => now()]);
             $locked->serviceRequest?->update(['status' => 'processing']);
+            */
         });
 
         if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
@@ -140,14 +148,7 @@ class AdminGuidanceController extends Controller
 
     public function receipt(GuidanceAppointment $appointment)
     {
-        $path = $appointment->payment_slip_path ?: $appointment->serviceRequest?->proof_path;
-        if ($path && ! Storage::disk('local')->exists($path)) {
-            if (! app()->environment('testing')) {
-                Storage::disk('local')->put($path, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aHfoAAAAASUVORK5CYII='));
-            }
-        }
-        abort_unless($path && Storage::disk('local')->exists($path), 404);
-        return response()->file(Storage::disk('local')->path($path), ['Cache-Control' => 'no-store', 'X-Content-Type-Options' => 'nosniff']);
+        return \App\Services\ReceiptStorage::response($appointment);
     }
 
     public function results()

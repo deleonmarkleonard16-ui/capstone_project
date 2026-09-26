@@ -7,7 +7,6 @@ use App\Models\ServiceRequest;
 use App\Services\GuidanceBatchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -132,7 +131,7 @@ class DocumentRequestController extends Controller
                     return;
                 }
 
-                abort_unless($entry->status === 'proof_review' && $entry->proof_path && Storage::disk('local')->exists($entry->proof_path), 409, 'A submitted receipt is required for verification.');
+                abort_unless($entry->status === 'proof_review' && $entry->hasReceipt(), 409, 'A submitted receipt is required for verification.');
                 $entry->update(['status' => 'ready', 'staff_message' => $data['staff_message'] ?? 'Approved / Ready for Pickup']);
             } else {
                 // Guard: If already claimed/completed, treat as idempotent success
@@ -141,7 +140,7 @@ class DocumentRequestController extends Controller
                 }
 
                 abort_unless($entry->status === 'ready', 409, 'Verify the receipt before marking this document claimed.');
-                abort_unless($entry->proof_path && Storage::disk('local')->exists($entry->proof_path), 409, 'The verified receipt must be available before claiming.');
+                abort_unless($entry->hasReceipt(), 409, 'The verified receipt must be available before claiming.');
                 $entry->update(['or_number' => $data['or_number'], 'or_date' => $data['or_date'], 'claimed_at' => now(), 'status' => 'completed', 'archived_at' => now(), 'staff_message' => $data['staff_message'] ?? 'Document claimed at the Guidance Office.']);
                 if ($entry->batch_id) {
                     $batch = GuidanceTestBatch::whereKey($entry->batch_id)->lockForUpdate()->firstOrFail();
@@ -221,15 +220,12 @@ class DocumentRequestController extends Controller
         $identity = $request->session()->get('document_batch.'.$batch->getKey());
         $id = ($identity['until'] ?? 0) > time() ? ($identity['id'] ?? null) : null;
         abort_unless($id, 403, 'Unauthorized access.');
-        $path = $request->file('receipt')->store('document-receipts', 'local');
-        abort_unless($path, 503, 'Receipt could not be saved.');
-        try {
-            DB::transaction(function () use ($batch, $id, $path) {
+        $receipt = \App\Services\ReceiptStorage::payload($request->file('receipt'));
+        DB::transaction(function () use ($batch, $id, $receipt) {
                 $entry = $batch->documentRequests()->whereKey($id)->lockForUpdate()->firstOrFail();
                 abort_unless(in_array($entry->status, ['pending', 'approved'], true), 409, 'This request is not awaiting payment.');
-                $entry->update(['proof_path' => $path, 'status' => 'proof_review']);
+                $entry->update([...$receipt, 'proof_path' => null, 'status' => 'proof_review']);
             }, 3);
-        } catch (\Throwable $error) { Storage::disk('local')->delete($path); throw $error; }
 
         $message = 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.';
         if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
@@ -244,11 +240,8 @@ class DocumentRequestController extends Controller
 
     public function proof(ServiceRequest $serviceRequest)
     {
-        abort_unless(isset(self::MODULES[$serviceRequest->service]) && $serviceRequest->proof_path, 404);
-        abort_unless(Storage::disk('local')->exists($serviceRequest->proof_path), 404);
-        return response()->file(Storage::disk('local')->path($serviceRequest->proof_path), [
-            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff',
-        ]);
+        abort_unless(isset(self::MODULES[$serviceRequest->service]), 404);
+        return \App\Services\ReceiptStorage::response($serviceRequest);
     }
 
     private function documentBatch(string $token): GuidanceTestBatch

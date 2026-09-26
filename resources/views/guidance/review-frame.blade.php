@@ -22,7 +22,7 @@
                 @if($receiptOrDate)<dt class="col-sm-4">O.R. Date</dt><dd class="col-sm-8">{{ \Illuminate\Support\Carbon::parse($receiptOrDate)->format('M d, Y') }}</dd>@endif
             </dl>
         @endif
-        @if($appointment->payment_slip_path)
+        @if($appointment->hasReceipt())
             <a href="{{ route(auth()->user()->role.'.guidance-appointments.receipt', $appointment) }}" target="_blank" rel="noopener">Open original receipt</a>
             <div class="border rounded mt-2 p-2 text-center" data-review-preview aria-busy="true">
                 <div data-review-receipt-loading role="status"><span class="review-receipt-spinner" aria-hidden="true"></span><span class="d-block small mt-2">Loading receipt preview...</span></div>

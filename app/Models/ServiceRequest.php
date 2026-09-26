@@ -191,4 +191,9 @@ class ServiceRequest extends Model
     {
         return $this->service === 'testing' && in_array('psychological', $this->tests ?? [], true);
     }
+
+    public function hasReceipt(): bool
+    {
+        return $this->receipt_data !== null;
+    }
 }

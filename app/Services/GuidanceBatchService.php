@@ -8,7 +8,6 @@ use App\Models\GuidanceAppointment;
 use App\Models\GuidanceTestBatch;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -132,17 +131,14 @@ class GuidanceBatchService
 
     public function receipt(GuidanceTestBatch $batch, int $appointmentId, UploadedFile $receipt): void
     {
-        $path = $receipt->store('guidance-receipts', 'local');
-        abort_unless($path, 503, 'Receipt could not be stored.');
-        try {
-            DB::transaction(function () use ($batch, $appointmentId, $path) {
+        $receiptData = ReceiptStorage::payload($receipt);
+        DB::transaction(function () use ($batch, $appointmentId, $receiptData) {
                 $locked = GuidanceTestBatch::whereKey($batch->getKey())->lockForUpdate()->firstOrFail();
                 abort_unless($locked->status === 'Pending Registration', 409, 'Registration has closed.');
                 $appointment = $locked->appointments()->whereKey($appointmentId)->lockForUpdate()->firstOrFail();
                 abort_unless($appointment->attendance_status === 'Pending Scan', 409, 'Receipt already submitted or student marked absent.');
-                $appointment->update(['payment_slip_path' => $path, 'status' => 'Receipt Uploaded', 'attendance_status' => 'Ready', 'appointment_at' => now()]);
+                $appointment->update([...$receiptData, 'payment_slip_path' => null, 'status' => 'Receipt Uploaded', 'attendance_status' => 'Ready', 'appointment_at' => now()]);
             }, 3);
-        } catch (\Throwable $e) { Storage::disk('local')->delete($path); throw $e; }
     }
 
     public function start(GuidanceTestBatch $batch, int $staffId): void
@@ -156,7 +152,7 @@ class GuidanceBatchService
             $started = now();
             foreach ($ready as $appointment) {
                 foreach ($appointment->testTypes() as $test) app(GuidanceTestScoringService::class)->definition($test);
-                abort_unless($appointment->payment_slip_path && Storage::disk('local')->exists($appointment->payment_slip_path), 422, 'A ready student has no receipt.');
+                abort_unless($appointment->hasReceipt(), 422, 'A ready student has no receipt.');
                 $appointment->qrCode()->firstOrCreate([], ['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
                 $appointment->update(['status' => 'In-Progress', 'verified_by' => $staffId, 'verified_at' => $started, 'started_at' => $started, 'expires_at' => $started->copy()->addSeconds(GuidanceAssessmentSessionService::DURATION)]);
             }

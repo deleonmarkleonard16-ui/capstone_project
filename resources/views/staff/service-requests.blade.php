@@ -14,7 +14,7 @@
 @foreach($entry->guidanceAppointments as $appointment)<div class="mb-2">{{ $appointment->testLabel() }} — {{ $appointment->status }} <button type="button" class="btn btn-outline-primary btn-sm" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}">Review Details</button></div>@endforeach
 @elseif($entry->isPsychological())<a class="btn btn-primary" href="{{ route(auth()->user()->role.($entry->archived_at ? '.psychological.archive' : '.psychological.index'), ['q'=>$entry->reference]) }}">Review psychological request</a>@else
 <p><strong>Reference:</strong> <code>{{ $entry->reference }}</code> &nbsp;|&nbsp; <strong>Status:</strong> <span class="badge bg-secondary">{{ ucfirst(str_replace('_',' ',$entry->status)) }}</span></p>
-@if($entry->proof_path)
+@if($entry->hasReceipt())
 <p><a class="btn btn-sm btn-outline-primary" href="{{ route(auth()->user()->role.'.psychological.proof', $entry) }}">📥 Download paid/stamped stub for verification</a></p>
 @else
 <p class="text-muted"><small>No paid stub uploaded yet.</small></p>

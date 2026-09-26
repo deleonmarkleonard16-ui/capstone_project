@@ -127,4 +127,24 @@ class GuidanceAppointment extends Model
     {
         return $this->testTypes();
     }
+
+    public function hasReceipt(): bool
+    {
+        return $this->receipt_data !== null || $this->serviceRequest?->hasReceipt();
+    }
+
+    public function getReceiptDataAttribute(): ?string
+    {
+        return $this->attributes['receipt_data'] ?? $this->serviceRequest?->receipt_data;
+    }
+
+    public function getReceiptMimeTypeAttribute(): ?string
+    {
+        return $this->attributes['receipt_mime_type'] ?? $this->serviceRequest?->receipt_mime_type;
+    }
+
+    public function getReceiptOriginalNameAttribute(): ?string
+    {
+        return $this->attributes['receipt_original_name'] ?? $this->serviceRequest?->receipt_original_name;
+    }
 }

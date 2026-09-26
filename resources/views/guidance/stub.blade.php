@@ -28,7 +28,7 @@
 <section class="card no-print">
     <h3>Payment and assessment pass</h3>
     <ol><li>Download or print your request stub above and pay the required fee of <strong>₱60.00</strong> at the payment office.</li><li>Return to Track Existing Request and upload the receipt issued after payment.</li><li>Wait for staff/admin verification. Your QR pass and direct test link will appear in this tracking section.</li></ol>
-    @if(!$entry->proof_path)
+    @if(!$entry->hasReceipt())
         <p><strong>Awaiting payment receipt.</strong> No QR pass is available yet.</p>
         @if($tracking)
         <div class="stub-download-gate" data-gate-ref="{{ $entry->reference }}" style="margin-top:16px;">

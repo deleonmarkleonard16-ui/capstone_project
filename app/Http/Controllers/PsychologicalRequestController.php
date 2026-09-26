@@ -8,7 +8,6 @@ use App\Models\ServiceRequest;
 use App\Services\GuidanceCategories;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -136,7 +135,7 @@ class PsychologicalRequestController extends Controller
             'venue' => 'nullable|string|max:255',
         ]);
 
-        if (in_array($data['status'], ['proof_review', 'processing', 'ready', 'scheduled', 'completed'], true) && ! $serviceRequest->proof_path) {
+        if (in_array($data['status'], ['proof_review', 'processing', 'ready', 'scheduled', 'completed'], true) && ! $serviceRequest->hasReceipt()) {
             throw ValidationException::withMessages(['status' => 'A paid/stamped stub or receipt must be uploaded before processing this request.']);
         }
 
@@ -217,16 +216,16 @@ class PsychologicalRequestController extends Controller
                     'proof'        => 'A stub can only be uploaded while awaiting payment or a replacement stub.',
                 ]);
             }
-            $path = $request->file('payment_slip')->store('receipts', 'local');
-            abort_unless($path, 500, 'Unable to save receipt. Please try again.');
+            $receipt = \App\Services\ReceiptStorage::payload($request->file('payment_slip'));
             $entry->update([
-                'proof_path' => $path,
+                ...$receipt,
+                'proof_path' => null,
                 'or_number' => $data['or_number'] ?? null,
                 'or_date' => $data['or_date'] ?? null,
                 'status' => 'proof_review',
             ]);
             $entry->guidanceAppointments()->update([
-                'payment_slip_path' => $path,
+                'payment_slip_path' => null,
                 'or_number' => $data['or_number'] ?? null,
                 'or_date' => $data['or_date'] ?? null,
                 'status' => 'Receipt Uploaded',
@@ -247,8 +246,6 @@ class PsychologicalRequestController extends Controller
 
     public function proof(ServiceRequest $serviceRequest)
     {
-        abort_unless($serviceRequest->proof_path, 404);
-        abort_unless(Storage::disk('local')->exists($serviceRequest->proof_path), 404);
-        return response()->file(Storage::disk('local')->path($serviceRequest->proof_path), ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+        return \App\Services\ReceiptStorage::response($serviceRequest);
     }
 }

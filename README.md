@@ -144,4 +144,3 @@ The `Dockerfile` runs `php artisan migrate --force && php artisan db:seed --forc
    ```bash
    php artisan user:create your-email@psu.edu.ph yourpassword admin
    ```
-

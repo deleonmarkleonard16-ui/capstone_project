@@ -68,7 +68,7 @@ class GuidanceTrackingController extends Controller
             'passes' => $passes,
             'qr_image' => $passes->count() === 1 ? $passes[0]['qr_image'] : null,
             'direct_test_link' => $passes->count() === 1 ? $passes[0]['direct_test_link'] : null,
-            'receipt_uploaded' => $entry ? (bool) $entry->proof_path : (bool) $appointments->first()->payment_slip_path,
+            'receipt_uploaded' => $entry ? $entry->hasReceipt() : $appointments->first()->hasReceipt(),
             'details_html' => $entry ? view('portal.stub', ['entry' => $entry, 'tracking' => true])->render() : null,
         ]);
     }

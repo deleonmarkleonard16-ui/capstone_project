@@ -3,7 +3,7 @@ import {detectAnswers} from './admission-omr.js';
 const root = document.getElementById('paper-scanner');
 const byId = id => document.getElementById(id);
 const canvas = byId('sheet'), context = canvas.getContext('2d', {willReadFrequently:true});
-const message = byId('message'), video = byId('preview'), form = byId('answers');
+const message = byId('message'), video = byId('preview'), form = byId('answers'), videoOverlay = byId('video-overlay');
 // Read the active cycle's total item count injected by scanner.blade.php
 const TOTAL_ITEMS = parseInt(root.dataset.totalItems, 10) || 80;
 let stream, pixels, points = [], applicant, timer, lookupBusy = false;
@@ -27,6 +27,7 @@ async function identify(code) {
 byId('lookup').addEventListener('submit', event => { event.preventDefault(); identify(byId('code').value.trim()); });
 byId('code').addEventListener('input', () => { applicant = null; byId('identity').textContent = ''; byId('record').disabled = true; });
 byId('start-camera').onclick = async () => {
+    videoOverlay?.classList.add('d-none');
     stop();
     try {
         stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}},audio:false});

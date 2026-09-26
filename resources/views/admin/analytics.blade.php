@@ -270,9 +270,9 @@
                                     <button type="button" class="btn btn-outline-info btn-sm" onclick="quickUpdateIntervention({{ $flag['appointment_id'] }}, 'Counseling Scheduled')" title="Schedule Session">
                                         <i class="bi bi-calendar-event me-1"></i>Schedule
                                     </button>
-                                    {{-- Action C: Mark as Contacted / In Progress --}}
-                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="quickUpdateIntervention({{ $flag['appointment_id'] }}, 'In Progress')" title="Mark as Contacted">
-                                        <i class="bi bi-telephone-inbound-fill me-1"></i>Contacted
+                                    {{-- Action C: Contact / In Progress --}}
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="quickUpdateIntervention({{ $flag['appointment_id'] }}, 'In Progress')" title="Contact">
+                                        <i class="bi bi-telephone-inbound-fill me-1"></i>Contact
                                     </button>
                                 </div>
                             </td>

@@ -82,9 +82,9 @@
             reviewBody.innerHTML = await response.text();
             const queueLink = document.createElement('a');
             queueLink.href = item.url;
-            queueLink.className = 'btn btn-outline-primary btn-sm mt-3';
+            queueLink.className = 'btn btn-outline-primary btn-sm';
             queueLink.textContent = 'Open module queue';
-            reviewBody.append(queueLink);
+            (reviewBody.querySelector('[data-notification-review-actions]') || reviewBody).append(queueLink);
         } catch (error) { reviewBody.textContent = error.message; }
     }
 

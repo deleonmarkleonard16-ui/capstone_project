@@ -129,6 +129,11 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::get('/analytics', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('analytics');
     Route::get('/analytics/export/pdf', [\App\Http\Controllers\AnalyticsController::class, 'exportPdf'])->name('analytics.export.pdf');
     Route::get('/analytics/export/excel', [\App\Http\Controllers\AnalyticsController::class, 'exportExcel'])->name('analytics.export.excel');
+    Route::get('/analytics/confidential-profile/{response}', [\App\Http\Controllers\AnalyticsController::class, 'confidentialProfile'])->name('analytics.confidential-profile');
+    Route::post('/analytics/intervention/{appointment}', [\App\Http\Controllers\AnalyticsController::class, 'updateIntervention'])->name('analytics.intervention');
+    Route::post('/analytics/proctor-action/{appointment}', [\App\Http\Controllers\AnalyticsController::class, 'proctorAction'])->name('analytics.proctor-action');
+    Route::post('/analytics/toggle-proctor-override', [\App\Http\Controllers\AnalyticsController::class, 'toggleProctorOverride'])->name('analytics.toggle-proctor-override');
+    Route::get('/analytics/live-stats', [\App\Http\Controllers\AnalyticsController::class, 'liveStats'])->name('analytics.live-stats');
     Route::get('/psychological', [PsychologicalRequestController::class, 'index'])->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.index');
     Route::get('/psychological/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'index'])->defaults('module', 'psychological')->name('psychological.batches');
     Route::post('/psychological/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'store'])->defaults('module', 'psychological')->name('psychological.batches.store');

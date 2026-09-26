@@ -3,16 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplicant;
+use App\Models\AdmissionCycle;
 use App\Models\Applicant;
 use App\Models\GuidanceAppointment;
 use App\Models\GuidanceSetting;
 use App\Models\GuidanceTestResponse;
 use App\Models\ServiceRequest;
+use App\Services\AnalyticsDashboardService;
 use App\Services\GuidanceAnalyticsService;
 use App\Services\GuidanceAssessmentSessionService;
 use App\Support\CourseCatalog;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -53,24 +56,111 @@ class AnalyticsController extends Controller
     /**
      * Main Executive Analytics Dashboard Engine.
      */
-    public function dashboard(Request $request)
+    public function dashboard(Request $request, AnalyticsDashboardService $dashboardService)
     {
         app(GuidanceAssessmentSessionService::class)->expireDue();
 
-        $metrics = $this->compileExecutiveMetrics();
+        $selectedCycleId = $request->query('cycle_id') ? (int) $request->query('cycle_id') : null;
+        $metrics = $this->compileExecutiveMetrics($selectedCycleId);
+
+        // Merge service datasets: Action Center, Intervention, Proctoring Feed, Demographics, Document/Fee Analytics, Controls
+        $metrics['actionCenter']       = $dashboardService->actionCenterCounts();
+        $metrics['interventionFlags']  = $dashboardService->redFlagIntervention(50);
+        $metrics['proctoring']         = $dashboardService->proctoringFeed();
+        $metrics['demographics']       = $dashboardService->demographicAnalytics();
+        $metrics['documentFees']       = $dashboardService->documentFeeAnalytics();
+        $metrics['controls']           = $dashboardService->systemControls();
+        $metrics['selectedCycleId']    = $selectedCycleId ?: ($metrics['controls']['activeCycleId'] ?? null);
 
         return view('admin.analytics', $metrics);
     }
 
     /**
+     * Fetch Confidential Student Profile JSON breakdown for secure modal rendering.
+     */
+    public function confidentialProfile(int $responseId, AnalyticsDashboardService $dashboardService): JsonResponse
+    {
+        $data = $dashboardService->getConfidentialProfile($responseId);
+        if (!$data) {
+            return response()->json(['error' => 'Confidential profile record not found.'], 404);
+        }
+
+        return response()->json($data);
+    }
+
+    /**
+     * Update Student Counseling / Intervention Status.
+     */
+    public function updateIntervention(Request $request, GuidanceAppointment $appointment, AnalyticsDashboardService $dashboardService): JsonResponse
+    {
+        $validated = $request->validate([
+            'counseling_status' => ['required', 'string', Rule::in(['Pending Review', 'Counseling Scheduled', 'In Progress', 'Completed / Resolved', 'Declined'])],
+            'counseling_notes'  => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $dashboardService->updateIntervention($appointment, $validated['counseling_status'], $validated['counseling_notes'] ?? null);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student counseling intervention status updated to ' . $validated['counseling_status'] . '.',
+            'status'  => $validated['counseling_status'],
+        ]);
+    }
+
+    /**
+     * Staff remote proctoring action (Warn, Pause, Force Terminate).
+     */
+    public function proctorAction(Request $request, GuidanceAppointment $appointment, AnalyticsDashboardService $dashboardService): JsonResponse
+    {
+        $validated = $request->validate([
+            'action' => ['required', 'string', Rule::in(['warn', 'pause', 'force_terminate'])],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $result = $dashboardService->executeProctorAction($appointment, $validated['action'], $validated['reason'] ?? null);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Toggle campus-wide emergency proctor override (pauses active test timers).
+     */
+    public function toggleProctorOverride(Request $request, AnalyticsDashboardService $dashboardService): JsonResponse
+    {
+        $isPaused = $dashboardService->toggleProctorOverride();
+
+        return response()->json([
+            'success'          => true,
+            'proctoringPaused' => $isPaused,
+            'message'          => $isPaused ? 'Campus-wide emergency proctor override ENABLED. Active test timers paused.' : 'Emergency proctor override DISABLED. Timers resumed.',
+        ]);
+    }
+
+    /**
+     * Live stats polling endpoint for asynchronous dashboard sync.
+     */
+    public function liveStats(AnalyticsDashboardService $dashboardService): JsonResponse
+    {
+        return response()->json([
+            'actionCenter' => $dashboardService->actionCenterCounts(),
+            'proctoring'   => $dashboardService->proctoringFeed(),
+            'controls'     => $dashboardService->systemControls(),
+            'timestamp'    => now()->timezone('Asia/Manila')->format('h:i:s A'),
+        ]);
+    }
+
+    /**
      * Export Executive Analytics Summary as PDF.
      */
-    public function exportPdf(Request $request)
+    public function exportPdf(Request $request, AnalyticsDashboardService $dashboardService)
     {
-        $data = $this->compileExecutiveMetrics();
+        $selectedCycleId = $request->query('cycle_id') ? (int) $request->query('cycle_id') : null;
+        $data = $this->compileExecutiveMetrics($selectedCycleId);
+        $data['actionCenter']  = $dashboardService->actionCenterCounts();
+        $data['documentFees']  = $dashboardService->documentFeeAnalytics();
         $data['counselorName'] = GuidanceSetting::valueOf('guidance_counselor_name', 'Ms. Noemi C. Carlos');
-        $data['academicYear'] = GuidanceSetting::valueOf('academic_year', date('Y') . '-' . (date('Y') + 1));
-        $data['generatedAt'] = now()->timezone('Asia/Manila')->format('F d, Y h:i A');
+        $data['academicYear']  = GuidanceSetting::valueOf('academic_year', date('Y') . '-' . (date('Y') + 1));
+        $data['generatedAt']   = now()->timezone('Asia/Manila')->format('F d, Y h:i A');
 
         $html = view('admin.analytics-pdf', $data)->render();
 
@@ -107,7 +197,6 @@ class AnalyticsController extends Controller
 
         $callback = function () {
             $output = fopen('php://output', 'w');
-            // UTF-8 BOM for Microsoft Excel compatibility
             fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
             fputcsv($output, [
@@ -120,11 +209,11 @@ class AnalyticsController extends Controller
                 'O.R. Number',
                 'O.R. Date',
                 'Status',
+                'Intervention Status',
                 'Severity / Interpretations',
                 'Date Recorded',
             ]);
 
-            // Guidance Appointments & Completed Tests
             $appointments = GuidanceAppointment::with(['applicant', 'serviceRequest', 'response'])
                 ->latest('guidance_appointment_id')
                 ->cursor();
@@ -160,12 +249,12 @@ class AnalyticsController extends Controller
                     $orNumber,
                     $orDate,
                     $app->status,
+                    $app->counseling_status ?? 'Pending Review',
                     $interpStr,
                     $app->created_at ? $app->created_at->format('Y-m-d H:i') : '',
                 ]);
             }
 
-            // General Document Requests (Good Moral, Exit Form)
             $requests = ServiceRequest::whereIn('service', ['good-moral', 'exit-form'])
                 ->latest('id')
                 ->cursor();
@@ -184,6 +273,7 @@ class AnalyticsController extends Controller
                     $req->or_number ?: 'N/A',
                     $req->or_date ? Carbon::parse($req->or_date)->format('Y-m-d') : 'N/A',
                     ucfirst($req->status),
+                    'N/A',
                     'Document Request (' . ($req->copies ?? 1) . ' copies)',
                     $req->created_at ? $req->created_at->format('Y-m-d H:i') : '',
                 ]);
@@ -198,13 +288,18 @@ class AnalyticsController extends Controller
     /**
      * Compile comprehensive institutional analytics metrics across all 3 modules.
      */
-    private function compileExecutiveMetrics(): array
+    private function compileExecutiveMetrics(?int $cycleId = null): array
     {
         // ── 1. Admission Module Analytics ──
-        $totalAdmissionApplicants = AdmissionApplicant::count();
-        $qualifiedAdmissionCount = AdmissionApplicant::where('qualification_status', 'Qualified')->count();
-        $notQualifiedAdmissionCount = AdmissionApplicant::where('qualification_status', 'Not Qualified')->count();
-        $pendingAdmissionCount = AdmissionApplicant::where(function ($q) {
+        $admissionQuery = AdmissionApplicant::query();
+        if ($cycleId) {
+            $admissionQuery->where('admission_cycle_id', $cycleId);
+        }
+
+        $totalAdmissionApplicants = (clone $admissionQuery)->count();
+        $qualifiedAdmissionCount = (clone $admissionQuery)->where('qualification_status', 'Qualified')->count();
+        $notQualifiedAdmissionCount = (clone $admissionQuery)->where('qualification_status', 'Not Qualified')->count();
+        $pendingAdmissionCount = (clone $admissionQuery)->where(function ($q) {
             $q->whereNull('qualification_status')
               ->orWhere('qualification_status', 'Pending')
               ->orWhere('qualification_status', '');
@@ -407,8 +502,9 @@ class AnalyticsController extends Controller
             }
         }
 
-        // Admission counts per program
-        $admCourseStats = AdmissionApplicant::selectRaw('course_choice, COUNT(*) as total, SUM(CASE WHEN qualification_status = "Qualified" THEN 1 ELSE 0 END) as qualified')
+        // Admission counts per program (filtered by cycle if provided)
+        $admCourseStats = (clone $admissionQuery)
+            ->selectRaw('course_choice, COUNT(*) as total, SUM(CASE WHEN qualification_status = "Qualified" THEN 1 ELSE 0 END) as qualified')
             ->whereNotNull('course_choice')
             ->groupBy('course_choice')
             ->get();

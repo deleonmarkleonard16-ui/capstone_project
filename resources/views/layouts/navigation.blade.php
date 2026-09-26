@@ -41,7 +41,7 @@
             <nav aria-label="Main navigation">
                 <a class="sidebar-link {{ request()->routeIs("{$role}.dashboard") ? 'active' : '' }}"
                    href="{{ route("{$role}.dashboard") }}">
-                    <i class="bi bi-grid-1x2"></i> Dashboard
+                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
                 </a>
 
                 {{-- ── 1. ADMISSION TEST (Admin Only) ── --}}
@@ -85,7 +85,7 @@
                         </a>
                         <a class="sidebar-link {{ request()->routeIs('admin.admission.archive') ? 'active' : '' }}"
                            href="{{ route('admin.admission.archive') }}">
-                            <i class="bi bi-archive"></i> Archive
+                            <i class="bi bi-archive-fill"></i> Archive
                         </a>
                     </div>
                 </details>
@@ -94,7 +94,12 @@
                 {{-- ── 2. TESTING REQUEST (Parent Accordion / Sub-menu) ── --}}
                 <details class="sb-group"
                          @if($activeGuidanceModule && in_array($activeGuidanceModule,['psychological','personality','career'])) open @endif>
-                    <summary>Request Testing</summary>
+                    <summary>
+                        <span><i class="bi bi-file-earmark-text me-1"></i> Request Testing</span>
+                        <span class="d-flex align-items-center gap-2">
+                            <i class="bi bi-chevron-right sb-chevron"></i>
+                        </span>
+                    </summary>
                     <div class="sb-sub">
                         <a class="sidebar-link {{ request()->routeIs("{$role}.psychological.*") ? 'active' : '' }}"
                            href="{{ route("{$role}.psychological.index") }}"
@@ -118,7 +123,7 @@
                 <a class="sidebar-link {{ request()->routeIs("{$role}.good-moral","{$role}.good-moral.*") ? 'active' : '' }}"
                    href="{{ route("{$role}.good-moral") }}"
                    data-module-navigation="good-moral">
-                    <i class="bi bi-patch-check"></i> Good Moral
+                    <i class="bi bi-patch-check-fill"></i> Good Moral
                     <span class="sb-badge ms-auto">Service</span>
                 </a>
 
@@ -140,7 +145,7 @@
                 {{-- 6. ARCHIVE (Dedicated Main Navigation Link) --}}
                 <a class="sidebar-link {{ (request()->routeIs('admin.archive') && request()->query('section') !== 'admission') || request()->routeIs('staff.guidance-appointments.archive') ? 'active' : '' }}"
                    href="{{ route($isAdmin ? 'admin.archive' : 'staff.guidance-appointments.archive') }}">
-                    <i class="bi bi-archive"></i> Archive
+                    <i class="bi bi-archive-fill"></i> Archive
                 </a>
 
                 {{-- ── 7. SETTINGS (Admin Only) ── --}}

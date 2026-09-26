@@ -38,37 +38,57 @@
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <div class="card page-card shadow-xs border-start border-4 border-primary h-100">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">Total Sessions</div>
-                <div class="h3 mb-0 fw-bold text-dark">{{ $totalCount }}</div>
-                <div class="small text-muted mt-1">{{ $totalAssigned }} examinee(s) enrolled</div>
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small text-uppercase fw-semibold">Total Sessions</div>
+                    <div class="h3 mb-0 fw-bold text-dark">{{ $totalCount }}</div>
+                    <div class="small text-muted mt-1">{{ $totalAssigned }} examinee(s) enrolled</div>
+                </div>
+                <div class="stat-icon p-2 rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                    <i class="bi bi-calendar3 fs-4"></i>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card page-card shadow-xs border-start border-4 border-info h-100">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">Scheduled</div>
-                <div class="h3 mb-0 fw-bold text-info">{{ $scheduledCount }}</div>
-                <div class="small text-muted mt-1">Awaiting start time</div>
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small text-uppercase fw-semibold">Scheduled</div>
+                    <div class="h3 mb-0 fw-bold text-info">{{ $scheduledCount }}</div>
+                    <div class="small text-muted mt-1">Awaiting start time</div>
+                </div>
+                <div class="stat-icon p-2 rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                    <i class="bi bi-clock-history fs-4"></i>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card page-card shadow-xs border-start border-4 border-warning h-100">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">In-Progress</div>
-                <div class="h3 mb-0 fw-bold text-warning">{{ $progressCount }}</div>
-                <div class="small text-muted mt-1">Live / check-in active</div>
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small text-uppercase fw-semibold">In-Progress</div>
+                    <div class="h3 mb-0 fw-bold text-warning">{{ $progressCount }}</div>
+                    <div class="small text-muted mt-1">Live / check-in active</div>
+                </div>
+                <div class="stat-icon p-2 rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                    <i class="bi bi-play-circle-fill fs-4"></i>
+                </div>
             </div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="card page-card shadow-xs border-start border-4 border-success h-100">
-            <div class="card-body p-3">
-                <div class="text-muted small text-uppercase fw-semibold">Completed</div>
-                <div class="h3 mb-0 fw-bold text-success">{{ $completedCount }}</div>
-                <div class="small text-muted mt-1">{{ $totalSubmitted }} submission(s)</div>
+            <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small text-uppercase fw-semibold">Completed</div>
+                    <div class="h3 mb-0 fw-bold text-success">{{ $completedCount }}</div>
+                    <div class="small text-muted mt-1">{{ $totalSubmitted }} submission(s)</div>
+                </div>
+                <div class="stat-icon p-2 rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                    <i class="bi bi-check-circle-fill fs-4"></i>
+                </div>
             </div>
         </div>
     </div>

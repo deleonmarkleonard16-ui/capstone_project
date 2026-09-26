@@ -158,8 +158,8 @@
                         <div class="stat-value h4 fw-bold text-dark mb-0 mt-1">{{ number_format($totalRequests) }}</div>
                         <div class="text-muted small mt-1">All Core Modules</div>
                     </div>
-                    <div class="stat-icon p-2 rounded-circle bg-primary bg-opacity-10 text-primary">
-                        <i class="bi bi-folder2-open fs-3"></i>
+                    <div class="stat-icon p-2 rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-folder-fill fs-3"></i>
                     </div>
                 </div>
             </div>
@@ -173,7 +173,7 @@
                         <div class="stat-value h4 fw-bold text-info mb-0 mt-1">{{ number_format($totalAdmissionApplicants) }}</div>
                         <div class="text-muted small mt-1">{{ number_format($qualifiedAdmissionCount) }} Qualified</div>
                     </div>
-                    <div class="stat-icon p-2 rounded-circle bg-info bg-opacity-10 text-info">
+                    <div class="stat-icon p-2 rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                         <i class="bi bi-mortarboard-fill fs-3"></i>
                     </div>
                 </div>
@@ -188,8 +188,8 @@
                         <div class="stat-value h4 fw-bold text-success mb-0 mt-1">{{ number_format($testingServicesTotal) }}</div>
                         <div class="text-muted small mt-1">{{ number_format($completedTests) }} Tests Completed</div>
                     </div>
-                    <div class="stat-icon p-2 rounded-circle bg-success bg-opacity-10 text-success">
-                        <i class="bi bi-brain fs-3"></i>
+                    <div class="stat-icon p-2 rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-clipboard-data-fill fs-3"></i>
                     </div>
                 </div>
             </div>
@@ -203,7 +203,7 @@
                         <div class="stat-value h4 fw-bold text-warning mb-0 mt-1">{{ number_format($goodMoralTotal + $exitFormTotal) }}</div>
                         <div class="text-muted small mt-1">{{ number_format($goodMoralClaimed + $exitFormClaimed) }} Released</div>
                     </div>
-                    <div class="stat-icon p-2 rounded-circle bg-warning bg-opacity-10 text-warning">
+                    <div class="stat-icon p-2 rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                         <i class="bi bi-file-earmark-check-fill fs-3"></i>
                     </div>
                 </div>
@@ -508,13 +508,13 @@
                                         <td class="text-end">
                                             <div class="btn-group btn-group-sm">
                                                 <button type="button" class="btn btn-outline-warning btn-sm" onclick="sendProctorAction({{ $locked['appointment_id'] }}, 'warn')" title="Send Warning">
-                                                    Warn
+                                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Warn
                                                 </button>
                                                 <button type="button" class="btn btn-outline-info btn-sm" onclick="sendProctorAction({{ $locked['appointment_id'] }}, 'pause')" title="Pause / Extend Time">
-                                                    Pause
+                                                    <i class="bi bi-pause-fill me-1"></i>Pause
                                                 </button>
                                                 <button type="button" class="btn btn-danger btn-sm" onclick="sendProctorAction({{ $locked['appointment_id'] }}, 'force_terminate')" title="Force Terminate">
-                                                    Terminate
+                                                    <i class="bi bi-x-circle-fill me-1"></i>Terminate
                                                 </button>
                                             </div>
                                         </td>

@@ -108,6 +108,24 @@
         }
         .sidebar-logout button:hover { background: rgba(255,255,255,.22); color: #fff; }
 
+        /* Custom Brain & Mental Health Icon Fallback */
+        .bi-brain, .bi-head-side-dots {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            line-height: 1;
+            vertical-align: -.125em;
+            background-color: currentColor;
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M184 0c30.9 0 56 25.1 56 56V456c0 30.9-25.1 56-56 56c-28.9 0-52.7-21.9-55.7-50.2c-5.2 1.4-10.7 2.2-16.3 2.2c-35.3 0-64-28.7-64-64c0-7.4 1.3-14.6 3.6-21.2C21.4 367.4 0 338.2 0 304c0-31.9 18.7-59.5 45.8-72.3C37.1 218.6 32 201.9 32 184c0-44.2 35.8-80 80-80c4.1 0 8.2 .3 12.1 1C131.5 45.9 155.3 0 184 0zm144 0c28.7 0 52.5 45.9 59.9 105c3.9-.7 8-1 12.1-1c44.2 0 80 35.8 80 80c0 17.9-5.1 34.6-13.8 47.7C493.3 244.5 512 272.1 512 304c0 34.2-21.4 63.4-51.6 74.8c2.4 6.7 3.6 13.8 3.6 21.2c0 35.3-28.7 64-64 64c-5.6 0-11.1-.8-16.3-2.2c-3 28.3-26.8 50.2-55.7 50.2c-30.9 0-56-25.1-56-56V56c0-30.9 25.1-56 56-56z'/%3E%3C/svg%3E");
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath d='M184 0c30.9 0 56 25.1 56 56V456c0 30.9-25.1 56-56 56c-28.9 0-52.7-21.9-55.7-50.2c-5.2 1.4-10.7 2.2-16.3 2.2c-35.3 0-64-28.7-64-64c0-7.4 1.3-14.6 3.6-21.2C21.4 367.4 0 338.2 0 304c0-31.9 18.7-59.5 45.8-72.3C37.1 218.6 32 201.9 32 184c0-44.2 35.8-80 80-80c4.1 0 8.2 .3 12.1 1C131.5 45.9 155.3 0 184 0zm144 0c28.7 0 52.5 45.9 59.9 105c3.9-.7 8-1 12.1-1c44.2 0 80 35.8 80 80c0 17.9-5.1 34.6-13.8 47.7C493.3 244.5 512 272.1 512 304c0 34.2-21.4 63.4-51.6 74.8c2.4 6.7 3.6 13.8 3.6 21.2c0 35.3-28.7 64-64 64c-5.6 0-11.1-.8-16.3-2.2c-3 28.3-26.8 50.2-55.7 50.2c-30.9 0-56-25.1-56-56V56c0-30.9 25.1-56 56-56z'/%3E%3C/svg%3E");
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-position: center;
+            mask-position: center;
+            -webkit-mask-size: contain;
+            mask-size: contain;
+        }
+
         /* ── Content cards ── */
         .page-card  { border:0; border-radius:1.25rem; box-shadow:0 1.25rem 3rem rgba(15,23,42,.09); overflow:hidden; }
         .stat-card  { border:0; border-radius:1.15rem; box-shadow:0 .85rem 2rem rgba(15,23,42,.08); background:rgba(255,255,255,.94); }

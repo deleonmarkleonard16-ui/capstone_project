@@ -15,12 +15,59 @@
 
     @if (auth()->user()->role === 'admin')
     <div class="row g-4 mb-4">
-        <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><p class="text-muted mb-2">Applicants</p><h2 class="mb-0">{{ $stats['applicants'] }}</h2></div></div></div>
-        <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><p class="text-muted mb-2">Test Sessions</p><h2 class="mb-0">{{ $stats['sessions'] }}</h2></div></div></div>
-        <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><p class="text-muted mb-2">Checked In Today</p><h2 class="mb-0">{{ $stats['present_today'] }}</h2></div></div></div>
-        <div class="col-md-3"><div class="card stat-card h-100"><div class="card-body"><p class="text-muted mb-2">Submitted Today</p><h2 class="mb-0">{{ $stats['submitted_today'] }}</h2></div></div></div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100 border-start border-4 border-primary">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small fw-semibold text-uppercase mb-1">Applicants</p>
+                        <h2 class="mb-0 fw-bold">{{ $stats['applicants'] }}</h2>
+                    </div>
+                    <div class="stat-icon p-2 rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-people-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100 border-start border-4 border-info">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small fw-semibold text-uppercase mb-1">Test Sessions</p>
+                        <h2 class="mb-0 fw-bold">{{ $stats['sessions'] }}</h2>
+                    </div>
+                    <div class="stat-icon p-2 rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-calendar3 fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100 border-start border-4 border-success">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small fw-semibold text-uppercase mb-1">Checked In Today</p>
+                        <h2 class="mb-0 fw-bold">{{ $stats['present_today'] }}</h2>
+                    </div>
+                    <div class="stat-icon p-2 rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-person-check-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card h-100 border-start border-4 border-warning">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="text-muted small fw-semibold text-uppercase mb-1">Submitted Today</p>
+                        <h2 class="mb-0 fw-bold">{{ $stats['submitted_today'] }}</h2>
+                    </div>
+                    <div class="stat-icon p-2 rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-file-earmark-check-fill fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
     @endif
 
     <div class="card page-card mb-4">
@@ -31,9 +78,28 @@
                     <p class="text-muted mb-0">Testing and document requests for the guidance office.</p>
                 </div>
             </div>
+            @php
+                $moduleMeta = [
+                    'psychological' => ['Psychological Assessment', 'psychological.index', 'bi-brain', 'text-primary', 'bg-primary'],
+                    'personality'   => ['Personality Test', 'personality.index', 'bi-person-badge', 'text-info', 'bg-info'],
+                    'career'        => ['Career Test', 'career.index', 'bi-compass', 'text-success', 'bg-success'],
+                    'good-moral'    => ['Good Moral', 'good-moral', 'bi-patch-check-fill', 'text-warning', 'bg-warning'],
+                    'exit-form'     => ['Exit Form', 'exit-form', 'bi-door-open', 'text-secondary', 'bg-secondary'],
+                ];
+            @endphp
             <div class="row g-3">
-                @foreach(['psychological'=>['Psychological Assessment','psychological.index'],'personality'=>['Personality Test','personality.index'],'career'=>['Career Test','career.index'],'good-moral'=>['Good Moral','good-moral'],'exit-form'=>['Exit Form','exit-form']] as $module)
-                    <div class="col-md-4"><a class="d-block border rounded-4 p-4 h-100 bg-light text-decoration-none" href="{{ route(auth()->user()->role.'.'.$module[1]) }}"><strong>{{ $module[0] }}</strong><span class="d-block text-muted small mt-2">Open request queue</span></a></div>
+                @foreach($moduleMeta as $modKey => $meta)
+                    <div class="col-md-4">
+                        <a class="d-flex align-items-center gap-3 border rounded-4 p-3 h-100 bg-light text-decoration-none shadow-xs" href="{{ route(auth()->user()->role.'.'.$meta[1]) }}">
+                            <div class="stat-icon p-2 rounded-circle {{ $meta[4] }} bg-opacity-10 {{ $meta[3] }} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                                <i class="bi {{ $meta[2] }} fs-4"></i>
+                            </div>
+                            <div>
+                                <strong class="text-dark d-block">{{ $meta[0] }}</strong>
+                                <span class="text-muted small">Open request queue &rarr;</span>
+                            </div>
+                        </a>
+                    </div>
                 @endforeach
             </div>
         </div>

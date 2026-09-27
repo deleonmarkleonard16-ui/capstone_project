@@ -565,72 +565,6 @@
             </div>
         </div>
 
-        {{-- DOCUMENT FULFILLMENT & REVENUE COLLECTION ANALYTICS --}}
-        <div class="col-12 col-lg-5">
-            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-4 border-success">
-                <div class="card-header bg-white border-bottom border-light pt-3 px-3 pb-3 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="h6 fw-bold text-success mb-0 d-flex align-items-center gap-2">
-                            <i class="bi bi-cash-stack"></i>
-                            <span>Document Fulfillment &amp; Fee Analytics</span>
-                        </h2>
-                        <small class="text-muted">Issued vs claimed documents &amp; revenue mapped against O.R. numbers</small>
-                    </div>
-                    <span class="badge bg-success text-white px-2 py-1 fw-bold">
-                        ₱{{ number_format($documentFees['totalRevenue'], 2) }}
-                    </span>
-                </div>
-                <div class="card-body p-3">
-                    {{-- Fulfillment Summary --}}
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <div class="p-2 border rounded bg-light text-center">
-                                <span class="d-block small text-muted">Good Moral (Claimed/Total)</span>
-                                <span class="h6 fw-bold text-dark mb-0">{{ $documentFees['gmClaimed'] }} / {{ $documentFees['gmTotal'] }}</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-2 border rounded bg-light text-center">
-                                <span class="d-block small text-muted">Exit Forms (Completed/Total)</span>
-                                <span class="h6 fw-bold text-dark mb-0">{{ $documentFees['efClaimed'] }} / {{ $documentFees['efTotal'] }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Revenue Breakdown Chart --}}
-                    <div style="position: relative; height: 180px; width: 100%;">
-                        <canvas id="revenueChart"></canvas>
-                    </div>
-
-                    {{-- Collection Details Table --}}
-                    <div class="mt-3 pt-2 border-top">
-                        <h3 class="h6 fw-bold text-dark mb-2 small text-uppercase">Collection Summary by Service</h3>
-                        <table class="table table-sm table-bordered align-middle mb-0 small">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Service Description</th>
-                                    <th class="text-end">Rate</th>
-                                    <th class="text-end">Collections (₱)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($documentFees['revenueBreakdown'] as $serviceName => $revenue)
-                                <tr>
-                                    <td>{{ $serviceName }}</td>
-                                    <td class="text-end text-muted">₱60.00</td>
-                                    <td class="text-end fw-bold text-success">₱{{ number_format($revenue, 2) }}</td>
-                                </tr>
-                                @endforeach
-                                <tr class="table-light fw-bold">
-                                    <td colspan="2">Total Verified Collections</td>
-                                    <td class="text-end text-success">₱{{ number_format($documentFees['totalRevenue'], 2) }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -819,28 +753,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ── 5. Revenue Breakdown Donut Chart ──
-    const revCtx = document.getElementById('revenueChart');
-    if (revCtx) {
-        new Chart(revCtx, {
-            type: 'doughnut',
-            data: {
-                labels: {!! json_encode(array_keys($documentFees['revenueBreakdown'])) !!},
-                datasets: [{
-                    data: {!! json_encode(array_values($documentFees['revenueBreakdown'])) !!},
-                    backgroundColor: ['#ffc107', '#0f3f97', '#0dcaf0', '#198754', '#6c757d'],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { boxWidth: 8, font: { size: 9 } } } },
-                cutout: '60%'
-            }
-        });
-    }
-
     // Start live background sync
     setInterval(syncLiveStats, 10000);
 });

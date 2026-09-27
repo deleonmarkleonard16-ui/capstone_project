@@ -25,9 +25,9 @@ class StudentPortalController extends Controller
             'middle_name' => 'nullable|string|max:100',
             'last_name' => 'required|string|max:100',
             'student_status' => ['required', Rule::in(['student', 'alumni', 'Currently Enrolled', 'Alumni'])],
-            'student_id' => 'required_if:student_status,student,Currently Enrolled|nullable|string|max:50',
+            'student_id' => 'nullable|string|max:50',
             'student_number' => 'nullable|string|max:50',
-            'year_graduated' => 'required_if:student_status,alumni,Alumni|nullable|digits:4',
+            'year_graduated' => 'nullable|digits:4',
             'course' => \App\Support\CourseCatalog::rule(),
             'purpose' => 'exclude_if:service,testing|required_without:reason|nullable|string|max:2000',
             'reason' => ['required_if:service,testing', 'required_without:purpose', 'nullable', Rule::in(['OJT', 'FIELD STUDY', 'Others'])],
@@ -43,12 +43,20 @@ class StudentPortalController extends Controller
         $data['student_status'] = $isAlumni ? 'alumni' : 'student';
 
         if ($isAlumni) {
-            $yearGrad = $data['year_graduated'] ?? $request->input('student_id') ?? $request->input('student_number');
+            $yearGrad = $data['year_graduated'] ?? null;
             $data['year_graduated'] = $yearGrad;
-            $data['student_number'] = $yearGrad ? 'GRAD-' . $yearGrad : 'ALUMNI';
+            // Preserve student_number from the payload if submitted; otherwise derive from year_graduated.
+            $data['student_number'] = $data['student_number']
+                ?? $data['student_id']
+                ?? ($yearGrad ? 'GRAD-' . $yearGrad : '');
             unset($data['student_id']);
         } else {
-            $idNum = $data['student_id'] ?? $data['student_number'] ?? $request->input('student_number') ?? '';
+            $idNum = $data['student_number'] ?? $data['student_id'] ?? $request->input('student_number') ?? $request->input('student_id') ?? '';
+            if ($idNum === '' || $idNum === null) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'student_number' => 'The student number field is required.',
+                ]);
+            }
             $data['student_number'] = mb_strtoupper(trim((string) $idNum));
             $data['student_id'] = $data['student_number'];
             $data['year_graduated'] = null;

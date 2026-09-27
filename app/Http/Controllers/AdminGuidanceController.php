@@ -74,12 +74,11 @@ class AdminGuidanceController extends Controller
             $test = $data['test_type'] ?? $locked->test_type;
             foreach ($locked->test_types ?: [$test] as $instrument) $scoring->definition($instrument);
 
-            if ($locked->hasReceipt()) {
-                $locked->qrCode()->create(['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
-                $locked->update(['test_type' => $test, 'status' => 'Approved', 'verified_by' => $request->user()->id, 'verified_at' => now()]);
-                $locked->serviceRequest?->update(['status' => 'processing']);
-                return;
-            }
+            abort_unless($locked->hasReceipt(), 422, 'Receipt has not been uploaded.');
+
+            $locked->qrCode()->create(['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
+            $locked->update(['test_type' => $test, 'status' => 'Approved', 'verified_by' => $request->user()->id, 'verified_at' => now()]);
+            $locked->serviceRequest?->update(['status' => 'processing']);
 
             /*
             $receiptPath = null;

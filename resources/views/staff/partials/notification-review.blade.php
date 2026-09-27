@@ -44,6 +44,10 @@
         @include('staff.partials.document-actions')
     @endif
 @elseif($appointment)
-    <a class="btn btn-outline-primary btn-sm" href="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}" target="_blank" rel="noopener">Open assessment details</a>
+    <button type="button" class="btn btn-primary btn-sm"
+            data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"
+            data-bs-dismiss="modal">
+        <i class="bi bi-card-checklist me-1"></i> Open assessment details
+    </button>
 @endif
 </div>

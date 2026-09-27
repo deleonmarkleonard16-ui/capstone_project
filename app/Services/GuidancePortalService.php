@@ -89,15 +89,17 @@ class GuidancePortalService
 
     public function uploadReceipt(string $reference, UploadedFile $receipt, ?string $orNumber = null, ?string $orDate = null): void
     {
+        $path = $receipt->store('guidance-receipts', 'local');
         $receiptData = ReceiptStorage::payload($receipt);
-        DB::transaction(function () use ($reference, $receiptData, $orNumber, $orDate) {
+        try {
+            DB::transaction(function () use ($reference, $receiptData, $path, $orNumber, $orDate) {
                 $entry = ServiceRequest::where('reference', $reference)->lockForUpdate()->first();
                 if (!$entry) {
                     $appointment = \App\Models\GuidanceAppointment::whereNull('batch_id')->where('request_code', $reference)->lockForUpdate()->firstOrFail();
                     abort_unless($appointment->status === 'Pending Payment' && !$appointment->hasReceipt(), 409, 'This request is not awaiting payment.');
                     $appointment->update([
                         ...$receiptData,
-                        'payment_slip_path' => null,
+                        'payment_slip_path' => $path,
                         'or_number' => $orNumber,
                         'or_date' => $orDate,
                         'status' => 'Receipt Uploaded',
@@ -106,13 +108,27 @@ class GuidancePortalService
                     return;
                 }
                 $appointments = $entry->guidanceAppointments()->lockForUpdate()->get();
-                abort_if($appointments->isEmpty(), 404);
+                if ($appointments->isEmpty()) {
+                    if ($entry->hasReceipt() || !in_array($entry->status, ['pending', 'approved'], true)) {
+                        throw \Illuminate\Validation\ValidationException::withMessages(['payment_slip' => 'A receipt has already been uploaded or this request is no longer awaiting payment.']);
+                    }
+                    $uploadedAt = now();
+                    $entry->update([
+                        ...$receiptData,
+                        'proof_path' => $path,
+                        'or_number' => $orNumber,
+                        'or_date' => $orDate,
+                        'status' => 'proof_review',
+                        'scheduled_at' => $uploadedAt,
+                    ]);
+                    return;
+                }
                 if ($entry->hasReceipt() || $entry->status !== 'pending' || $appointments->contains(fn ($item) => $item->status !== 'Pending Payment')) {
                     throw \Illuminate\Validation\ValidationException::withMessages(['payment_slip' => 'A receipt has already been uploaded or this request is no longer awaiting payment.']);
                 }
                 $uploadedAt = now();
                 $entry->guidanceAppointments()->update([
-                    'payment_slip_path' => null,
+                    'payment_slip_path' => $path,
                     'or_number' => $orNumber,
                     'or_date' => $orDate,
                     'status' => 'Receipt Uploaded',
@@ -120,12 +136,16 @@ class GuidancePortalService
                 ]);
                 $entry->update([
                     ...$receiptData,
-                    'proof_path' => null,
+                    'proof_path' => $path,
                     'or_number' => $orNumber,
                     'or_date' => $orDate,
                     'status' => 'proof_review',
                     'scheduled_at' => $uploadedAt,
                 ]);
             });
+        } catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete($path);
+            throw $exception;
+        }
     }
 }

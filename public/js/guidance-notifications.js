@@ -80,11 +80,6 @@
             const response = await fetch(item.review_url, {headers: {Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest'}, cache: 'no-store'});
             if (!response.ok) throw new Error('Could not load this request.');
             reviewBody.innerHTML = await response.text();
-            const queueLink = document.createElement('a');
-            queueLink.href = item.url;
-            queueLink.className = 'btn btn-outline-primary btn-sm';
-            queueLink.textContent = 'Open module queue';
-            (reviewBody.querySelector('[data-notification-review-actions]') || reviewBody).append(queueLink);
         } catch (error) { reviewBody.textContent = error.message; }
     }
 

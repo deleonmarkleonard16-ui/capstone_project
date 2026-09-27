@@ -194,6 +194,67 @@ class ServiceRequest extends Model
 
     public function hasReceipt(): bool
     {
-        return $this->receipt_data !== null;
+        if ($this->attributes['receipt_data'] ?? null) {
+            return true;
+        }
+
+        if (!empty($this->proof_path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($this->proof_path)) {
+            return true;
+        }
+
+        return $this->guidanceAppointments()->where(function ($q) {
+            $q->whereNotNull('receipt_data')->orWhereNotNull('payment_slip_path');
+        })->exists();
+    }
+
+    public function getReceiptDataAttribute(): ?string
+    {
+        if ($this->attributes['receipt_data'] ?? null) {
+            return $this->attributes['receipt_data'];
+        }
+
+        if (!empty($this->proof_path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($this->proof_path)) {
+            return \Illuminate\Support\Facades\Storage::disk('local')->get($this->proof_path);
+        }
+
+        $appointment = $this->guidanceAppointments()
+            ->where(fn ($q) => $q->whereNotNull('receipt_data')->orWhereNotNull('payment_slip_path'))
+            ->first();
+
+        return $appointment?->receipt_data;
+    }
+
+    public function getReceiptMimeTypeAttribute(): ?string
+    {
+        if ($this->attributes['receipt_mime_type'] ?? null) {
+            return $this->attributes['receipt_mime_type'];
+        }
+
+        if (!empty($this->proof_path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($this->proof_path)) {
+            return \Illuminate\Support\Facades\Storage::disk('local')->mimeType($this->proof_path) ?: 'application/octet-stream';
+        }
+
+        $appointment = $this->guidanceAppointments()
+            ->where(fn ($q) => $q->whereNotNull('receipt_data')->orWhereNotNull('payment_slip_path'))
+            ->first();
+
+        return $appointment?->receipt_mime_type ?? 'application/octet-stream';
+    }
+
+    public function getReceiptOriginalNameAttribute(): ?string
+    {
+        if ($this->attributes['receipt_original_name'] ?? null) {
+            return $this->attributes['receipt_original_name'];
+        }
+
+        if (!empty($this->proof_path)) {
+            return basename($this->proof_path);
+        }
+
+        $appointment = $this->guidanceAppointments()
+            ->where(fn ($q) => $q->whereNotNull('receipt_data')->orWhereNotNull('payment_slip_path'))
+            ->first();
+
+        return $appointment?->receipt_original_name ?? 'receipt';
     }
 }

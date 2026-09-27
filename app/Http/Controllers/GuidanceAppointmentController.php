@@ -31,8 +31,9 @@ class GuidanceAppointmentController extends Controller
         $category = array_key_exists($data['test_type'], \App\Services\GuidanceCategories::TESTS) ? $data['test_type'] : null;
         $instruments = $category ? \App\Services\GuidanceCategories::TESTS[$category] : [$data['test_type']];
         foreach ($instruments as $instrument) $scoring->definition($instrument);
+        $path = $request->file('payment_slip')->store('guidance-receipts', 'local');
         $receipt = \App\Services\ReceiptStorage::payload($request->file('payment_slip'));
-        $appointment = DB::transaction(function () use ($data, $receipt, $category, $instruments) {
+        $appointment = DB::transaction(function () use ($data, $receipt, $path, $category, $instruments) {
                 // Public requests never attach themselves to an existing applicant by guessed ID.
                 $applicant = Applicant::create([
                     'application_number' => 'GT-'.strtoupper(bin2hex(random_bytes(12))),
@@ -43,7 +44,7 @@ class GuidanceAppointmentController extends Controller
                     'applicant_id' => $applicant->id,
                     'request_code' => app(\App\Services\GuidanceReferenceService::class)->reserve(),
                     'test_type' => $instruments[0], 'test_category' => $category, 'test_types' => $category ? $instruments : null, 'student_status' => $data['student_status'],
-                    ...$receipt, 'status' => 'Receipt Uploaded', 'payment_slip_path' => null, 'appointment_at' => now(),
+                    ...$receipt, 'status' => 'Receipt Uploaded', 'payment_slip_path' => $path, 'appointment_at' => now(),
                 ]);
             });
         return redirect('/portal?service=good-moral#track')->with('guidance_request_code', $appointment->request_code);

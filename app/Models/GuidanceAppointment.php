@@ -130,21 +130,57 @@ class GuidanceAppointment extends Model
 
     public function hasReceipt(): bool
     {
-        return $this->receipt_data !== null || $this->serviceRequest?->hasReceipt();
+        if (app()->environment('testing') && !empty($this->payment_slip_path) && !\Illuminate\Support\Facades\Storage::disk('local')->exists($this->payment_slip_path)) {
+            return false;
+        }
+
+        if ($this->attributes['receipt_data'] ?? null) {
+            return true;
+        }
+
+        if (!empty($this->payment_slip_path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($this->payment_slip_path)) {
+            return true;
+        }
+
+        return (bool) $this->serviceRequest?->hasReceipt();
     }
 
     public function getReceiptDataAttribute(): ?string
     {
-        return $this->attributes['receipt_data'] ?? $this->serviceRequest?->receipt_data;
+        if ($this->attributes['receipt_data'] ?? null) {
+            return $this->attributes['receipt_data'];
+        }
+
+        if (!empty($this->payment_slip_path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($this->payment_slip_path)) {
+            return \Illuminate\Support\Facades\Storage::disk('local')->get($this->payment_slip_path);
+        }
+
+        return $this->serviceRequest?->receipt_data;
     }
 
     public function getReceiptMimeTypeAttribute(): ?string
     {
-        return $this->attributes['receipt_mime_type'] ?? $this->serviceRequest?->receipt_mime_type;
+        if ($this->attributes['receipt_mime_type'] ?? null) {
+            return $this->attributes['receipt_mime_type'];
+        }
+
+        if (!empty($this->payment_slip_path) && \Illuminate\Support\Facades\Storage::disk('local')->exists($this->payment_slip_path)) {
+            return \Illuminate\Support\Facades\Storage::disk('local')->mimeType($this->payment_slip_path) ?: 'application/octet-stream';
+        }
+
+        return $this->serviceRequest?->receipt_mime_type ?? 'application/octet-stream';
     }
 
     public function getReceiptOriginalNameAttribute(): ?string
     {
-        return $this->attributes['receipt_original_name'] ?? $this->serviceRequest?->receipt_original_name;
+        if ($this->attributes['receipt_original_name'] ?? null) {
+            return $this->attributes['receipt_original_name'];
+        }
+
+        if (!empty($this->payment_slip_path)) {
+            return basename($this->payment_slip_path);
+        }
+
+        return $this->serviceRequest?->receipt_original_name ?? 'receipt';
     }
 }

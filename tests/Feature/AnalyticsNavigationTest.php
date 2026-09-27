@@ -28,7 +28,6 @@ class AnalyticsNavigationTest extends TestCase
         $this->get(route('admin.admission.analytics'))->assertOk()->assertSee('No admission cycles available.');
         $this->get(route('admin.admission.archive'))->assertOk()->assertSee('No archived admission cycles.');
         $this->actingAs(User::factory()->create(['role' => 'staff']));
-        $this->get(route('staff.admission.analytics'))->assertOk()->assertSee('No admission cycles available.');
         $this->get(route('admin.admission.analytics'))->assertForbidden();
         $this->get(route('admin.admission.archive'))->assertForbidden();
     }

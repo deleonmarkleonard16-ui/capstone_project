@@ -1,3 +1,4 @@
+@once
 <style>
 [data-review-preview] { min-height:180px; display:grid; place-items:center; }
 [data-review-preview] > * { grid-area:1 / 1; }
@@ -16,3 +17,4 @@
     </div></div>
 </div>
 @push('scripts')<script src="{{ asset('js/guidance-review.js') }}" defer></script>@endpush
+@endonce

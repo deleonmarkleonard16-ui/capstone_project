@@ -73,7 +73,7 @@
                             <i class="bi bi-grid-3x3"></i> Encoding Sheet
                         </a>
                         <a class="sidebar-link {{ request()->routeIs('admin.admission.answer-key.*') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.index') }}#answer-key">
+                           href="{{ route('admin.admission.answer-key.index') }}">
                             <i class="bi bi-key-fill"></i> Answer Key
                         </a>
                         <a class="sidebar-link {{ request()->routeIs('admin.admission.scan-paper*') ? 'active' : '' }}"

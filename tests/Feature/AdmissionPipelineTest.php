@@ -27,6 +27,7 @@ class AdmissionPipelineTest extends TestCase
         $this->post('/admin/admission/answer-key', [])->assertForbidden();
         $this->login('admin');
         $this->get('/admin/admission')->assertOk();
+        $this->get('/admin/admission/answer-key')->assertOk()->assertSee('Answer Key Locked');
         $this->get('/admin/admission/masterlist')->assertStatus(409);
     }
 

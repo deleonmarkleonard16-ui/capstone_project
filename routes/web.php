@@ -195,6 +195,7 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::post('/cycles/{cycle}/archive', [$c, 'archive'])->name('cycles.archive');
         Route::post('/cycles/{cycle}/complete', [$c, 'complete'])->name('cycles.complete');
         Route::post('/quotas', [$c, 'quota'])->name('quotas.save');
+        Route::get('/answer-key', [$c, 'answerKey'])->name('answer-key.index');
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
         Route::resource('sessions', \App\Http\Controllers\AdmissionSessionController::class);

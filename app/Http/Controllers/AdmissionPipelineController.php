@@ -145,6 +145,13 @@ class AdmissionPipelineController extends Controller
         return back()->with('success', 'Course quota updated.');
     }
 
+    public function answerKey()
+    {
+        return view('admin.admission.answer-key', [
+            'active' => AdmissionCycle::active(),
+        ]);
+    }
+
     public function key(Request $request)
     {
         $cycle = $this->active();

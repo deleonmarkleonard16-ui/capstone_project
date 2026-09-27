@@ -392,6 +392,8 @@
         </div>
 
         {{-- Answer Key --}}
+        {{-- The Answer Key now has its own page. Keep this legacy markup disabled until removed in a later cleanup. --}}
+        @if (false)
         <div class="card page-card shadow-sm" id="answer-key">
             <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h2 class="h6 section-title mb-0 fw-bold">
@@ -449,12 +451,13 @@
             </div>
         </div>
 
+        @endif
         @else
             <div class="card page-card shadow-sm h-100">
                 <div class="card-body p-5 text-center text-muted d-flex flex-column align-items-center justify-content-center">
                     <i class="bi bi-lock-fill fs-1 mb-3 opacity-25"></i>
-                    <h3 class="h5 fw-bold">Quotas &amp; Answer Key Locked</h3>
-                    <p class="small mb-0">Initialize or activate an admission cycle to unlock seat quotas and the answer key matrix.</p>
+                    <h3 class="h5 fw-bold">Seat Quotas Locked</h3>
+                    <p class="small mb-0">Initialize or activate an admission cycle to unlock seat quota configuration.</p>
                 </div>
             </div>
         @endif

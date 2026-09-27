@@ -14,7 +14,8 @@
         ->first(fn ($m) => request()->routeIs("{$role}.{$m}", "{$role}.{$m}.*"));
 
     // Detect active analytics page
-    $analyticsActive = request()->routeIs("{$role}.analytics", 'admin.analytics', 'staff.analytics');
+    $guidanceAnalyticsActive = request()->routeIs("{$role}.analytics", 'admin.analytics', 'staff.analytics');
+    $admissionAnalyticsActive = request()->routeIs('admin.admission.analytics', 'staff.admission.analytics');
 @endphp
 
 @if ($user)
@@ -136,11 +137,22 @@
                 </a>
 
                 {{-- ── 5. ANALYTICS (Dedicated Main Navigation Button) ── --}}
-                <a class="sidebar-link {{ $analyticsActive ? 'active' : '' }}"
-                   href="{{ route($isAdmin ? 'admin.analytics' : 'staff.analytics') }}">
-                    <i class="bi bi-bar-chart-line-fill"></i> Analytics
-                    <span class="sb-badge ms-auto">Guidance</span>
-                </a>
+                <details class="sb-group" @if($guidanceAnalyticsActive || $admissionAnalyticsActive) open @endif>
+                    <summary>
+                        <span><i class="bi bi-bar-chart-line-fill me-1"></i> Analytics</span>
+                        <i class="bi bi-chevron-right sb-chevron"></i>
+                    </summary>
+                    <div class="sb-sub">
+                        <a class="sidebar-link {{ $guidanceAnalyticsActive ? 'active' : '' }}"
+                           href="{{ route($role.'.analytics') }}">
+                            <i class="bi bi-clipboard-data"></i> Guidance Analytics
+                        </a>
+                        <a class="sidebar-link {{ $admissionAnalyticsActive ? 'active' : '' }}"
+                           href="{{ route($role.'.admission.analytics') }}">
+                            <i class="bi bi-mortarboard"></i> Admission Analytics
+                        </a>
+                    </div>
+                </details>
 
                 {{-- 6. ARCHIVE (Dedicated Main Navigation Link) --}}
                 <a class="sidebar-link {{ (request()->routeIs('admin.archive') && request()->query('section') !== 'admission') || request()->routeIs('staff.guidance-appointments.archive') ? 'active' : '' }}"

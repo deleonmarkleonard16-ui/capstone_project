@@ -1,6 +1,11 @@
 @extends('layouts.app')
 @section('content')
 
+@php
+    $isAdmin = auth()->user()->role === 'admin';
+    $analyticsRoute = auth()->user()->role . '.admission.analytics';
+@endphp
+
 {{-- ══════════════════════════════════════════════════════════════════
      ADMISSION ANALYTICS & HISTORIC ARCHIVE INSPECTOR
      Supports live analysis of Active cycles as well as deep inspection
@@ -18,7 +23,7 @@
     </div>
 
     {{-- Top Action & Export Buttons --}}
-    @if ($cycle)
+    @if ($cycle && $isAdmin)
     <div class="d-flex gap-2 flex-wrap">
         <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}">
             <i class="bi bi-table me-1"></i> Inspect Masterlist Roster
@@ -36,7 +41,7 @@
 {{-- ── CYCLE SELECTOR DROPDOWN (HISTORIC ARCHIVE VIEWER) ── --}}
 <div class="card page-card shadow-sm mb-4">
     <div class="card-body p-3">
-        <form method="get" action="{{ route('admin.admission.analytics') }}" class="row g-2 align-items-center">
+        <form method="get" action="{{ route($analyticsRoute) }}" class="row g-2 align-items-center">
             <div class="col-md-2">
                 <label for="analytics-cycle" class="form-label form-label-sm fw-bold text-muted mb-0">
                     <i class="bi bi-clock-history me-1"></i> Admission Cycle:
@@ -75,7 +80,7 @@
             </div>
             @php $activeCycle = \App\Models\AdmissionCycle::active(); @endphp
             @if ($activeCycle && $activeCycle->id !== $cycle->id)
-                <a href="{{ route('admin.admission.analytics', ['cycle_id' => $activeCycle->id]) }}" class="btn btn-sm btn-primary">
+                <a href="{{ route($analyticsRoute, ['cycle_id' => $activeCycle->id]) }}" class="btn btn-sm btn-primary">
                     <i class="bi bi-arrow-return-left me-1"></i> Switch to Active Cycle
                 </a>
             @endif
@@ -256,11 +261,13 @@
                         </table>
                     </div>
                 </div>
+                @if ($isAdmin)
                 <div class="card-footer bg-light py-2 text-end">
                     <a href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary']) }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-file-earmark-text me-1"></i> View Full Evaluation Report
                     </a>
                 </div>
+                @endif
             </div>
         </div>
     </div>
@@ -269,11 +276,13 @@
         <i class="bi bi-calendar-x fs-1 text-muted mb-2"></i>
         <h4 class="fw-bold">No Admission Cycles Available</h4>
         <p class="text-muted small">No admission cycles available. Please initialize or activate an admission cycle to view analytics.</p>
+        @if ($isAdmin)
         <div>
             <a href="{{ route('admin.admission.index') }}" class="btn btn-primary btn-sm">
                 Go to Admission Cycle Hub
             </a>
         </div>
+        @endif
     </div>
 @endif
 

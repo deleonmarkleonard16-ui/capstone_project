@@ -245,7 +245,7 @@
 @include('layouts.navigation')
 
 {{-- ═══ MAIN CONTENT ═══ --}}
-<main class="{{ request()->routeIs('admin.analytics', 'staff.analytics') ? 'executive-main' : '' }} py-4 {{ $user ? 'has-sidebar' : '' }}">
+<main class="{{ request()->routeIs('admin.analytics', 'staff.analytics', 'admin.admission.analytics', 'staff.admission.analytics') ? 'executive-main' : '' }} py-4 {{ $user ? 'has-sidebar' : '' }}">
     <div class="{{ $user ? 'container-fluid px-3 px-lg-4' : 'container' }}">
 
         {{-- Flash messages --}}

@@ -120,6 +120,10 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:staff'])->prefix('st
     Route::post('/settings', [\App\Http\Controllers\StaffSettingsController::class, 'update'])->name('update');
 });
 
+Route::middleware(['auth', PreventBackHistory::class, 'role:staff'])->prefix('staff/admission')->name('staff.admission.')->group(function (): void {
+    Route::get('/analytics', [\App\Http\Controllers\AdmissionOverviewController::class, 'analytics'])->name('analytics');
+});
+
 foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHistory::class, 'role:'.$role])->prefix($role)->name($role.'.')->group(function (): void {
     Route::get('/notifications', [\App\Http\Controllers\GuidanceNotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [\App\Http\Controllers\GuidanceNotificationController::class, 'read'])->name('notifications.read');

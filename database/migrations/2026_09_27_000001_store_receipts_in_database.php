@@ -16,14 +16,27 @@ return new class extends Migration
             });
             // Laravel's schema builder only exposes BLOB (64 KB), while uploads
             // are allowed up to 5 MB. MySQL MEDIUMBLOB supports up to 16 MB.
-            DB::statement("ALTER TABLE `{$table}` ADD `receipt_data` MEDIUMBLOB NULL AFTER `receipt_original_name`");
+            // SQLite is used by the test suite and does not support `AFTER`.
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE `{$table}` ADD `receipt_data` MEDIUMBLOB NULL AFTER `receipt_original_name`");
+            } else {
+                Schema::table($table, function (Blueprint $table): void {
+                    $table->binary('receipt_data')->nullable();
+                });
+            }
         }
     }
 
     public function down(): void
     {
         foreach (['service_requests', 'guidance_appointments'] as $table) {
-            DB::statement("ALTER TABLE `{$table}` DROP COLUMN `receipt_data`");
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE `{$table}` DROP COLUMN `receipt_data`");
+            } else {
+                Schema::table($table, function (Blueprint $table): void {
+                    $table->dropColumn('receipt_data');
+                });
+            }
             Schema::table($table, function (Blueprint $table): void {
                 $table->dropColumn(['receipt_mime_type', 'receipt_original_name']);
             });

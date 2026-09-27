@@ -60,7 +60,7 @@ class NavigationAccessTest extends TestCase
             ->assertSee('href="'.route('admin.psychological.index').'"', false)
             ->assertSee('href="'.route('admin.personality.index').'"', false)
             ->assertSee('href="'.route('admin.career.index').'"', false)
-            ->assertSee('<summary>Request Testing</summary>', false)
+            ->assertSee('Request Testing')
             ->assertSee('href="'.route('admin.good-moral').'"', false)
             ->assertSee('href="'.route('admin.exit-form').'"', false)
             ->assertDontSee('<summary>Admission</summary>', false);

@@ -455,7 +455,7 @@
     {{-- ══════════════════════════════════════════════════════════════ --}}
     <div class="row g-3 mb-3">
         {{-- REAL-TIME SECURITY & PROCTORING INCIDENT FEED --}}
-        <div class="col-12 col-lg-7">
+        <div class="col-12">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-4 border-danger">
                 <div class="card-header bg-white border-bottom border-light pt-3 px-3 pb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>

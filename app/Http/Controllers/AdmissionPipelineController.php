@@ -440,8 +440,8 @@ class AdmissionPipelineController extends Controller
             'last_name' => 'required|string|max:120',
             'course_choice' => CourseCatalog::rule(),
             'sex' => 'nullable|string|max:20',
-            'special_group' => 'nullable|string|max:120',
-            'cmfl' => 'nullable|string|max:120',
+            'special_group' => ['nullable', 'string', Rule::in(['N/A', '4Ps', 'OSY', 'IP', 'PWD', 'SP'])],
+            'cmfl' => ['nullable', 'string', Rule::in(['N/A', '10,000 below', '10,001 to 20,000', '20,001 to 30,000', '30,001 to 50,000', '50,001 and above'])],
             'gwa' => 'nullable|numeric|between:75,100',
             'interview_score' => 'nullable|numeric|between:0,100',
         ]);

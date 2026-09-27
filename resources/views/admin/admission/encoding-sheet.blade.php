@@ -2,7 +2,7 @@
 @section('content')
 
 {{-- ══════════════════════════════════════════════════════════════
-     MASTERLIST ENCODING SHEET — Screenshot 2 UI
+     MASTERLIST ENCODING SHEET
      Excel-like editable spreadsheet for direct applicant data entry.
      Cycle selector & quick draft addition.
      ══════════════════════════════════════════════════════════════ --}}
@@ -32,7 +32,7 @@
 </div>
 
 <div class="row g-3 mb-4">
-    {{-- ── LEFT: ADMISSION CYCLE CARD (MATCHING SCREENSHOT 2) ── --}}
+    {{-- ── LEFT: ADMISSION CYCLE CARD ── --}}
     <div class="col-md-5">
         <div class="card page-card shadow-sm h-100">
             <div class="card-body p-4">
@@ -73,7 +73,7 @@
         </div>
     </div>
 
-    {{-- ── RIGHT: IMPORT APPLICANTS FROM EXCEL CSV (MATCHING SCREENSHOT 2) ── --}}
+    {{-- ── RIGHT: IMPORT APPLICANTS FROM EXCEL CSV ── --}}
     <div class="col-md-7">
         <div class="card page-card shadow-sm h-100">
             <div class="card-body p-4">
@@ -169,7 +169,7 @@
             <input type="hidden" name="batch_group" value="{{ request('batch_group') }}">
 
             <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
-                <table class="table table-sm table-bordered mb-0" id="encoding-grid" style="min-width: 900px;">
+                <table class="table table-sm table-bordered mb-0" id="encoding-grid" style="min-width: 980px;">
                     <thead class="table-dark sticky-top" style="top:0;z-index:10">
                         <tr>
                             <th style="width:42px" class="text-center">#</th>
@@ -178,12 +178,16 @@
                             <th>MIDDLE NAME</th>
                             <th>COURSE (1ST CHOICE)</th>
                             <th style="width:90px">SEX</th>
-                            <th style="width:140px">4PS/OSY/IP/PWD/SP</th>
-                            <th style="width:100px">CMFL</th>
+                            <th style="width:160px">4PS/OSY/IP/PWD/SP</th>
+                            <th style="width:160px">CMFL</th>
                             <th style="width:90px">GWA</th>
                         </tr>
                     </thead>
                     <tbody id="grid-body">
+                    @php
+                        $specialGroupOptions = ['N/A', '4Ps', 'OSY', 'IP', 'PWD', 'SP'];
+                        $cmflOptions = ['N/A', '10,000 below', '10,001 to 20,000', '20,001 to 30,000', '30,001 to 50,000', '50,001 and above'];
+                    @endphp
                     @if(count($rows) > 0)
                         @foreach($rows as $i => $row)
                         <tr data-row="{{ $i + 1 }}">
@@ -227,16 +231,24 @@
                                 </select>
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
-                                       name="rows[{{ $i }}][special_group]"
-                                       value="{{ $row->special_group ?? '' }}"
-                                       placeholder="N/A" autocomplete="off" @disabled($isLocked)>
+                                <select class="form-select form-select-sm border-0"
+                                        name="rows[{{ $i }}][special_group]" @disabled($isLocked)>
+                                    @foreach($specialGroupOptions as $opt)
+                                        <option value="{{ $opt }}" @selected(($row->special_group ?? 'N/A') === $opt || (!($row->special_group ?? '') && $opt === 'N/A'))>
+                                            {{ $opt }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
-                                       name="rows[{{ $i }}][cmfl]"
-                                       value="{{ $row->cmfl ?? '' }}"
-                                       placeholder="N/A" autocomplete="off" @disabled($isLocked)>
+                                <select class="form-select form-select-sm border-0"
+                                        name="rows[{{ $i }}][cmfl]" @disabled($isLocked)>
+                                    @foreach($cmflOptions as $opt)
+                                        <option value="{{ $opt }}" @selected(($row->cmfl ?? 'N/A') === $opt || (!($row->cmfl ?? '') && $opt === 'N/A'))>
+                                            {{ $opt }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </td>
                             <td>
                                 <input type="number" step="0.01" min="75" max="100"
@@ -289,14 +301,20 @@
                                 </select>
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
-                                       name="rows[{{ $idx }}][special_group]"
-                                       placeholder="N/A" autocomplete="off">
+                                <select class="form-select form-select-sm border-0"
+                                        name="rows[{{ $idx }}][special_group]">
+                                    @foreach($specialGroupOptions as $opt)
+                                        <option value="{{ $opt }}" @selected($opt === 'N/A')>{{ $opt }}</option>
+                                    @endforeach
+                                </select>
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
-                                       name="rows[{{ $idx }}][cmfl]"
-                                       placeholder="N/A" autocomplete="off">
+                                <select class="form-select form-select-sm border-0"
+                                        name="rows[{{ $idx }}][cmfl]">
+                                    @foreach($cmflOptions as $opt)
+                                        <option value="{{ $opt }}" @selected($opt === 'N/A')>{{ $opt }}</option>
+                                    @endforeach
+                                </select>
                             </td>
                             <td>
                                 <input type="number" step="0.01" min="75" max="100"

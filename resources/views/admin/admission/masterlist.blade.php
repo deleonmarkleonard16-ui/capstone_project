@@ -352,13 +352,19 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm fw-semibold">4PS/OSY/IP/PWD/SP</label>
-                            <input name="special_group" value="{{ $applicant->special_group }}"
-                                   class="form-control form-control-sm" placeholder="N/A" @disabled($isLocked)>
+                            <select name="special_group" class="form-select form-select-sm" @disabled($isLocked)>
+                                @foreach(['N/A', '4Ps', 'OSY', 'IP', 'PWD', 'SP'] as $opt)
+                                    <option value="{{ $opt }}" @selected(($applicant->special_group ?? 'N/A') === $opt || (!($applicant->special_group ?? '') && $opt === 'N/A'))>{{ $opt }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm fw-semibold">CMFL</label>
-                            <input name="cmfl" value="{{ $applicant->cmfl }}"
-                                   class="form-control form-control-sm" placeholder="N/A" @disabled($isLocked)>
+                            <select name="cmfl" class="form-select form-select-sm" @disabled($isLocked)>
+                                @foreach(['N/A', '10,000 below', '10,001 to 20,000', '20,001 to 30,000', '30,001 to 50,000', '50,001 and above'] as $opt)
+                                    <option value="{{ $opt }}" @selected(($applicant->cmfl ?? 'N/A') === $opt || (!($applicant->cmfl ?? '') && $opt === 'N/A'))>{{ $opt }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold">GWA</label>

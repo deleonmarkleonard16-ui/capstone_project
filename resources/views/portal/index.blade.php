@@ -3,11 +3,11 @@
 @php
     $selectedService = old('service', request('service', 'testing'));
     $selectedService = array_key_exists($selectedService, \App\Models\ServiceRequest::SERVICES) ? $selectedService : 'testing';
-    $trackingReference = session('tracking_reference', session('guidance_request_code', old('reference', $recentRequest?->reference)));
+    $trackingReference = session('tracking_reference', session('request_reference', session('guidance_request_code', old('reference', $recentRequest?->reference))));
     $hasActiveQuery = request()->has('service') || request()->has('track') || request()->has('reference');
     $hasSessionData = session('portal_notice') || session('request_reference') || session('tracking_reference') || session('guidance_request_code') || $errors->any();
     $showPanelOnLoad = $hasActiveQuery || $hasSessionData;
-    $initialView = (request()->has('track') || session('tracking_reference') || session('guidance_request_code')) ? 'track' : 'request';
+    $initialView = (request()->has('track') || session('request_reference') || session('tracking_reference') || session('guidance_request_code')) ? 'track' : 'request';
 @endphp
 
 @if(session('portal_notice'))
@@ -138,21 +138,21 @@
                     <button type="button" id="review-button">SUBMIT</button>
                 </div>
             </div>
-        </form>
 
-        {{-- Confirmation Modal Dialog --}}
-        <dialog id="review-panel" class="review-dialog" aria-labelledby="review-title" aria-describedby="review-description">
-            <div class="review-heading">
-                <h2 id="review-title">Confirm Guidance Testing Request</h2>
-                <button type="button" id="close-review" class="review-close" aria-label="Close confirmation">&times;</button>
-            </div>
-            <p id="review-description" class="muted">Please review the information below before submitting.</p>
-            <dl id="review-details" class="review-grid"></dl>
-            <div class="review-actions">
-                <button type="button" id="edit-request" class="secondary">EDIT INPUTS</button>
-                <button type="submit" id="confirm-submit">SUBMIT</button>
-            </div>
-        </dialog>
+            {{-- Confirmation Modal Dialog (Inside Form) --}}
+            <dialog id="review-panel" class="review-dialog" aria-labelledby="review-title" aria-describedby="review-description">
+                <div class="review-heading">
+                    <h2 id="review-title">Confirm Guidance Testing Request</h2>
+                    <button type="button" id="close-review" class="review-close" aria-label="Close confirmation">&times;</button>
+                </div>
+                <p id="review-description" class="muted">Please review the information below before submitting.</p>
+                <dl id="review-details" class="review-grid"></dl>
+                <div class="review-actions">
+                    <button type="button" id="edit-request" class="secondary">EDIT INPUTS</button>
+                    <button type="button" id="confirm-submit">SUBMIT</button>
+                </div>
+            </dialog>
+        </form>
     </div>
 
     {{-- ── TAB VIEW 2: TRACK EXISTING REQUEST ── --}}
@@ -407,11 +407,11 @@ function enableSubmit() {
     }
 }
 
-if (confirmSubmitBtn) {
-    confirmSubmitBtn.addEventListener('click', () => {
-        if (review && review.open) {
-            setTimeout(disableSubmit, 0);
-        }
+if (confirmSubmitBtn && form) {
+    confirmSubmitBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        disableSubmit();
+        form.submit();
     });
 }
 
@@ -505,9 +505,11 @@ uppercaseFields.forEach(id => {
     });
 })();
 
-// ── Hash navigation support (e.g. #track or #request) ──────
+// ── Hash navigation support & Automatic post-submission tracking ──────
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.location.hash === '#track') {
+    const isTrackTarget = window.location.hash === '#track' || @json((bool) (session('request_reference') || session('tracking_reference') || session('guidance_request_code')));
+    
+    if (isTrackTarget) {
         if (servicePanel) servicePanel.style.display = '';
         switchPortalView('track');
         servicePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });

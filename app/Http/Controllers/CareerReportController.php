@@ -49,13 +49,31 @@ class CareerReportController extends Controller
         ))->render();
 
         if ($request->query('format') === 'pdf') {
-            $pdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
-            $pdf->loadHtml($html);
-            $pdf->setPaper('A4', 'portrait');
-            $pdf->render();
-            return response($pdf->output())
-                ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="career-assessment-evaluation.pdf"');
+            try {
+                $dompdfOptions = new \Dompdf\Options();
+                $dompdfOptions->set('isRemoteEnabled', false);
+                $dompdfOptions->set('isHtml5ParserEnabled', true);
+                $pdf = new \Dompdf\Dompdf($dompdfOptions);
+                $pdf->loadHtml($html);
+                $pdf->setPaper('A4', 'portrait');
+                $pdf->render();
+
+                $studentName = \Illuminate\Support\Str::slug(
+                    $appointment->applicant->full_name ?? 'applicant'
+                );
+                $filename = "career-report-{$studentName}-" . now()->format('Y-m-d') . '.pdf';
+
+                return response($pdf->output())
+                    ->header('Content-Type', 'application/pdf')
+                    ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Career Report PDF Export Error', [
+                    'appointment_id' => $appointment->getKey(),
+                    'message'        => $e->getMessage(),
+                ]);
+                return redirect()->back()
+                    ->with('error', 'Career report PDF generation failed: ' . $e->getMessage());
+            }
         }
 
         return response($html)->header('Cache-Control', 'no-store, private');

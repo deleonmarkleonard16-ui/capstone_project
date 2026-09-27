@@ -143,6 +143,8 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::get('/psychological/{serviceRequest}/receipt', [PsychologicalRequestController::class, 'proof'])->name('psychological.proof');
 
     Route::get('/guidance-testing', [\App\Http\Controllers\AdminGuidanceController::class, 'index'])->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('guidance.index');
+    Route::get('/guidance/report', [\App\Http\Controllers\AdminGuidanceController::class, 'report'])->name('guidance.report');
+    Route::get('/documents/report', [\App\Http\Controllers\DocumentRequestController::class, 'report'])->name('documents.report');
     Route::get('/guidance-testing/submissions/{submission}', [GuidanceAssessmentController::class, 'staffReview'])->name('guidance.submission.show');
     Route::patch('/guidance-testing/submissions/{submission}/notes', [GuidanceAssessmentController::class, 'staffNotes'])->name('guidance.submission.notes');
     foreach (['good-moral', 'exit-form'] as $documentModule) {

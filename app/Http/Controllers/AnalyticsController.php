@@ -167,17 +167,27 @@ class AnalyticsController extends Controller
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', false);
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
+        $options->set('defaultFont', 'DejaVu Sans');
 
         $filename = 'PSU_San_Carlos_Institutional_Analytics_' . now()->format('Y_m_d') . '.pdf';
 
-        return response($dompdf->output())
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+        try {
+            $dompdf = new Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            return response($dompdf->output())
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Analytics PDF Export Error', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+            return redirect()->back()
+                ->with('error', 'Analytics PDF export failed: ' . $e->getMessage());
+        }
     }
 
     /**

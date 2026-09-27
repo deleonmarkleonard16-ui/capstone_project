@@ -36,26 +36,49 @@ class AdminGuidanceController extends Controller
         $filters = $queue->filters($request);
         $format = $request->validate(['format' => ['required', Rule::in(['csv', 'pdf'])]])['format'];
         $query = $queue->query($filters, true)->with(['applicant', 'serviceRequest'])->orderBy('guidance_appointment_id');
+
         if ($format === 'pdf') {
             abort_if((clone $query)->count() > 500, 422, 'PDF exports support up to 500 requests. Narrow your filters or export CSV.');
-            $pdf = app(\App\Services\GuidanceArchivePdfService::class)->render($query->get());
-            return response($pdf, 200, ['Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="guidance-archive-'.now()->format('Y-m-d').'.pdf"']);
+
+            try {
+                $pdf = app(\App\Services\GuidanceArchivePdfService::class)->render($query->get());
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Guidance Archive PDF Export Error', [
+                    'message' => $e->getMessage(),
+                    'trace'   => $e->getTraceAsString(),
+                ]);
+                return redirect()->back()
+                    ->with('error', 'PDF export failed: ' . $e->getMessage());
+            }
+
+            return response($pdf, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="guidance-archive-' . now()->format('Y-m-d') . '.pdf"',
+            ]);
         }
+
         return response()->streamDownload(function () use ($query) {
             $file = fopen('php://output', 'w');
             fwrite($file, "\xEF\xBB\xBF");
             fputcsv($file, ['Reference', 'Name', 'Student ID', 'Tests', 'Status', 'Appointment (Asia/Manila)', 'Archived (Asia/Manila)']);
             foreach ($query->lazy(200) as $entry) {
-                $row = [$entry->serviceRequest?->reference ?? $entry->request_code, $entry->applicant->full_name,
-                    $entry->serviceRequest?->student_number ?? '', $entry->testLabel(), $entry->status,
+                $row = [
+                    $entry->serviceRequest?->reference ?? $entry->request_code ?? '-',
+                    $entry->applicant->full_name ?? 'N/A',
+                    $entry->serviceRequest?->student_number ?? '',
+                    $entry->testLabel() ?? '-',
+                    $entry->status ?? '-',
                     $entry->appointment_at?->timezone('Asia/Manila')->format('Y-m-d H:i:s') ?? '',
-                    $entry->archived_at?->timezone('Asia/Manila')->format('Y-m-d H:i:s') ?? ''];
-                // Prevent spreadsheet formulas in exported user-supplied cells.
-                fputcsv($file, array_map(fn ($cell) => preg_match('/^[\s]*[=+@\-]/u', $cell) ? "'".$cell : $cell, $row));
+                    $entry->archived_at?->timezone('Asia/Manila')->format('Y-m-d H:i:s') ?? '',
+                ];
+                // Prevent spreadsheet formula injection in exported user-supplied cells.
+                fputcsv($file, array_map(
+                    fn ($cell) => preg_match('/^[\s]*[=+@\-]/u', (string) $cell) ? "'" . $cell : $cell,
+                    $row
+                ));
             }
             fclose($file);
-        }, 'guidance-archive-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'guidance-archive-' . now()->format('Y-m-d') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function verify(Request $request, GuidanceAppointment $appointment, GuidanceTestScoringService $scoring)
@@ -174,4 +197,114 @@ class AdminGuidanceController extends Controller
         return view('guidance.results', compact('appointment'));
     }
 
+
+    public function report(Request $request, GuidanceQueueService $queue)
+    {
+        $batchId = $request->query('batch_id');
+        $module  = $request->query('module') ?? $request->query('category');
+        $format  = $request->query('format', 'html');
+
+        $query = GuidanceAppointment::with(['applicant', 'serviceRequest', 'response', 'batch']);
+
+        if ($batchId) {
+            $batch = \App\Models\GuidanceTestBatch::find($batchId);
+            if (!$batch) {
+                return redirect()->back()->with('error', 'The requested test batch was not found.');
+            }
+            $query->where(function ($q) use ($batchId) {
+                $q->where('batch_id', $batchId)->orWhere('source_batch_id', $batchId);
+            });
+        }
+
+        if ($module) {
+            $label = \App\Services\GuidanceCategories::LABELS[$module] ?? $module;
+            $query->where(function ($q) use ($module, $label) {
+                $q->where('test_category', $module)
+                  ->orWhere('test_type', $module)
+                  ->orWhere('test_type', $label);
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->query('status'));
+        }
+
+        if ($request->filled('course')) {
+            $query->whereHas('applicant', fn ($q) => $q->where('course', $request->query('course')));
+        }
+
+        $records = $query->orderBy('guidance_appointment_id')->get();
+
+        if (in_array($format, ['docx', 'pdf'], true) && $records->isEmpty()) {
+            return redirect()->back()->with('error', 'Cannot export report: No active guidance test records found for the selected filters.');
+        }
+
+        if ($format === 'docx') {
+            try {
+                if (!extension_loaded('zip') && !class_exists(\ZipArchive::class)) {
+                    throw new \RuntimeException('PHP ZipArchive extension is not enabled on this server.');
+                }
+                $phpWord = new \PhpOffice\PhpWord\PhpWord();
+                $phpWord->setDefaultFontName('Arial');
+                $phpWord->setDefaultFontSize(10);
+                $section = $phpWord->addSection([
+                    'orientation' => 'landscape',
+                    'marginTop' => 720, 'marginBottom' => 720, 'marginLeft' => 720, 'marginRight' => 720
+                ]);
+                $section->addText('PANGASINAN STATE UNIVERSITY – SAN CARLOS CAMPUS', ['bold' => true, 'size' => 11, 'color' => '0D1B3E'], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                $section->addText('Guidance and Counseling Services Office — Guidance Testing Summary', ['bold' => true, 'size' => 12], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                $section->addText('Generated: ' . now()->timezone('Asia/Manila')->format('F j, Y g:i A'), ['size' => 9, 'italic' => true], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                $section->addTextBreak(1);
+
+                $table = $section->addTable(['borderSize' => 6, 'borderColor' => 'CCCCCC', 'cellMargin' => 50, 'alignment' => \PhpOffice\PhpWord\SimpleType\JcTable::CENTER]);
+                $table->addRow(300, ['tblHeader' => true, 'cantSplit' => true]);
+                foreach (['#', 'Reference', 'Student Name', 'Student ID', 'Course', 'Assessment', 'Status', 'Date'] as $h) {
+                    $table->addCell(1300, ['bgColor' => '0D1B3E', 'valign' => 'center'])->addText($h, ['bold' => true, 'color' => 'FFFFFF', 'size' => 9], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                }
+                $i = 1;
+                foreach ($records as $entry) {
+                    $table->addRow(260, ['cantSplit' => true]);
+                    $table->addCell(500)->addText((string)$i++, ['size' => 8.5], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                    $table->addCell(1400)->addText((string)($entry->serviceRequest?->reference ?? $entry->request_code ?? '-'), ['size' => 8.5], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                    $table->addCell(2200)->addText((string)($entry->applicant?->full_name ?? 'N/A'), ['size' => 8.5, 'bold' => true]);
+                    $table->addCell(1200)->addText((string)($entry->serviceRequest?->student_number ?? $entry->applicant?->student_id ?? '-'), ['size' => 8.5], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                    $table->addCell(1100)->addText((string)($entry->applicant?->course ?? $entry->serviceRequest?->course ?? 'N/A'), ['size' => 8.5], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                    $table->addCell(1600)->addText((string)($entry->testLabel() ?? '-'), ['size' => 8.5], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                    $table->addCell(1200)->addText((string)($entry->status ?? 'Unassigned'), ['size' => 8.5, 'bold' => true], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                    $table->addCell(1400)->addText((string)($entry->appointment_at?->timezone('Asia/Manila')->format('Y-m-d') ?? $entry->created_at?->timezone('Asia/Manila')->format('Y-m-d') ?? '-'), ['size' => 8.5], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+                }
+
+                $tempFile = tempnam(sys_get_temp_dir(), 'guidance_docx_');
+                try {
+                    $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+                    $writer->save($tempFile);
+                    $bytes = file_get_contents($tempFile);
+                    return response($bytes, 200, [
+                        'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'Content-Disposition' => 'attachment; filename="guidance-test-report-' . now()->format('Y-m-d') . '.docx"',
+                    ]);
+                } finally {
+                    if ($tempFile && file_exists($tempFile)) @unlink($tempFile);
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Guidance DOCX Export Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                return redirect()->back()->with('error', 'DOCX generation failed: ' . $e->getMessage());
+            }
+        }
+
+        if ($format === 'pdf') {
+            try {
+                $pdf = app(\App\Services\GuidanceArchivePdfService::class)->render($records);
+                return response($pdf, 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'attachment; filename="guidance-test-report-' . now()->format('Y-m-d') . '.pdf"',
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Guidance PDF Export Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+                return redirect()->back()->with('error', 'PDF generation failed: ' . $e->getMessage());
+            }
+        }
+
+        return view('guidance.archive-print', ['appointments' => $records]);
+    }
 }

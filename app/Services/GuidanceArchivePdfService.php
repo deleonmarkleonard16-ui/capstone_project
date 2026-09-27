@@ -16,14 +16,24 @@ class GuidanceArchivePdfService
         $options->set('isRemoteEnabled', false);
         $options->set('isPhpEnabled', false);
         $options->set('isJavascriptEnabled', false);
+        $options->set('isHtml5ParserEnabled', true);
         $options->set('chroot', resource_path('views/guidance'));
         $options->set('fontCache', $cache);
         $options->set('tempDir', $cache);
         $options->set('defaultFont', 'DejaVu Sans');
+
+        $html = view('guidance.archive-print', compact('appointments'))->render();
+
         $pdf = new Dompdf($options);
-        $pdf->loadHtml(view('guidance.archive-print', compact('appointments'))->render(), 'UTF-8');
+        $pdf->loadHtml($html, 'UTF-8');
         $pdf->setPaper('A4', 'landscape');
         $pdf->render();
-        return $pdf->output();
+
+        $output = $pdf->output();
+        if (!$output || strlen($output) === 0) {
+            throw new \RuntimeException('Dompdf returned an empty document. Check the HTML template and font cache directory.');
+        }
+
+        return $output;
     }
 }

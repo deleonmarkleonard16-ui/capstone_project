@@ -180,23 +180,28 @@
             <tbody>
                 @php $rowRank = 1; @endphp
                 @foreach ($applicants->sortByDesc('total_score') as $row)
+                @php
+                    $fullName = $row->full_name ?? trim(($row->last_name ? mb_strtoupper($row->last_name) : '') . ($row->first_name ? ', ' . $row->first_name : '') . (!empty($row->middle_name) ? ' ' . mb_substr($row->middle_name, 0, 1) . '.' : ''));
+                    if (empty($fullName)) { $fullName = 'N/A'; }
+                    $status = $row->qualification_status ?? $row->status ?? 'Pending';
+                @endphp
                 <tr>
                     <td class="rank">{{ $rowRank++ }}</td>
-                    <td class="appno">{{ $row->application_number }}</td>
-                    <td class="name">{{ mb_strtoupper($row->last_name) }}, {{ $row->first_name }}{{ $row->middle_name ? ' ' . mb_substr($row->middle_name, 0, 1) . '.' : '' }}</td>
+                    <td class="appno">{{ $row->application_number ?? '-' }}</td>
+                    <td class="name">{{ $fullName }}</td>
                     <td>{{ $row->sex ?? '—' }}</td>
                     <td style="text-align:center;">{{ $row->gwa ?? '—' }}</td>
                     <td style="text-align:center;">{{ $row->exam_score ?? '—' }}</td>
                     <td style="text-align:center;">{{ $row->stanine_score ?? '—' }}</td>
                     <td style="text-align:center;">{{ $row->interview_score ?? '—' }}</td>
-                    <td style="text-align:center;font-weight:700;">{{ $row->total_score !== null ? number_format($row->total_score, 2) : '—' }}</td>
+                    <td style="text-align:center;font-weight:700;">{{ ($row->total_score !== null && $row->total_score !== '') ? number_format((float)$row->total_score, 2) : '—' }}</td>
                     <td>
-                        @if ($row->qualification_status === 'Qualified')
+                        @if ($status === 'Qualified')
                             <span class="badge-q">✓ Qualified</span>
-                        @elseif ($row->qualification_status === 'Not Qualified')
+                        @elseif ($status === 'Not Qualified')
                             <span class="badge-nq">✗ Not Qualified</span>
                         @else
-                            <span class="badge-p">Pending</span>
+                            <span class="badge-p">{{ $status ?: 'Pending' }}</span>
                         @endif
                     </td>
                 </tr>

@@ -27,7 +27,7 @@ class RoleRoutingTest extends TestCase
                     'role_id' => Role::where('slug', $otherRole)->value('id'),
                     'user_role' => $otherRole,
                 ])
-                ->assertRedirect(route($role.'.analytics'))
+                ->assertRedirect(route($role.'.dashboard'))
                 ->assertSessionHas('user_role', $role);
             $this->assertAuthenticatedAs($user);
             $this->post(route('logout'))->assertRedirect(route('login'))
@@ -95,14 +95,14 @@ class RoleRoutingTest extends TestCase
         $this->post(route('login.store'), [
             'email' => 'admin@psu-scc.test',
             'password' => 'password',
-        ])->assertRedirect(route('admin.analytics'));
+        ])->assertRedirect(route('admin.dashboard'));
 
         $this->post(route('logout'));
 
         $this->post(route('login.store'), [
             'email' => 'staff@psu-scc.test',
             'password' => 'password',
-        ])->assertRedirect(route('staff.analytics'));
+        ])->assertRedirect(route('staff.dashboard'));
     }
 
     public function test_login_page_renders_password_toggle(): void

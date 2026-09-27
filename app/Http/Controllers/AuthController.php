@@ -43,7 +43,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->put('user_role', $role);
 
-        return redirect()->route($role.'.analytics');
+        return redirect()->route($role.'.dashboard');
     }
 
     public function destroy(): RedirectResponse

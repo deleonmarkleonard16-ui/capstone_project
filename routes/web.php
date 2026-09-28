@@ -107,6 +107,15 @@ Route::post('/answer-sheet/save-progress', [AnswerSheetController::class, 'saveP
 Route::post('/answer-sheet', [AnswerSheetController::class, 'submit'])->name('answers.submit');
 Route::get('/answer-sheet/completed', [AnswerSheetController::class, 'complete'])->name('answers.complete');
 
+Route::prefix('admission/checkin')->name('admission.checkin.')->group(function () {
+    Route::get('/{session_token}', [\App\Http\Controllers\AdmissionCheckinController::class, 'show'])->name('show');
+    Route::post('/{session_token}', [\App\Http\Controllers\AdmissionCheckinController::class, 'verify'])->name('verify');
+    Route::post('/{session_token}/verify', [\App\Http\Controllers\AdmissionCheckinController::class, 'verify']);
+});
+Route::get('/admission/check-in/{session_token}', [\App\Http\Controllers\AdmissionCheckinController::class, 'show']);
+Route::post('/admission/check-in/{session_token}', [\App\Http\Controllers\AdmissionCheckinController::class, 'verify']);
+Route::post('/admission/check-in/{session_token}/verify', [\App\Http\Controllers\AdmissionCheckinController::class, 'verify']);
+
 Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->prefix('admission/take/{token}')->name('admission.')->group(function () {
     $exam = \App\Http\Controllers\AdmissionExamController::class;
     Route::get('/', [$exam, 'take'])->name('take');

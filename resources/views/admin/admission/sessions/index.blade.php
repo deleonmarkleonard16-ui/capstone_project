@@ -213,6 +213,14 @@
                                         <i class="bi bi-people"></i> Roster
                                     </a>
 
+                                    <button type="button"
+                                            class="btn btn-outline-dark btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#sessionQrModal{{ $session->id }}"
+                                            title="Session Venue Check-In QR Code">
+                                        <i class="bi bi-qr-code"></i> Session QR
+                                    </button>
+
                                     @unless($cycle->isCompleted())
                                         <button type="button"
                                                 class="btn btn-outline-secondary btn-sm"
@@ -261,6 +269,91 @@
 
 @foreach($sessions as $session)
     @include('admin.admission.sessions.edit_session_modal', ['session' => $session])
+    @include('admin.admission.sessions.qr_modal', ['session' => $session])
 @endforeach
 
+<script>
+    function updateProjectorClocks() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.querySelectorAll('.live-projector-clock').forEach(el => {
+            el.textContent = timeStr;
+        });
+    }
+    setInterval(updateProjectorClocks, 1000);
+    updateProjectorClocks();
+
+    function launchProjectorMode(sessionId) {
+        const modalEl = document.getElementById('sessionQrModal' + sessionId);
+        if (modalEl) {
+            const bsModal = bootstrap.Modal.getInstance(modalEl);
+            if (bsModal) bsModal.hide();
+        }
+
+        const projectorEl = document.getElementById('projectorScreen' + sessionId);
+        if (projectorEl) {
+            projectorEl.classList.remove('d-none');
+            if (projectorEl.requestFullscreen) {
+                projectorEl.requestFullscreen().catch(() => {});
+            } else if (projectorEl.webkitRequestFullscreen) {
+                projectorEl.webkitRequestFullscreen();
+            }
+        }
+    }
+
+    function exitProjectorMode(sessionId) {
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+        const projectorEl = document.getElementById('projectorScreen' + sessionId);
+        if (projectorEl) {
+            projectorEl.classList.add('d-none');
+        }
+    }
+
+    document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement) {
+            document.querySelectorAll('.projector-overlay').forEach(el => {
+                el.classList.add('d-none');
+            });
+        }
+    });
+
+    function printSessionQr(sessionId) {
+        const modal = document.getElementById('sessionQrModal' + sessionId);
+        if (!modal) return;
+        const img = modal.querySelector('img');
+        if (!img) return;
+
+        const printWindow = window.open('', '_blank', 'width=700,height=750');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print Admission Session QR Code</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 40px; color: #111; }
+                        h2 { margin-bottom: 4px; color: #0f3f97; }
+                        p { margin: 4px 0; color: #555; }
+                        .qr-box { margin: 24px auto; padding: 16px; border: 2px solid #ccc; display: inline-block; }
+                        .url { font-family: monospace; font-size: 13px; color: #222; margin-top: 12px; }
+                    </style>
+                </head>
+                <body onload="window.print(); window.close();">
+                    <h2>Pangasinan State University - San Carlos Campus</h2>
+                    <p><strong>PSU-CAT Venue Check-In QR Code</strong></p>
+                    <div class="qr-box">
+                        <img src="${img.src}" style="width: 280px; height: 280px;" alt="QR Code" />
+                        <div class="url">${modal.querySelector('input[readonly]')?.value || ''}</div>
+                    </div>
+                    <p>Examinees scan this QR code with their mobile phone to verify attendance and begin their exam.</p>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+</script>
 @endsection

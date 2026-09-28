@@ -69,6 +69,19 @@ class AdmissionSession extends Model
         return $this->status === self::STATUS_COMPLETED || $this->allApplicantsSubmitted();
     }
 
+    public function getQrTokenAttribute($value): string
+    {
+        if (empty($value)) {
+            $token = \Illuminate\Support\Str::random(64);
+            $this->attributes['qr_token'] = $token;
+            if ($this->exists) {
+                $this->saveQuietly();
+            }
+            return $token;
+        }
+        return $value;
+    }
+
     public function isOpen(): bool
     {
         if ($this->status === self::STATUS_COMPLETED) {
@@ -77,6 +90,10 @@ class AdmissionSession extends Model
 
         if ($this->allApplicantsSubmitted()) {
             return false;
+        }
+
+        if ($this->status === self::STATUS_IN_PROGRESS) {
+            return true;
         }
 
         if (!$this->start_time) {

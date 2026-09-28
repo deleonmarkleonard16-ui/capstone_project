@@ -20,9 +20,9 @@
                     </div>
                 </div>
 
-                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
+                <div class="vertical-session-grid" data-total-items="{{ count($questionNumbers) }}" style="--vertical-grid-rows: {{ (int) ceil(count($questionNumbers) / 6) }}">
                     @foreach ($questionNumbers as $number)
-                        <div class="col">
+                        <div>
                             <div class="question-block">
                                 <div class="fw-semibold mb-3">Question {{ $number }}</div>
                                 @foreach (['A', 'B', 'C', 'D'] as $choice)
@@ -43,3 +43,18 @@
         </div>
     </div>
 @endsection
+
+@push('styles')
+<style>
+    .vertical-session-grid { display:grid; grid-auto-flow:column; grid-template-rows:repeat(var(--vertical-grid-rows), minmax(0, 1fr)); grid-auto-columns:minmax(0, 1fr); gap:1rem; overflow:auto; }
+    @media (max-width: 767.98px) { .vertical-session-grid { grid-auto-columns:minmax(240px, 1fr); } }
+</style>
+@endpush
+@push('scripts')
+<script>
+document.querySelectorAll('.vertical-session-grid').forEach((grid) => {
+    const sync = () => { const columns = innerWidth < 576 ? 1 : innerWidth < 768 ? 2 : innerWidth < 1024 ? 4 : 6; grid.style.setProperty('--vertical-grid-rows', Math.ceil(Number(grid.dataset.totalItems) / columns)); };
+    sync(); window.addEventListener('resize', sync);
+});
+</script>
+@endpush

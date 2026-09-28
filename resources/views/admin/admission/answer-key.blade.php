@@ -37,9 +37,9 @@
             <form method="post" action="{{ route('admin.admission.answer-key.save') }}" id="answerKeyForm">
                 @csrf
                 <input type="hidden" name="total_items" id="hidden_total_items" value="{{ $configuredItems }}">
-                <div class="row g-1" id="answerKeyGrid" style="max-height:620px;overflow-y:auto">
+                <div class="vertical-answer-grid" id="answerKeyGrid" data-total-items="{{ $configuredItems }}" style="--vertical-grid-rows: {{ (int) ceil($configuredItems / 6) }}">
                     @for ($i = 1; $i <= $configuredItems; $i++)
-                        <div class="col-6 col-md-3 col-xl-2">
+                        <div class="vertical-answer-grid__item">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text" style="min-width:36px">{{ $i }}</span>
                                 <select name="answers[{{ $i }}]" class="form-select form-select-sm" required>
@@ -71,6 +71,24 @@
 @endif
 @endsection
 
+@push('styles')
+<style>
+    /* Grid places 1–14 top-to-bottom, then starts the next column. */
+    .vertical-answer-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-template-rows: repeat(var(--vertical-grid-rows), minmax(0, 1fr));
+        grid-auto-columns: minmax(0, 1fr);
+        gap: .75rem;
+        max-height: 620px;
+        overflow: auto;
+    }
+    @media (max-width: 767.98px) {
+        .vertical-answer-grid { grid-auto-columns: minmax(245px, 1fr); }
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 (() => {
@@ -83,7 +101,7 @@
     const label = document.getElementById('item-count-label');
     const buildItem = (item, answer = '') => {
         const col = document.createElement('div');
-        col.className = 'col-6 col-md-3 col-xl-2';
+        col.className = 'vertical-answer-grid__item';
         col.innerHTML = `<div class="input-group input-group-sm"><span class="input-group-text" style="min-width:36px">${item}</span><select name="answers[${item}]" class="form-select form-select-sm" required><option value="">–</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>`;
         col.querySelector('select').value = answer;
         return col;
@@ -96,10 +114,20 @@
 
         const answers = [...grid.querySelectorAll('select')].map(select => select.value);
         grid.replaceChildren(...Array.from({ length: count }, (_, index) => buildItem(index + 1, answers[index] || '')));
+        grid.dataset.totalItems = count;
+        setGridRows();
         hiddenInput.value = count;
         badge.textContent = `${count} Items`;
         label.textContent = count;
     });
+
+    const setGridRows = () => {
+        const total = Number(grid.dataset.totalItems || grid.querySelectorAll('.vertical-answer-grid__item').length);
+        const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
+        grid.style.setProperty('--vertical-grid-rows', Math.ceil(total / columns));
+    };
+    setGridRows();
+    window.addEventListener('resize', setGridRows);
 })();
 </script>
 @endpush

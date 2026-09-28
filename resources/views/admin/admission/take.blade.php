@@ -46,9 +46,10 @@
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
 
         /* Answer grid: 4 vertical balanced columns (auto-split) */
-        .exam-columns-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        @media (max-width: 992px) { .exam-columns-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 576px) { .exam-columns-grid { grid-template-columns: 1fr; } }
+        .exam-columns-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; overflow-x: auto; }
+        @media (max-width: 1023.98px) { .exam-columns-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        @media (max-width: 767.98px) { .exam-columns-grid { grid-template-columns: repeat(2, minmax(245px, 1fr)); } }
+        @media (max-width: 575.98px) { .exam-columns-grid { grid-template-columns: minmax(245px, 1fr); } }
         .exam-column { display: flex; flex-direction: column; gap: 8px; }
         .question-card { background: #111e45; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1.5px solid transparent; transition: border-color 0.2s; }
         .question-card:hover { border-color: #2a4580; }
@@ -141,7 +142,7 @@
     <form id="exam-form">
         @csrf
         @php
-            $cols = 4;
+            $cols = 6;
             $rows = (int) ceil($totalItems / $cols);
         @endphp
         <div class="exam-columns-grid">

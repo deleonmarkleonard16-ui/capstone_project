@@ -64,13 +64,16 @@ body { user-select:none; -webkit-user-select:none; }
 /* ── Question Module Cards (Matching Screenshot) ── */
 .questions-two-col-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-template-rows: repeat(var(--vertical-grid-rows), minmax(0, 1fr));
+    grid-auto-columns: minmax(0, 1fr);
     gap: 14px 16px;
     margin-bottom: 24px;
+    overflow: auto;
 }
 @media (max-width: 767.98px) {
     .questions-two-col-grid {
-        grid-template-columns: 1fr;
+        grid-auto-columns: minmax(260px, 1fr);
         gap: 12px;
     }
 }
@@ -276,7 +279,7 @@ body { user-select:none; -webkit-user-select:none; }
                 <div class="assessment-step" data-step="{{ $stepNum }}" data-test="{{ $test }}" @if($stepNum !== 1) hidden @endif>
                     @if(in_array($test, ['dass21', 'phq9', 'gad7', 'bfpi'], true))
                         {{-- ── 2-COLUMN QUESTION CARDS GRID (MATCHING SCREENSHOTS) ── --}}
-                        <div class="questions-two-col-grid">
+                        <div class="questions-two-col-grid" data-total-items="{{ count($section['items']) }}" style="--vertical-grid-rows: {{ (int) ceil(count($section['items']) / 6) }}">
                             @foreach($section['items'] as $item)
                                 @php
                                     $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
@@ -384,5 +387,16 @@ body { user-select:none; -webkit-user-select:none; }
 @endsection
 
 @push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.questions-two-col-grid').forEach((grid) => {
+        const sync = () => {
+            const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
+            grid.style.setProperty('--vertical-grid-rows', Math.ceil(Number(grid.dataset.totalItems) / columns));
+        };
+        sync(); window.addEventListener('resize', sync);
+    });
+});
+</script>
 <script src="{{ asset('js/guidance-assessment.js') }}" defer></script>
 @endpush

@@ -45,13 +45,15 @@
                     
                     {{-- ── VERTICAL MULTI-COLUMN ANSWER GRID ── --}}
                     @php
-                        // Chunk 80 questions into 4 balanced vertical columns of 20 items each
-                        $chunks = array_chunk($questionNumbers, 20);
+                        // Split sequential items down six balanced desktop columns.
+                        $desktopColumns = 6;
+                        $itemsPerColumn = (int) ceil(count($questionNumbers) / $desktopColumns);
+                        $chunks = array_chunk($questionNumbers, $itemsPerColumn);
                     @endphp
 
                     <div class="row g-3 vertical-sheet-container">
                         @foreach ($chunks as $colIndex => $chunk)
-                            <div class="col-12 col-sm-6 col-xl-3">
+                            <div class="col-12 col-sm-6 col-lg-3 col-xl-2">
                                 <div class="vertical-column-card p-2 border rounded-3 bg-light-subtle h-100">
                                     <div class="text-center py-1 mb-2 border-bottom fw-bold small text-secondary bg-white rounded-2">
                                         Items {{ $chunk[0] }} – {{ end($chunk) }}

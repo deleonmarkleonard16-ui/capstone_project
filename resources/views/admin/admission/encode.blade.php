@@ -102,11 +102,11 @@
         <form method="POST" action="{{ route('admin.admission.encode.submit', $applicant) }}" id="encodeForm">
             @csrf
 
-            {{-- Horizontal answer grid: each row = one question, columns = A B C D --}}
-            <div class="row g-0" id="answer-grid">
+            {{-- Items flow down each column before continuing in the next column. --}}
+            <div class="vertical-answer-grid" id="answer-grid" data-total-items="{{ $totalItems }}" style="--vertical-grid-rows: {{ (int) ceil($totalItems / 6) }}">
                 @php $existingAnswers = old('answers', []); @endphp
                 @for ($i = 1; $i <= $totalItems; $i++)
-                <div class="col-12 col-md-6 col-xl-4">
+                <div class="vertical-answer-grid__item">
                     <div class="d-flex align-items-center border-bottom py-2 px-3 answer-row {{ isset($existingAnswers[$i]) && $existingAnswers[$i] ? 'answered' : '' }}"
                          data-item="{{ $i }}">
                         <span class="text-muted fw-semibold me-3 fs-7" style="min-width:60px; font-size:13px;">
@@ -147,9 +147,24 @@
     </div>
 </div>
 
+@push('styles')
+<style>
+    .vertical-answer-grid { display:grid; grid-auto-flow:column; grid-template-rows:repeat(var(--vertical-grid-rows), minmax(0, 1fr)); grid-auto-columns:minmax(0, 1fr); gap:.75rem; overflow:auto; }
+    @media (max-width: 767.98px) { .vertical-answer-grid { grid-auto-columns:minmax(285px, 1fr); } }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 const TOTAL_ITEMS = {{ (int)$totalItems }};
+const answerGrid = document.getElementById('answer-grid');
+function syncAnswerGridRows() {
+    if (!answerGrid) return;
+    const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
+    answerGrid.style.setProperty('--vertical-grid-rows', Math.ceil(TOTAL_ITEMS / columns));
+}
+syncAnswerGridRows();
+window.addEventListener('resize', syncAnswerGridRows);
 
 // ── Live filled counter ──
 function updateCount() {

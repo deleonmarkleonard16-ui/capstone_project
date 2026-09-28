@@ -389,9 +389,12 @@
         /* ── Questions 2-Column Grid (Desktop) ── */
         .questions-two-col-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-auto-flow: column;
+            grid-template-rows: repeat(var(--vertical-grid-rows), minmax(0, 1fr));
+            grid-auto-columns: minmax(0, 1fr);
             gap: 14px 16px;
             margin-bottom: 28px;
+            overflow: auto;
         }
 
         .question-module-card {
@@ -657,7 +660,7 @@
             }
 
             .questions-two-col-grid {
-                grid-template-columns: 1fr;
+                grid-auto-columns: minmax(260px, 1fr);
                 gap: 12px;
             }
 
@@ -928,7 +931,7 @@
             </div>
 
             <!-- Questions in 2-Column Grid (Desktop) - Radio choices only -->
-            <div class="questions-two-col-grid" id="questionsGrid">
+            <div class="questions-two-col-grid" id="questionsGrid" data-total-items="{{ $itemCount }}" style="--vertical-grid-rows: {{ (int) ceil($itemCount / 6) }}">
                 @for($i = 1; $i <= $itemCount; $i++)
                     @php
                         $inputName = "answers[{$currentTest}][{$i}]";
@@ -1000,6 +1003,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('assessmentForm');
+    const questionsGrid = document.getElementById('questionsGrid');
+    const syncVerticalQuestionFlow = () => {
+        if (!questionsGrid) return;
+        const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
+        questionsGrid.style.setProperty('--vertical-grid-rows', Math.ceil(Number(questionsGrid.dataset.totalItems) / columns));
+    };
+    syncVerticalQuestionFlow();
+    window.addEventListener('resize', syncVerticalQuestionFlow);
     const blackoutMask = document.getElementById('security-blackout-mask');
     const warningModalBackdrop = document.getElementById('securityWarningModalBackdrop');
     const modalTitle = document.getElementById('securityModalTitle');

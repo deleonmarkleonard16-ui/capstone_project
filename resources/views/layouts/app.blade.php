@@ -175,6 +175,7 @@
         }
     </style>
     <link href="{{ asset('css/executive-responsive.css') }}" rel="stylesheet">
+    @stack('styles')
 </head>
 <body class="@yield('body_class')">
 @php

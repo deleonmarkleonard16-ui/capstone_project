@@ -240,7 +240,12 @@
                 let response;
                 try {
                     response = await fetch(form.dataset.strikes, {method:'POST', headers, keepalive:true, signal:timeoutController.signal,
-                        body:JSON.stringify({...pendingStrikes[0], token:form.dataset.token})});
+                        body:JSON.stringify({
+                            ...pendingStrikes[0],
+                            token: form.dataset.token,
+                            course_program: form.dataset.courseProgram,
+                            current_test_taking: form.dataset.currentTestTaking
+                        })});
                 } finally { clearTimeout(timeout); }
                 if (response.ok || response.status === 422) { pendingStrikes.shift(); persistStrikes(); }
                 else if (response.status === 410) { pendingStrikes.length = 0; persistStrikes(); complete(); return; }

@@ -41,7 +41,7 @@
                 seen.add(incident.id);
                 const timestamp = new Date(incident.timestamp).toLocaleString();
                 const isTermination = incident.terminated;
-                const message = `${isTermination ? 'Terminated' : `Strike ${incident.strike_count}/3`} · ${incident.student_name} · ID ${incident.student_id} · ${incident.label} · ${timestamp}`;
+                const message = `${isTermination ? 'Terminated' : `Strike ${incident.strike_number}/${incident.threshold}`} - ${incident.student_name} - ID ${incident.student_id} - Course: ${incident.course_program} - Taking: ${incident.current_test_taking} - ${incident.label} - ${timestamp}`;
                 const item = document.createElement('li');
                 item.textContent = message;
                 if (isTermination) item.className = 'text-danger fw-bold';

@@ -18,7 +18,7 @@ class GuidanceSecurityTest extends TestCase
     private function appointment(): GuidanceAppointment
     {
         $applicant = Applicant::create(['application_number' => Str::uuid(), 'first_name' => 'Maria', 'last_name' => 'Santos', 'status' => 'pending']);
-        $appointment = GuidanceAppointment::create(['applicant_id' => $applicant->id, 'request_code' => 'GT-'.bin2hex(random_bytes(16)), 'student_id_number' => '2026-001', 'student_status' => 'student', 'test_type' => 'gad7', 'status' => 'Approved']);
+        $appointment = GuidanceAppointment::create(['applicant_id' => $applicant->id, 'request_code' => 'GT-'.bin2hex(random_bytes(16)), 'student_id_number' => '2026-001', 'student_status' => 'student', 'origin_course' => 'BSIT', 'test_type' => 'gad7', 'status' => 'Approved']);
         $appointment->qrCode()->create(['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
         return $appointment;
     }
@@ -28,7 +28,13 @@ class GuidanceSecurityTest extends TestCase
     }
     private function payload(GuidanceAppointment $appointment, string $type = 'screenshot'): array
     {
-        return ['token' => $appointment->qrCode->token, 'event_id' => (string) Str::uuid(), 'incident_type' => $type];
+        return [
+            'token' => $appointment->qrCode->token,
+            'event_id' => (string) Str::uuid(),
+            'incident_type' => $type,
+            'course_program' => 'BSIT',
+            'current_test_taking' => 'Psychological Assessment',
+        ];
     }
 
     public function test_incidents_require_started_browser_session_and_use_server_identity_and_counts(): void
@@ -47,7 +53,12 @@ class GuidanceSecurityTest extends TestCase
         $this->getJson(route('staff.guidance-appointments.security-incidents'))->assertUnauthorized();
         $this->actingAs($this->staff());
         $feed = $this->getJson(route('staff.guidance-appointments.security-incidents'))->assertOk();
-        $feed->assertJsonPath('incidents.0.student_name', 'SANTOS, MARIA')->assertJsonPath('incidents.0.student_id', '2026-001')->assertJsonPath('incidents.0.strike_count', 2);
+        $feed->assertJsonPath('incidents.0.student_name', 'SANTOS, MARIA')
+            ->assertJsonPath('incidents.0.student_id', '2026-001')
+            ->assertJsonPath('incidents.0.course_program', 'BSIT')
+            ->assertJsonPath('incidents.0.current_test_taking', 'Psychological Assessment')
+            ->assertJsonPath('incidents.0.strike_number', 1)
+            ->assertJsonPath('incidents.0.strike_count', 2);
         $feed->assertJsonMissing(['token' => $token]);
         $appointment->update(['test_category' => 'psychological']);
         $this->getJson(route('staff.guidance-appointments.security-incidents', ['module' => 'psychological']))->assertOk()->assertJsonCount(2, 'incidents');
@@ -141,6 +152,9 @@ class GuidanceSecurityTest extends TestCase
             'guidance_appointment_id' => $appointment->getKey(),
             'incident_type' => 'back_navigation',
             'strike_number' => 1,
+            'student_id' => '2026-001',
+            'course_program' => 'BSIT',
+            'current_test_taking' => 'Psychological Assessment',
         ]);
         $this->assertDatabaseHas('guidance_test_security_logs', [
             'guidance_appointment_id' => $appointment->getKey(),

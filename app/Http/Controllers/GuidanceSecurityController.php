@@ -20,6 +20,8 @@ class GuidanceSecurityController extends Controller
             'appointment_id' => ['nullable'],
             'event_id' => 'required|uuid',
             'incident_type' => ['required', Rule::in(array_keys(GuidanceSecurityIncident::TYPES))],
+            'course_program' => ['nullable', 'string', 'max:100'],
+            'current_test_taking' => ['nullable', 'string', 'max:150'],
         ]);
 
         if (empty($data['token']) && !empty($data['appointment_id'])) {
@@ -43,6 +45,9 @@ class GuidanceSecurityController extends Controller
                 ]);
                 GuidanceTestSecurityLog::create([
                     'guidance_appointment_id' => $appointment->getKey(),
+                    'student_id' => $appointment->student_number ?? 'Not provided',
+                    'course_program' => $data['course_program'] ?? $appointment->origin_course ?? $appointment->serviceRequest?->course ?? 'Not provided',
+                    'current_test_taking' => $data['current_test_taking'] ?? $appointment->categoryLabel(),
                     'incident_type' => $data['incident_type'],
                     'strike_number' => $appointment->strike_count,
                 ]);
@@ -60,26 +65,34 @@ class GuidanceSecurityController extends Controller
     public function feed(Request $request)
     {
         $data = $request->validate(['after' => 'nullable|integer|min:0', 'module' => ['nullable', Rule::in(['psychological', 'personality', 'career'])]]);
-        $query = GuidanceSecurityIncident::with(['appointment.applicant', 'appointment.serviceRequest']);
+        $query = GuidanceSecurityIncident::with(['appointment.applicant', 'appointment.serviceRequest', 'appointment.securityLogs']);
         if (!empty($data['module'])) $query->whereHas('appointment', fn ($appointments) => $appointments->where('test_category', $data['module']));
         if (array_key_exists('after', $data)) $incidents = $query->where('id', '>', $data['after'])->orderBy('id')->limit(100)->get();
         else $incidents = $query->latest('id')->limit(20)->get()->reverse()->values();
         return response()->json([
             'cursor' => $incidents->last()?->id ?? (int) ($data['after'] ?? 0),
-            'incidents' => $incidents->map(fn ($incident) => [
+            'incidents' => $incidents->map(function ($incident) {
+                $securityLog = $incident->appointment?->securityLogs
+                    ?->firstWhere('strike_number', $incident->strike_number);
+
+                return [
                 'id' => $incident->id,
                 'appointment_id' => $incident->guidance_appointment_id,
                 'student_name' => $incident->appointment->applicant->full_name,
                 'student_id' => $incident->appointment->student_id_number ?? $incident->appointment->serviceRequest?->student_number ?? 'Not provided',
+                'course_program' => $securityLog?->course_program ?? $incident->appointment?->origin_course ?? $incident->appointment?->serviceRequest?->course ?? 'Not provided',
+                'current_test_taking' => $securityLog?->current_test_taking ?? $incident->appointment?->categoryLabel() ?? 'Not provided',
                 'timestamp' => $incident->created_at->toIso8601String(),
                 'type' => $incident->incident_type,
                 'label' => GuidanceSecurityIncident::TYPES[$incident->incident_type] ?? 'Admin strike reset',
                 'threshold' => (int) \App\Models\GuidanceSetting::valueOf('strike_threshold', '3'),
+                'strike_number' => $incident->strike_number,
                 'strike_count' => $incident->appointment->strike_count,
                 'status' => $incident->appointment->status,
                 'terminated' => (bool) $incident->appointment->terminated_at,
                 'termination_reason' => $incident->appointment->termination_reason,
-            ]),
+                ];
+            }),
         ]);
     }
 

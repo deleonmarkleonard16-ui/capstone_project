@@ -259,7 +259,7 @@ body { user-select:none; -webkit-user-select:none; }
         @endfor
     </div>
 
-    <form id="assessment-form" action="{{ route('guidance.submit', $token) }}" data-token="{{ $token }}" data-strike-threshold="{{ \App\Models\GuidanceSetting::valueOf('strike_threshold', '3') }}" data-strikes="{{ route('guidance.log-strike') }}" data-complete="{{ route('guidance.complete', $token) }}" data-start="{{ route('guidance.start', $token) }}" data-progress="{{ route('guidance.progress', $token) }}" data-state="{{ route('guidance.state', $token) }}" data-section="{{ $appointment->section_index }}" data-remaining="{{ $remainingSeconds }}" data-started="{{ $appointment->started_at ? 'true' : 'false' }}" novalidate>
+    <form id="assessment-form" action="{{ route('guidance.submit', $token) }}" data-token="{{ $token }}" data-strike-threshold="{{ \App\Models\GuidanceSetting::valueOf('strike_threshold', '3') }}" data-strikes="{{ route('guidance.log-strike') }}" data-complete="{{ route('guidance.complete', $token) }}" data-start="{{ route('guidance.start', $token) }}" data-progress="{{ route('guidance.progress', $token) }}" data-state="{{ route('guidance.state', $token) }}" data-section="{{ $appointment->section_index }}" data-remaining="{{ $remainingSeconds }}" data-started="{{ $appointment->started_at ? 'true' : 'false' }}" data-course-program="{{ $appointment->origin_course ?? $appointment->serviceRequest?->course ?? 'Not provided' }}" data-current-test-taking="{{ $appointment->categoryLabel() }}" novalidate>
         @csrf
         <fieldset id="answer-fields" disabled>
             @foreach($sections as $stepIndex => $section)

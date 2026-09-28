@@ -786,6 +786,7 @@
 
     $cfg = $testConfigs[$currentTest] ?? $testConfigs['dass21'];
     $itemCount = $cfg['count'];
+    $currentTestTaking = $appointment->categoryLabel();
 @endphp
 
 <div id="assessmentContentWrapper">
@@ -1022,6 +1023,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let blackoutTimer = null;
     let lastIncidentTime = 0;
     const appointmentId = form?.dataset.appointmentId || '{{ $appointmentId }}';
+    const courseProgram = @json($course);
+    const currentTestTaking = @json($currentTestTaking);
 
     // ── 1. DYNAMIC SCREENSHOT & SCREEN-RECORD BLACKOUT MASKING ──
     function triggerBlackout(durationMs = 1500) {
@@ -1059,8 +1062,14 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             body: JSON.stringify({
                 appointment_id: appointmentId,
+                event_id: (window.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (char) {
+                    const value = Math.random() * 16 | 0;
+                    return (char === 'x' ? value : (value & 0x3 | 0x8)).toString(16);
+                })),
                 incident_type: incidentType || 'Screenshot / Screen Record Attempt',
-                strike_number: strikeNum
+                strike_number: strikeNum,
+                course_program: courseProgram,
+                current_test_taking: currentTestTaking
             })
         }).catch(function (err) {
             console.warn('Strike log sync error:', err);

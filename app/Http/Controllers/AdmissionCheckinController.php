@@ -14,7 +14,9 @@ use Illuminate\Validation\ValidationException;
  * Handles examinee check-in when scanning /admission/checkin/{session_token}:
  * 1. Displays Attendance Verification form (First Name, Middle Name [Optional], Last Name)
  * 2. Validates credentials against the Session Roster
- * 3. On successful match, redirects to the secure digital lockdown exam page (/admission/take/{token})
+ * 3. On successful match:
+ *    - If session is In-Progress: redirects directly to the secure digital lockdown exam page (/admission/take/{token})
+ *    - If session is Scheduled: redirects to the waiting room which refreshes automatically
  */
 class AdmissionCheckinController extends Controller
 {
@@ -31,11 +33,25 @@ class AdmissionCheckinController extends Controller
         $session = AdmissionSession::with('cycle')->where('qr_token', $session_token)->firstOrFail();
         $isCheckinOpen = $session->isOpen();
 
+        // Check if user already checked in for this session in their current browser session
+        $checkedInApplicantId = session('admission_checkin_applicant_id');
+        $checkedInSessionId   = session('admission_checkin_session_id');
+
+        if ($checkedInApplicantId && $checkedInSessionId === $session->id) {
+            $applicant = AdmissionApplicant::find($checkedInApplicantId);
+            if ($applicant && !$applicant->submitted_at) {
+                if ($session->isInProgress() || $session->status === 'In-Progress') {
+                    return redirect()->route('admission.take', ['token' => $applicant->exam_token]);
+                }
+                return redirect()->route('admission.checkin.waiting', ['session_token' => $session_token]);
+            }
+        }
+
         return view('admission.checkin', compact('session', 'isCheckinOpen'));
     }
 
     /**
-     * Validate examinee credentials against session roster and redirect to digital lockdown exam.
+     * Validate examinee credentials against session roster and redirect to digital lockdown exam or waiting room.
      */
     public function verify(Request $request, string $session_token)
     {
@@ -68,7 +84,6 @@ class AdmissionCheckinController extends Controller
 
         if ($applicants->count() === 1) {
             $candidate = $applicants->first();
-            // If examinee supplied middle name, and candidate record has a non-empty middle name, verify
             if ($middle !== '' && !empty($candidate->middle_name)) {
                 $candMid = $this->normalize($candidate->middle_name);
                 $inpMid  = $this->normalize($middle);
@@ -80,7 +95,6 @@ class AdmissionCheckinController extends Controller
             }
             $applicant = $candidate;
         } elseif ($applicants->count() > 1) {
-            // Multiple examinees share first & last name; disambiguate with middle name
             if ($middle !== '') {
                 $inpMid = $this->normalize($middle);
                 $applicant = $applicants->first(function (AdmissionApplicant $app) use ($inpMid) {
@@ -93,7 +107,7 @@ class AdmissionCheckinController extends Controller
             }
         }
 
-        // If not found in this session roster, check if assigned to a different session in the cycle
+        // If not found in this session roster, check if assigned to another session
         if (!$applicant) {
             $other = AdmissionApplicant::where('admission_cycle_id', $session->admission_cycle_id)
                 ->whereRaw('LOWER(TRIM(last_name)) = ?', [$this->normalize($last)])
@@ -103,12 +117,12 @@ class AdmissionCheckinController extends Controller
             if ($other && $other->admission_session_id && $other->admission_session_id !== $session->id) {
                 $otherSessionName = $other->admissionSession?->session_name ?? 'another session';
                 throw ValidationException::withMessages([
-                    'last_name' => "Examinee '{$first} {$last}' is scheduled under {$otherSessionName}. Please proceed to your designated venue.",
+                    'last_name' => "The details entered match an examinee scheduled under '{$otherSessionName}'. Please proceed to your designated session/venue.",
                 ]);
             }
 
             throw ValidationException::withMessages([
-                'last_name' => 'No examinee matching the entered name was found in this session roster. Please verify your spelling.',
+                'last_name' => 'The details entered do not match any applicant record.',
             ]);
         }
 
@@ -130,7 +144,35 @@ class AdmissionCheckinController extends Controller
             'admission_checkin_session_id'   => $session->id,
         ]);
 
-        // Redirect to the secure digital lockdown answer page
-        return redirect()->route('admission.take', ['token' => $applicant->exam_token]);
+        // If session is already In-Progress, go straight to digital lockdown exam
+        if ($session->isInProgress() || $session->status === 'In-Progress') {
+            return redirect()->route('admission.take', ['token' => $applicant->exam_token]);
+        }
+
+        // If session is Scheduled, show waiting room
+        return redirect()->route('admission.checkin.waiting', ['session_token' => $session_token])
+            ->with('success', 'Attendance verified! Please wait for the admin to start the exam.');
+    }
+
+    /**
+     * Display the Waiting Room while awaiting session start (Image 3).
+     */
+    public function waiting(string $session_token)
+    {
+        $session = AdmissionSession::with('cycle')->where('qr_token', $session_token)->firstOrFail();
+
+        $applicantId = session('admission_checkin_applicant_id');
+        if (!$applicantId) {
+            return redirect()->route('admission.checkin.show', ['session_token' => $session_token]);
+        }
+
+        $applicant = AdmissionApplicant::findOrFail($applicantId);
+
+        // If session is already In-Progress, redirect to lockdown exam
+        if ($session->isInProgress() || $session->status === 'In-Progress') {
+            return redirect()->route('admission.take', ['token' => $applicant->exam_token]);
+        }
+
+        return view('admission.waiting', compact('session', 'applicant'));
     }
 }

@@ -8,8 +8,10 @@
 //   4 corner markers at: TL(20,160), TR(1080,160), BR(1080,620), BL(20,620)
 //   (these are the approximate midpoints of the markers in scan space)
 
-export function projectiveMap(corners) {
-    const source = [[20, 160], [1080, 160], [1080, 620], [20, 620]];
+export function projectiveMap(corners, totalItems = 80) {
+    const rowsPerCol = Math.ceil(totalItems / 4);
+    const svgHeight = Math.max(54 + rowsPerCol * 21 + 16, 480);
+    const source = [[17, 17], [1063, 17], [1063, svgHeight - 17], [17, svgHeight - 17]];
     const matrix = [];
     source.forEach(([x, y], i) => {
         const [u, v] = corners[i];
@@ -51,7 +53,7 @@ export function detectAnswers(image, corners, totalItems = 80) {
         return (q[0]-p[0])*(r[1]-q[1])-(q[1]-p[1])*(r[0]-q[0]);
     });
     if (turns.some(turn => turn < 100)) throw new Error('Markers must surround an upright sheet in clockwise order.');
-    const project = projectiveMap(corners);
+    const project = projectiveMap(corners, totalItems);
     const gray = (x, y) => {
         const [u, v] = project(x, y).map(Math.round);
         if (u < 0 || v < 0 || u >= image.width || v >= image.height) throw new Error('The entire answer matrix must be visible.');

@@ -21,6 +21,79 @@ class AdmissionCheckinTest extends TestCase
         $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', $role)->value('id')]));
     }
 
+    public function test_session_page_exposes_embedded_omr_scanner_controls(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => '2026 OMR', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE, 'total_items' => 80,
+        ]);
+        $session = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'OMR Session',
+            'start_time' => now(), 'start_number' => 1, 'end_number' => 1,
+            'qr_token' => Str::random(64), 'status' => AdmissionSession::STATUS_IN_PROGRESS,
+        ]);
+        AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'application_number' => 'CAT-OMR-001', 'first_name' => 'Ana', 'last_name' => 'Cruz',
+            'course_choice' => 'BSIT',
+        ]);
+
+        $this->get(route('admin.admission.sessions.show', $session))
+            ->assertOk()
+            ->assertSee('OMR Web Scanner')
+            ->assertSee('Scan OMR')
+            ->assertSee(route('admin.admission.sessions.scan-omr'), false);
+    }
+
+    public function test_session_omr_scan_scores_enrolled_examinee_and_rejects_other_session(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => '2026 OMR', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE, 'total_items' => 80,
+        ]);
+        $session = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'OMR Session',
+            'start_time' => now(), 'start_number' => 1, 'end_number' => 2,
+            'qr_token' => Str::random(64), 'status' => AdmissionSession::STATUS_IN_PROGRESS,
+        ]);
+        $otherSession = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Other Session',
+            'start_time' => now(), 'start_number' => 3, 'end_number' => 3,
+            'qr_token' => Str::random(64), 'status' => AdmissionSession::STATUS_IN_PROGRESS,
+        ]);
+        $applicant = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'application_number' => 'CAT-OMR-002', 'first_name' => 'Ben', 'last_name' => 'Reyes',
+            'course_choice' => 'BSIT',
+        ]);
+        $outsider = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $otherSession->id,
+            'application_number' => 'CAT-OMR-003', 'first_name' => 'Cara', 'last_name' => 'Santos',
+            'course_choice' => 'BSIT',
+        ]);
+        foreach (range(1, 80) as $item) {
+            DB::table('admission_answer_keys')->insert([
+                'admission_cycle_id' => $cycle->id, 'item_number' => $item,
+                'correct_answer' => 'A', 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $payload = ['session_id' => $session->id, 'raw_choices' => array_fill_keys(range(1, 80), 'A')];
+        $this->postJson(route('admin.admission.sessions.scan-omr'), $payload + ['application_number' => $outsider->application_number])
+            ->assertUnprocessable();
+
+        $this->postJson(route('admin.admission.sessions.scan-omr'), $payload + ['application_number' => $applicant->application_number])
+            ->assertOk()
+            ->assertJsonPath('applicant.exam_status', 'Submitted')
+            ->assertJsonPath('applicant.raw_score', 80)
+            ->assertJsonPath('applicant.stanine_rating', 9);
+
+        $this->assertNotNull($applicant->fresh()->submitted_at);
+        $this->assertSame(80.0, (float) $applicant->fresh()->exam_score);
+    }
+
     public function test_sessions_page_has_session_qr_button_and_modal(): void
     {
         $this->login('admin');

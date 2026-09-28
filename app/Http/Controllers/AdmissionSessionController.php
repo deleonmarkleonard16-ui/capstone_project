@@ -147,6 +147,62 @@ class AdmissionSessionController extends Controller
         return view('admin.admission.sessions.show', compact('session', 'cycle', 'applicants'));
     }
 
+    /**
+     * Record answers recognized by the session OMR web scanner.
+     */
+    public function scanOmr(Request $request, AdmissionScoringService $scoring)
+    {
+        $data = $request->validate([
+            'application_number' => ['required', 'string', 'max:100'],
+            'session_id' => ['required', 'integer', 'exists:admission_sessions,id'],
+            'raw_choices' => ['required', 'array'],
+            'raw_choices.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])],
+        ]);
+
+        $session = AdmissionSession::with('cycle')->findOrFail($data['session_id']);
+        $cycle = $session->cycle;
+        abort_if(!$cycle || $cycle->isCompleted(), 422, 'OMR submissions are disabled for an archived admission cycle.');
+        abort_if($session->status === AdmissionSession::STATUS_COMPLETED, 422, 'This admission session is already completed.');
+
+        $applicant = $session->applicants()
+            ->where('application_number', $data['application_number'])
+            ->first();
+
+        abort_unless($applicant, 422, 'The scanned examinee is not enrolled in this session.');
+
+        $totalItems = max(1, (int) ($cycle->total_items ?: 80));
+        $answers = [];
+        for ($item = 1; $item <= $totalItems; $item++) {
+            $answers[$item] = $data['raw_choices'][$item] ?? null;
+        }
+
+        abort_if(count($data['raw_choices']) !== $totalItems, 422, "Exactly {$totalItems} answers are required.");
+
+        $scoring->submit($applicant, $answers);
+        $applicant->refresh();
+
+        $submittedCount = $session->applicants()->whereNotNull('submitted_at')->count();
+        $averageScore = round((float) $session->applicants()->whereNotNull('exam_score')->avg('exam_score'), 2);
+
+        return response()->json([
+            'message' => 'OMR answer sheet scored and recorded successfully.',
+            'applicant' => [
+                'id' => $applicant->id,
+                'application_number' => $applicant->application_number,
+                'exam_status' => 'Submitted',
+                'submitted_at' => $applicant->submitted_at?->format('M d, h:i A'),
+                'raw_score' => (float) $applicant->exam_score,
+                'stanine_rating' => $applicant->stanine_score,
+                'total_items' => $totalItems,
+            ],
+            'session' => [
+                'submitted_count' => $submittedCount,
+                'pending_count' => max(0, $session->applicants()->count() - $submittedCount),
+                'average_score' => $averageScore,
+            ],
+        ]);
+    }
+
     // ── Edit ──────────────────────────────────────────────────────────────────
 
     public function edit(AdmissionSession $session)

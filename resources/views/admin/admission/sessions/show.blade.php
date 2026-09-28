@@ -27,6 +27,11 @@
             <i class="bi bi-qr-code me-1"></i> Session QR
         </button>
         @if($session->status !== 'Completed' && !$cycle->isCompleted())
+            <button type="button" class="btn btn-primary btn-sm fw-semibold js-open-omr" data-application-number="">
+                <i class="bi bi-camera me-1"></i> OMR Web Scanner
+            </button>
+        @endif
+        @if($session->status !== 'Completed' && !$cycle->isCompleted())
             <form method="POST" action="{{ route('admin.admission.sessions.complete', $session) }}"
                   onsubmit="return confirm('Mark this test session as Completed?');">
                 @csrf
@@ -62,7 +67,7 @@
         <div class="card page-card shadow-xs border-start border-4 border-success h-100">
             <div class="card-body p-3">
                 <div class="text-muted small text-uppercase fw-semibold">Submitted Exams</div>
-                <div class="h3 mb-0 fw-bold text-success">{{ $submittedCount }}</div>
+                <div id="session-submitted-count" class="h3 mb-0 fw-bold text-success">{{ $submittedCount }}</div>
                 <div class="small text-muted mt-1">
                     {{ $totalAssigned > 0 ? round(($submittedCount / $totalAssigned) * 100) : 0 }}% completion
                 </div>
@@ -73,7 +78,7 @@
         <div class="card page-card shadow-xs border-start border-4 border-warning h-100">
             <div class="card-body p-3">
                 <div class="text-muted small text-uppercase fw-semibold">Pending Submissions</div>
-                <div class="h3 mb-0 fw-bold text-warning">{{ $pendingCount }}</div>
+                <div id="session-pending-count" class="h3 mb-0 fw-bold text-warning">{{ $pendingCount }}</div>
                 <div class="small text-muted mt-1">Awaiting completion</div>
             </div>
         </div>
@@ -82,7 +87,7 @@
         <div class="card page-card shadow-xs border-start border-4 border-dark h-100">
             <div class="card-body p-3">
                 <div class="text-muted small text-uppercase fw-semibold">Average Exam Score</div>
-                <div class="h3 mb-0 fw-bold text-dark">{{ $avgScore }}</div>
+                <div id="session-average-score" class="h3 mb-0 fw-bold text-dark">{{ $avgScore }}</div>
                 <div class="small text-muted mt-1">Out of 80 questions</div>
             </div>
         </div>
@@ -115,7 +120,7 @@
                 </thead>
                 <tbody>
                     @forelse ($applicants as $idx => $applicant)
-                        <tr>
+                        <tr id="applicant-row-{{ $applicant->id }}" data-application-number="{{ $applicant->application_number }}">
                             <td class="ps-3 font-monospace text-muted">{{ $idx + 1 }}</td>
                             <td>
                                 <span class="fw-bold font-monospace text-dark">{{ $applicant->application_number }}</span>
@@ -130,7 +135,7 @@
                             <td>
                                 <span class="font-monospace">{{ $applicant->gwa ? number_format($applicant->gwa, 2) : '—' }}</span>
                             </td>
-                            <td>
+                            <td class="js-exam-status">
                                 @if ($applicant->submitted_at)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">
                                         <i class="bi bi-check-lg me-1"></i> Submitted
@@ -144,9 +149,9 @@
                                     </span>
                                 @endif
                             </td>
-                            <td>
+                            <td class="js-score-stanine">
                                 @if($applicant->exam_score !== null)
-                                    <div class="fw-bold text-dark font-monospace">{{ number_format($applicant->exam_score, 2) }} / 80</div>
+                                    <div class="fw-bold text-dark font-monospace">{{ number_format($applicant->exam_score, 2) }} / {{ (int) ($cycle->total_items ?: 80) }}</div>
                                     <div class="text-muted small" style="font-size: 11px;">
                                         Stanine: <strong>{{ $applicant->stanine_score ?? '—' }}</strong>
                                     </div>
@@ -162,6 +167,12 @@
                                     <a href="{{ route('admin.admission.encode', $applicant) }}" class="btn btn-outline-primary btn-sm" title="Encode Bubble Sheet">
                                         <i class="bi bi-pencil-square"></i> Encode
                                     </a>
+                                    @if(!$applicant->submitted_at && $session->status !== 'Completed' && !$cycle->isCompleted())
+                                        <button type="button" class="btn btn-primary btn-sm js-open-omr"
+                                                data-application-number="{{ $applicant->application_number }}" title="Scan OMR Answer Sheet">
+                                            <i class="bi bi-camera"></i> Scan OMR
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -178,6 +189,69 @@
     </div>
 </div>
 @include('admin.admission.sessions.qr_modal', ['session' => $session])
+
+<div class="modal fade" id="omrScannerModal" tabindex="-1" aria-labelledby="omrScannerTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" id="session-omr-scanner"
+             data-submit-url="{{ route('admin.admission.sessions.scan-omr') }}"
+             data-session-id="{{ $session->id }}"
+             data-total-items="{{ (int) ($cycle->total_items ?: 80) }}"
+             data-csrf="{{ csrf_token() }}">
+            <div class="modal-header">
+                <div>
+                    <h2 class="modal-title h5 mb-0" id="omrScannerTitle"><i class="bi bi-camera me-2"></i>OMR Web Scanner</h2>
+                    <div class="small text-muted">Frame 1: identify examinee &nbsp;→&nbsp; Frame 2: capture bubble grid</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="position-relative bg-dark rounded overflow-hidden" style="min-height:340px">
+                            <video id="session-omr-video" autoplay muted playsinline class="w-100" style="max-height:520px;object-fit:contain"></video>
+                            <div id="session-omr-guide" class="position-absolute top-50 start-50 translate-middle text-center text-white w-75">
+                                <i class="bi bi-qr-code-scan display-5"></i>
+                                <div class="mt-2">Start the camera and point it at the answer sheet header QR.</div>
+                            </div>
+                        </div>
+                        <canvas id="session-omr-canvas" class="w-100 border rounded mt-2 d-none" style="cursor:crosshair"></canvas>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            <button type="button" id="session-omr-start" class="btn btn-outline-primary"><i class="bi bi-camera-video me-1"></i>Start Camera</button>
+                            <button type="button" id="session-omr-capture" class="btn btn-primary" disabled><i class="bi bi-camera me-1"></i>Capture Grid</button>
+                            <label class="btn btn-outline-secondary mb-0"><i class="bi bi-upload me-1"></i>Upload Photo<input id="session-omr-file" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>
+                            <button type="button" id="session-omr-reset" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Points</button>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card mb-3">
+                            <div class="card-header fw-semibold">Frame 1 — Header QR Detection</div>
+                            <div class="card-body">
+                                <div id="session-omr-identity" class="text-muted">No examinee identified.</div>
+                                <div class="input-group mt-2">
+                                    <input id="session-omr-app-number" class="form-control" placeholder="Application number">
+                                    <button type="button" id="session-omr-match" class="btn btn-outline-primary">Match Roster</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header fw-semibold">Frame 2 — Optical Bubble Grid</div>
+                            <div class="card-body">
+                                <p class="small text-muted">Capture the full grid, then select the four black markers: top-left, top-right, bottom-right, bottom-left.</p>
+                                <div id="session-omr-review" class="row g-2 overflow-auto" style="max-height:310px"></div>
+                                <div id="session-omr-message" class="alert alert-info py-2 small mt-3 mb-2" role="status">Waiting to start.</div>
+                                <button type="button" id="session-omr-submit" class="btn btn-success w-100 fw-semibold" disabled>
+                                    <i class="bi bi-check2-circle me-1"></i>Score and Record OMR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="{{ asset('js/admission-session-omr.js') }}"></script>
 
 <script>
     function updateProjectorClocks() {

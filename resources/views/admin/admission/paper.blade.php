@@ -6,7 +6,10 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 8mm;
+            /* A zero page margin prevents Chromium from adding its date, title,
+               URL, and page-number headers/footers. The printable inset is
+               applied to the body below instead. */
+            margin: 0;
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
@@ -25,7 +28,10 @@
             margin: 0 auto;
         }
         @media print {
-            body { padding: 0; }
+            body {
+                box-sizing: border-box;
+                padding: 8mm;
+            }
             .sheet-container { border: none; }
             .no-print { display: none !important; }
         }
@@ -36,6 +42,16 @@
         }
         .header-table td {
             vertical-align: top;
+        }
+        .logo-box {
+            width: 54px;
+            padding-right: 8px;
+        }
+        .logo-box img {
+            display: block;
+            width: 46px;
+            height: 46px;
+            object-fit: contain;
         }
         .title-block h1 {
             font-size: 18px;
@@ -124,6 +140,9 @@
     {{-- Top Header Section --}}
     <table class="header-table">
         <tr>
+            <td class="logo-box">
+                <img src="{{ asset('images/psu-logo.png') }}" alt="Pangasinan State University logo">
+            </td>
             <td class="title-block">
                 <h1>Pangasinan State University – San Carlos Campus</h1>
                 <div class="subtitle">PSU College Admission Test (PSU-CAT) Official Answer Sheet</div>

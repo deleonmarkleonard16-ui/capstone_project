@@ -102,32 +102,37 @@
         <form method="POST" action="{{ route('admin.admission.encode.submit', $applicant) }}" id="encodeForm">
             @csrf
 
-            {{-- Items flow down each column before continuing in the next column. --}}
-            <div class="vertical-answer-grid" id="answer-grid" data-total-items="{{ $totalItems }}" style="--vertical-grid-rows: {{ (int) ceil($totalItems / 6) }}">
-                @php $existingAnswers = old('answers', []); @endphp
-                @for ($i = 1; $i <= $totalItems; $i++)
-                <div class="vertical-answer-grid__item">
-                    <div class="d-flex align-items-center border-bottom py-2 px-3 answer-row {{ isset($existingAnswers[$i]) && $existingAnswers[$i] ? 'answered' : '' }}"
-                         data-item="{{ $i }}">
-                        <span class="text-muted fw-semibold me-3 fs-7" style="min-width:60px; font-size:13px;">
-                            Item {{ $i }}
-                        </span>
-                        <div class="d-flex gap-2">
-                            @foreach(['A','B','C','D'] as $letter)
-                            <div class="form-check form-check-inline mb-0">
-                                <input class="form-check-input answer-radio"
-                                       type="radio"
-                                       name="answers[{{ $i }}]"
-                                       id="q{{ $i }}_{{ $letter }}"
-                                       value="{{ $letter }}"
-                                       @checked(($existingAnswers[$i] ?? '') === $letter)>
-                                <label class="form-check-label fw-semibold" for="q{{ $i }}_{{ $letter }}">{{ $letter }}</label>
+            <div class="answer-grid-scroll">
+                {{-- Explicit groups keep numbering vertical: 1–20, 21–40, etc. --}}
+                <div class="vertical-answer-grid" id="answer-grid" data-total-items="{{ $totalItems }}">
+                    @php
+                        $existingAnswers = old('answers', []);
+                        $columnCount = min(4, max(1, (int) ceil($totalItems / 10)));
+                        $itemsPerColumn = (int) ceil($totalItems / $columnCount);
+                    @endphp
+                    @for ($column = 0; $column < $columnCount; $column++)
+                    <div class="answer-column">
+                        @for ($i = ($column * $itemsPerColumn) + 1; $i <= min(($column + 1) * $itemsPerColumn, $totalItems); $i++)
+                        <div class="answer-row {{ isset($existingAnswers[$i]) && $existingAnswers[$i] ? 'answered' : '' }}" data-item="{{ $i }}">
+                            <span class="answer-item-label">Item {{ $i }}</span>
+                            <div class="answer-options" role="radiogroup" aria-label="Answer for item {{ $i }}">
+                                @foreach(['A','B','C','D'] as $letter)
+                                <div class="answer-option">
+                                    <input class="form-check-input answer-radio"
+                                           type="radio"
+                                           name="answers[{{ $i }}]"
+                                           id="q{{ $i }}_{{ $letter }}"
+                                           value="{{ $letter }}"
+                                           @checked(($existingAnswers[$i] ?? '') === $letter)>
+                                    <label class="form-check-label fw-semibold" for="q{{ $i }}_{{ $letter }}">{{ $letter }}</label>
+                                </div>
+                                @endforeach
                             </div>
-                            @endforeach
                         </div>
+                        @endfor
                     </div>
+                    @endfor
                 </div>
-                @endfor
             </div>
 
             {{-- Action bar --}}
@@ -149,23 +154,25 @@
 
 @push('styles')
 <style>
-    .vertical-answer-grid { display:grid; grid-auto-flow:column; grid-template-rows:repeat(var(--vertical-grid-rows), minmax(0, 1fr)); grid-auto-columns:minmax(0, 1fr); gap:.75rem; overflow:auto; }
-    @media (max-width: 767.98px) { .vertical-answer-grid { grid-auto-columns:minmax(285px, 1fr); } }
+    .answer-grid-scroll { width:100%; overflow-x:auto; padding:1rem; background:#fff; border:1px solid #e5e7eb; border-radius:.75rem; box-shadow:0 .125rem .25rem rgba(0,0,0,.04); -webkit-overflow-scrolling:touch; }
+    .vertical-answer-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem 1.5rem; min-width:min-content; }
+    .answer-column { min-width:245px; padding:0 .5rem; border-left:1px solid #e5e7eb; }
+    .answer-column:first-child { border-left:0; }
+    .answer-row { display:flex; align-items:center; gap:.5rem; min-width:0; min-height:44px; overflow:hidden; padding:.5rem .375rem; border-bottom:1px solid #e5e7eb; transition:background .15s; }
+    .answer-row.answered { background:#f0fdf4; }
+    .answer-item-label { flex:0 0 58px; min-width:58px; color:#6c757d; font-size:13px; font-weight:600; white-space:nowrap; }
+    .answer-options { display:inline-flex; align-items:center; flex-wrap:nowrap; gap:.55rem; min-width:0; white-space:nowrap; }
+    .answer-option { display:inline-flex; align-items:center; flex:0 0 auto; gap:.25rem; margin:0 .125rem; }
+    .answer-option .form-check-input { float:none; flex:0 0 auto; margin:0; }
+    .answer-option .form-check-label { flex:0 0 auto; }
+    @media (max-width:1023.98px) { .vertical-answer-grid { grid-template-columns:repeat(2, minmax(245px, 1fr)); } }
+    @media (max-width:575.98px) { .answer-grid-scroll { padding:.75rem; } .vertical-answer-grid { grid-template-columns:minmax(245px, 1fr); gap:.75rem; } .answer-column { padding:0; border-left:0; } }
 </style>
 @endpush
 
 @push('scripts')
 <script>
 const TOTAL_ITEMS = {{ (int)$totalItems }};
-const answerGrid = document.getElementById('answer-grid');
-function syncAnswerGridRows() {
-    if (!answerGrid) return;
-    const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
-    answerGrid.style.setProperty('--vertical-grid-rows', Math.ceil(TOTAL_ITEMS / columns));
-}
-syncAnswerGridRows();
-window.addEventListener('resize', syncAnswerGridRows);
-
 // ── Live filled counter ──
 function updateCount() {
     const filled = document.querySelectorAll('.answer-radio:checked').length;
@@ -187,10 +194,6 @@ document.getElementById('clearAllBtn').addEventListener('click', () => {
 // Init count for old() values
 updateCount();
 </script>
-<style>
-.answer-row { transition: background 0.15s; }
-.answer-row.answered { background: #f0fdf4; }
-</style>
 @endpush
 
 @endsection

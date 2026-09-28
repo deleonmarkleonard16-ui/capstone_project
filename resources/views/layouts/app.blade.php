@@ -179,7 +179,31 @@
 </head>
 <body class="@yield('body_class')">
 @php
-    $user        = auth()->user();
+    $isGuestRoute = ($isGuestView ?? false)
+        || request()->routeIs(
+            'admission.checkin.*',
+            'checkin.*',
+            'answers.*',
+            'login',
+            'portal.*',
+            'guidance.batch.join',
+            'document.batch.*',
+            'admission.complete',
+            'admission.take'
+        )
+        || request()->is(
+            'admission/checkin/*',
+            'admission/check-in/*',
+            'check-in/*',
+            'waiting',
+            'answer-sheet*',
+            'portal*',
+            'test/batch-join/*',
+            'request/batch-join/*',
+            'admission/take/*',
+            'admission/complete'
+        );
+    $user        = $isGuestRoute ? null : auth()->user();
     $role        = $user?->role ?? 'guest';
     $isAdmin     = $role === 'admin';
     $isStaff     = $role === 'staff';
@@ -243,7 +267,9 @@
 </header>
 
 {{-- ═══ SIDEBAR NAVIGATION ═══ --}}
+@if (!$isGuestRoute && $user)
 @include('layouts.navigation')
+@endif
 
 {{-- ═══ MAIN CONTENT ═══ --}}
 <main class="{{ request()->routeIs('admin.analytics', 'staff.analytics', 'admin.admission.analytics') ? 'executive-main' : '' }} py-4 {{ $user ? 'has-sidebar' : '' }}">

@@ -1,5 +1,29 @@
 @php
-    $user        = auth()->user();
+    $isGuestRoute = ($isGuestView ?? false)
+        || request()->routeIs(
+            'admission.checkin.*',
+            'checkin.*',
+            'answers.*',
+            'login',
+            'portal.*',
+            'guidance.batch.join',
+            'document.batch.*',
+            'admission.complete',
+            'admission.take'
+        )
+        || request()->is(
+            'admission/checkin*',
+            'admission/check-in*',
+            'check-in*',
+            'waiting*',
+            'answer-sheet*',
+            'portal*',
+            'test/batch-join*',
+            'request/batch-join*',
+            'admission/take*',
+            'admission/complete*'
+        );
+    $user        = $isGuestRoute ? null : auth()->user();
     $role        = strtolower((string) ($user?->role ?? ($user?->role_id === 1 ? 'admin' : 'staff')));
     $isAdmin     = $role === 'admin';
     $isStaff     = $role === 'staff';

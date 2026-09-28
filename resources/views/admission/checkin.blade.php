@@ -1,3 +1,4 @@
+@php $isGuestView = true; @endphp
 @extends('layouts.app')
 
 @section('content')

@@ -247,4 +247,34 @@ class AdmissionCheckinTest extends TestCase
         $response->assertRedirect('/admission/checkin/' . $sessionToken);
         $response->assertSessionHasErrors('last_name');
     }
+
+    public function test_checkin_page_renders_in_clean_guest_layout_even_if_admin_is_logged_in(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name'          => '2026-2027 Summer',
+            'academic_year' => '2026-2027',
+            'is_active'     => true,
+        ]);
+
+        $sessionToken = Str::random(64);
+        $session = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id,
+            'session_name'       => 'Session A - Batch 1',
+            'start_time'         => now(),
+            'start_number'       => 1,
+            'end_number'         => 50,
+            'room'               => 'PSU-SC Covered Court',
+            'qr_token'           => $sessionToken,
+            'status'             => 'In-Progress',
+        ]);
+
+        $response = $this->get('/admission/checkin/' . $sessionToken);
+        $response->assertOk();
+        $response->assertDontSee('SIGNED IN AS');
+        $response->assertDontSee('MAIN NAVIGATION');
+        $response->assertDontSee('appSidebar');
+        $response->assertSee('top-brand guest');
+    }
 }
+

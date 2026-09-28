@@ -559,12 +559,30 @@ class AdmissionPipelineController extends Controller
         return back()->with('success', 'Exam link issued: ' . route('admission.take', $applicant->exam_token));
     }
 
-    public function paper(AdmissionApplicant $applicant)
+    public function paper(Request $request, AdmissionApplicant $applicant)
     {
         $cycle = $applicant->cycle ?? $this->active();
         if (!$cycle) return $this->gatekeeperRedirect();
         $totalItems = (int) ($cycle->total_items ?: 80);
-        return view('admin.admission.paper', compact('applicant', 'totalItems'));
+        $isPdf = $request->query('format') === 'pdf';
+        $psuLogoUrl = asset('images/psu-logo.png');
+
+        if (!$isPdf) {
+            return view('admin.admission.paper', compact('applicant', 'totalItems', 'isPdf', 'psuLogoUrl'));
+        }
+
+        // Dompdf can embed JPEGs without the optional PHP GD extension.
+        $logoPath = public_path('images/psu-logo.jpg');
+        if (is_file($logoPath)) {
+            $psuLogoUrl = 'data:image/jpeg;base64,'.base64_encode((string) file_get_contents($logoPath));
+        }
+
+        $html = view('admin.admission.paper', compact('applicant', 'totalItems', 'isPdf', 'psuLogoUrl'))->render();
+        $filename = 'PSU-CAT-Answer-Sheet-'.Str::slug($applicant->application_number).'.pdf';
+
+        return response($this->pdf($html))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="'.$filename.'"');
     }
 
     public function scanner()

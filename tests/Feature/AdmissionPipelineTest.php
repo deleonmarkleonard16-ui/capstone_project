@@ -38,6 +38,7 @@ class AdmissionPipelineTest extends TestCase
         $applicant = AdmissionApplicant::create(['admission_cycle_id' => $cycle->id, 'application_number' => 'A-001', 'first_name' => 'Ana', 'last_name' => 'Reyes', 'course_choice' => 'BSIT', 'gwa' => 90, 'interview_score' => 90]);
         $this->get('/admin/admission/masterlist')->assertOk()->assertSee('A-001');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/paper')->assertOk()->assertSee('Answer Sheet');
+        $this->get('/admin/admission/applicants/'.$applicant->id.'/paper?format=pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/encode')->assertOk()->assertSee('Item 80');
         $this->post('/admin/admission/quotas', ['course_code' => 'BSIT', 'seats' => 1])->assertRedirect();
         $this->post('/admin/admission/answer-key', ['answers' => array_fill_keys(range(1, 80), 'A')])->assertRedirect();

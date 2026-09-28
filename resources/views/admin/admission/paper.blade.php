@@ -35,6 +35,12 @@
             .sheet-container { border: none; }
             .no-print { display: none !important; }
         }
+        body.pdf-output {
+            box-sizing: border-box;
+            padding: 8mm;
+        }
+        body.pdf-output .sheet-container { border: none; }
+        body.pdf-output .no-print { display: none !important; }
         .header-table {
             width: 100%;
             border-collapse: collapse;
@@ -129,10 +135,10 @@
         }
     </style>
 </head>
-<body>
+<body class="{{ $isPdf ? 'pdf-output' : '' }}">
 
 <div class="no-print" style="text-align: center; margin-bottom: 10px;">
-    <button class="btn-print" onclick="window.print()">🖨️ Print Answer Sheet (A4 Landscape)</button>
+    <a class="btn-print" href="{{ route('admin.admission.paper', ['applicant' => $applicant, 'format' => 'pdf']) }}" target="_blank" rel="noopener" style="display: inline-block; text-decoration: none;">🖨️ Print Answer Sheet (A4 Landscape)</a>
     <a href="{{ route('admin.admission.masterlist') }}" style="margin-left: 12px; font-size: 13px; color: #0f3f97;">← Return to Masterlist</a>
 </div>
 
@@ -141,7 +147,7 @@
     <table class="header-table">
         <tr>
             <td class="logo-box">
-                <img src="{{ asset('images/psu-logo.png') }}" alt="Pangasinan State University logo">
+                <img src="{{ $psuLogoUrl }}" alt="Pangasinan State University logo">
             </td>
             <td class="title-block">
                 <h1>Pangasinan State University – San Carlos Campus</h1>

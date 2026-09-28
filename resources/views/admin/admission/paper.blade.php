@@ -224,10 +224,6 @@
                     @php $bubbleX = $colStartX + 85 + ($optIndex * 36); @endphp
                     <circle cx="{{ $bubbleX }}" cy="{{ $rowY }}" r="7.5"
                             fill="#ffffff" stroke="#111111" stroke-width="1.2"/>
-                    <text x="{{ $bubbleX }}" y="{{ $rowY + 3 }}"
-                          font-family="Arial" font-size="8" fill="#666666" text-anchor="middle">
-                        {{ $letter }}
-                    </text>
                 @endforeach
             @endfor
 

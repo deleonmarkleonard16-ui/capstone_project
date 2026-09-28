@@ -12,7 +12,15 @@ class RoleMiddleware
     {
         $user = $request->user();
 
-        abort_unless($user && $user->is_active !== false && in_array($user->role, $roles, true), 403);
+        $role = $user?->role;
+
+        // Keep the legacy role_id representation working while roles are being
+        // normalized. Role ID 1 is the administrator role.
+        if ($user && (int) $user->role_id === 1) {
+            $role = 'admin';
+        }
+
+        abort_unless($user && $user->is_active !== false && in_array($role, $roles, true), 403);
 
         return $next($request);
     }

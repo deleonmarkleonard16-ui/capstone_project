@@ -71,9 +71,9 @@
 
                 <div>
                     <label for="student_status">Student status</label>
-                    <select id="student_status" name="student_status" required>
-                        <option value="student" @selected(old('student_status') === 'student' || old('student_status') === 'Currently Enrolled')>Currently enrolled</option>
-                        <option value="alumni" @selected(old('student_status') === 'alumni' || old('student_status') === 'Alumni')>Alumni</option>
+                    <select id="student_status" name="student_status" onchange="handleStudentStatusToggle()" required>
+                        <option value="Currently Enrolled" @selected(!in_array(old('student_status'), ['alumni', 'Alumni'], true))>Currently enrolled</option>
+                        <option value="Alumni" @selected(in_array(old('student_status'), ['alumni', 'Alumni'], true))>Alumni</option>
                     </select>
                 </div>
 
@@ -269,6 +269,7 @@ function handleStudentStatusToggle() {
     if (isAlumni) {
         idLabel.textContent = 'Year Graduated';
         idInput.name = 'year_graduated';
+        idInput.type = 'text';
         idInput.placeholder = 'e.g., 2023';
         idInput.setAttribute('maxlength', '4');
         idInput.setAttribute('pattern', '[0-9]{4}');
@@ -278,6 +279,7 @@ function handleStudentStatusToggle() {
     } else {
         idLabel.textContent = 'Student ID number';
         idInput.name = 'student_id';
+        idInput.type = 'text';
         idInput.placeholder = '##-SC-####';
         idInput.setAttribute('maxlength', '50');
         idInput.removeAttribute('pattern');

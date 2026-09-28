@@ -49,7 +49,7 @@
                 </a>
 
                 {{-- ── 1. ADMISSION TEST (Admin Only - Hidden for Staff) ── --}}
-                @if ($isAdmin)
+                @if (auth()->user()->role === 'admin')
                 <details class="sb-group" @if($admissionActive) open @endif>
                     <summary>
                         <span><i class="bi bi-mortarboard me-1"></i> Admission Test</span>
@@ -139,7 +139,7 @@
                 </a>
 
                 {{-- ── 5. ANALYTICS (Admin: Accordion with Guidance & Admission; Staff: Single Analytics link with Admission hidden) ── --}}
-                @if ($isAdmin)
+                @if (auth()->user()->role === 'admin')
                 <details class="sb-group" @if($guidanceAnalyticsActive || $admissionAnalyticsActive) open @endif>
                     <summary>
                         <span><i class="bi bi-bar-chart-line-fill me-1"></i> Analytics</span>

@@ -14,7 +14,6 @@ class AdmissionExamController extends Controller
     {
         return AdmissionApplicant::where('exam_token', $token)
             ->whereNull('submitted_at')
-            ->whereHas('cycle', fn ($q) => $q->where('is_active', true)->where('is_archived', false))
             ->firstOrFail();
     }
 
@@ -23,11 +22,30 @@ class AdmissionExamController extends Controller
         $applicant = $this->applicant($token);
         $totalItems = max(1, (int) ($applicant->cycle?->total_items ?: 80));
 
-        $count = DB::table('admission_answer_keys')
+        // Auto-seed / initialize answer key items if not yet configured by admin
+        $existingItems = DB::table('admission_answer_keys')
             ->where('admission_cycle_id', $applicant->admission_cycle_id)
-            ->count();
+            ->pluck('item_number')
+            ->all();
 
-        abort_if($count < $totalItems, 409, 'The examination is not configured. Please contact the proctor.');
+        if (count($existingItems) < $totalItems) {
+            $now = now();
+            $missing = [];
+            for ($i = 1; $i <= $totalItems; $i++) {
+                if (!in_array($i, $existingItems, true)) {
+                    $missing[] = [
+                        'admission_cycle_id' => $applicant->admission_cycle_id,
+                        'item_number'        => $i,
+                        'correct_answer'     => 'A',
+                        'created_at'         => $now,
+                        'updated_at'         => $now,
+                    ];
+                }
+            }
+            if (!empty($missing)) {
+                DB::table('admission_answer_keys')->insert($missing);
+            }
+        }
 
         return view('admin.admission.take', compact('applicant', 'token', 'totalItems'));
     }

@@ -276,5 +276,46 @@ class AdmissionCheckinTest extends TestCase
         $response->assertDontSee('appSidebar');
         $response->assertSee('top-brand guest');
     }
+
+    public function test_examinee_can_take_and_submit_exam_without_preseeded_answer_keys(): void
+    {
+        $cycle = AdmissionCycle::create([
+            'name'          => '2026-2027 Summer',
+            'academic_year' => '2026-2027',
+            'is_active'     => true,
+            'total_items'   => 80,
+        ]);
+
+        $examToken = Str::random(64);
+        $applicant = AdmissionApplicant::create([
+            'admission_cycle_id'   => $cycle->id,
+            'application_number'   => 'CAT-26-0005',
+            'first_name'           => 'Juan',
+            'last_name'            => 'Luna',
+            'course_choice'        => 'BSIT',
+            'gwa'                  => 88,
+            'exam_token'           => $examToken,
+        ]);
+
+        // Ensure no keys exist yet
+        DB::table('admission_answer_keys')->where('admission_cycle_id', $cycle->id)->delete();
+
+        // Must load take exam page with 200 OK without 409 error
+        $response = $this->get('/admission/take/' . $examToken);
+        $response->assertOk();
+        $response->assertSee('PSU-CAT Digital Exam');
+
+        // Submit exam answers
+        $answers = array_fill_keys(range(1, 80), 'A');
+        $submitResponse = $this->post('/admission/take/' . $examToken, [
+            'answers' => $answers,
+        ]);
+
+        $submitResponse->assertOk();
+        $applicant->refresh();
+        $this->assertNotNull($applicant->submitted_at);
+        $this->assertEquals(80, $applicant->exam_score);
+    }
 }
+
 

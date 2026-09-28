@@ -46,6 +46,8 @@ EXPOSE 80
 # 4. Starts Nginx web server and PHP-FPM process worker
 CMD php artisan migrate --force && \
     php artisan storage:link && \
+    php artisan cache:clear && \
+    php artisan view:clear && \
     php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache && \

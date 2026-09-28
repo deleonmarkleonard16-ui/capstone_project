@@ -27,7 +27,13 @@ class AdmissionOverviewController extends Controller
 
     public function archive()
     {
-        $cycles = AdmissionCycle::where('is_archived', true)->withCount('applicants')->latest('id')->paginate(20);
+        $cycles = AdmissionCycle::withCount('applicants')
+            ->where(function ($query) {
+                $query->where('is_archived', true)
+                    ->orWhere('status', AdmissionCycle::STATUS_COMPLETED);
+            })
+            ->orderByDesc('created_at')
+            ->get();
 
         return view('admin.admission.archive', compact('cycles'));
     }

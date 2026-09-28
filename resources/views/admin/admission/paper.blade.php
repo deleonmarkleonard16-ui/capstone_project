@@ -107,7 +107,7 @@
         }
 
         /* SVG Grid for High Accuracy OMR */
-        svg.omr-grid {
+        .omr-grid {
             width: 100%;
             height: 125mm;
             display: block;
@@ -178,6 +178,7 @@
         // Ensure corner markers fit (min 480)
         $omrSvgHeight = max($omrSvgHeight, 480);
         $markerBottom  = $omrSvgHeight - 24;
+        ob_start();
     @endphp
     <svg class="omr-grid" viewBox="0 0 1080 {{ $omrSvgHeight }}" xmlns="http://www.w3.org/2000/svg" aria-label="PSU-CAT Answer Sheet Matrix — {{ $totalItems }} Items">
         <!-- Sheet Background -->
@@ -237,6 +238,16 @@
             @endif
         @endfor
     </svg>
+    @php
+        $omrSvg = ob_get_clean();
+    @endphp
+    @if ($isPdf)
+        {{-- Dompdf must receive the grid as an SVG image; otherwise it lays out
+             the SVG text nodes as ordinary HTML and loses the OMR bubbles. --}}
+        <img class="omr-grid" src="data:image/svg+xml;base64,{{ base64_encode($omrSvg) }}" alt="PSU-CAT Answer Sheet Matrix — {{ $totalItems }} Items">
+    @else
+        {!! $omrSvg !!}
+    @endif
 
     {{-- Footer Info --}}
     <div class="footer-note">

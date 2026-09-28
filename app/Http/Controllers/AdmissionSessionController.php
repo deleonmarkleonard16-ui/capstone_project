@@ -147,6 +147,23 @@ class AdmissionSessionController extends Controller
         return view('admin.admission.sessions.show', compact('session', 'cycle', 'applicants'));
     }
 
+    public function printMasterlist(AdmissionSession $session)
+    {
+        $session->load('cycle');
+        $cycle = $session->cycle;
+        if (!$cycle) {
+            return $this->gatekeeperRedirect();
+        }
+
+        $applicants = $session->applicants()
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->orderBy('middle_name')
+            ->get();
+
+        return view('admin.admission.sessions.print_masterlist', compact('session', 'cycle', 'applicants'));
+    }
+
     /**
      * Record answers recognized by the session OMR web scanner.
      */

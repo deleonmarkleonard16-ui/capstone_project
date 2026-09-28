@@ -207,6 +207,7 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::get('/answer-key', [$c, 'answerKey'])->name('answer-key.index');
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
+        Route::get('/sessions/{session}/print-masterlist', [\App\Http\Controllers\AdmissionSessionController::class, 'printMasterlist'])->name('sessions.print-masterlist');
         Route::resource('sessions', \App\Http\Controllers\AdmissionSessionController::class);
         Route::post('/sessions/scan-omr', [\App\Http\Controllers\AdmissionSessionController::class, 'scanOmr'])->name('sessions.scan-omr');
         Route::post('/sessions/{session}/status', [\App\Http\Controllers\AdmissionSessionController::class, 'updateStatus'])->name('sessions.status');

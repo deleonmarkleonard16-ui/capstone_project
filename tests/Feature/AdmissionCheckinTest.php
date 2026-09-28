@@ -46,6 +46,40 @@ class AdmissionCheckinTest extends TestCase
             ->assertSee(route('admin.admission.sessions.scan-omr'), false);
     }
 
+    public function test_admin_can_print_session_masterlist_with_applicants_sorted_by_name(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => '2026 Print Cycle', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE, 'total_items' => 80,
+        ]);
+        $session = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Morning Session',
+            'start_time' => now(), 'start_number' => 1, 'end_number' => 2,
+            'room' => 'Covered Court', 'qr_token' => Str::random(64),
+            'status' => AdmissionSession::STATUS_IN_PROGRESS,
+        ]);
+        foreach ([['Zulu', 'CAT-002'], ['Alpha', 'CAT-001']] as [$lastName, $number]) {
+            AdmissionApplicant::create([
+                'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+                'application_number' => $number, 'first_name' => 'Test', 'last_name' => $lastName,
+                'course_choice' => 'BSIT',
+            ]);
+        }
+
+        $this->get(route('admin.admission.sessions.show', $session))
+            ->assertOk()
+            ->assertSee('Print Masterlist')
+            ->assertSee(route('admin.admission.sessions.print-masterlist', $session), false);
+
+        $this->get(route('admin.admission.sessions.print-masterlist', $session))
+            ->assertOk()
+            ->assertSee('Official Admission Test Session Masterlist')
+            ->assertSee('Covered Court')
+            ->assertSeeInOrder(['CAT-001', 'CAT-002'])
+            ->assertSee('window.print()');
+    }
+
     public function test_session_omr_scan_scores_enrolled_examinee_and_rejects_other_session(): void
     {
         $this->login('admin');

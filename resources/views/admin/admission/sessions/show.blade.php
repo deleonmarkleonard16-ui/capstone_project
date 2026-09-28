@@ -26,6 +26,10 @@
         <button type="button" class="btn btn-outline-dark btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#sessionQrModal{{ $session->id }}">
             <i class="bi bi-qr-code me-1"></i> Session QR
         </button>
+        <a href="{{ route('admin.admission.sessions.print-masterlist', $session) }}" target="_blank" rel="noopener"
+           class="btn btn-outline-dark btn-sm fw-semibold">
+            <i class="bi bi-printer me-1"></i> Print Masterlist
+        </a>
         @if($session->status !== 'Completed' && !$cycle->isCompleted())
             <button type="button" class="btn btn-primary btn-sm fw-semibold js-open-omr" data-application-number="">
                 <i class="bi bi-camera me-1"></i> OMR Web Scanner

@@ -45,22 +45,25 @@
         #timer.danger { background: #7c1e1e; color: #ff6060; animation: pulse 1s infinite; }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-        /* Answer grid: 4 vertical balanced columns (auto-split) */
-        .exam-columns-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; overflow-x: auto; }
-        @media (max-width: 1023.98px) { .exam-columns-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-        @media (max-width: 767.98px) { .exam-columns-grid { grid-template-columns: repeat(2, minmax(245px, 1fr)); } }
-        @media (max-width: 575.98px) { .exam-columns-grid { grid-template-columns: minmax(245px, 1fr); } }
-        .exam-column { display: flex; flex-direction: column; gap: 8px; }
-        .question-card { background: #111e45; border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1.5px solid transparent; transition: border-color 0.2s; }
+        /* Admission answer sheet: one full-width item card per vertical row. */
+        .exam-item-list { display: flex; flex-direction: column; gap: 12px; width: 100%; min-width: 0; }
+        .question-card { width: 100%; background: #111e45; border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1.5px solid #2a4580; transition: border-color 0.2s, background 0.2s; }
         .question-card:hover { border-color: #2a4580; }
         .question-card.answered { border-color: #1e5c3e; background: #0e2a1e; }
-        .q-num { font-size: 13px; font-weight: 700; color: #a8c0e8; min-width: 24px; font-family: monospace; }
-        .choices { display: flex; gap: 6px; }
-        .choice-label { cursor: pointer; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-size: 13px; font-weight: 700; border-radius: 50%; border: 1.5px solid #2a4580; color: #c8d8f0; transition: all 0.15s; }
+        .q-num { font-size: 14px; font-weight: 700; color: #e0e8f8; min-width: 88px; font-family: monospace; }
+        .choices { display: flex; flex-wrap: nowrap; gap: 10px; }
+        .choice-label { cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 42px; padding: 10px 16px; font-size: 14px; font-weight: 700; border-radius: 8px; border: 1.5px solid #2a4580; color: #c8d8f0; transition: all 0.15s; }
         .choice-label:hover { border-color: #4a7be0; color: #fff; background: #1e3060; }
         .choice-label input[type="radio"] { display: none; }
         .choice-label input[type="radio"]:checked + span { font-weight: 800; }
-        .choice-label:has(input:checked) { background: #ffd700; border-color: #ffd700; color: #0d1b3e; }
+        .choice-label:has(input:checked) { background: #dbeafe; border-color: #3b82f6; color: #102a63; }
+        @media (max-width: 575.98px) {
+            #exam-shell { padding: 14px; }
+            .question-card { align-items: flex-start; flex-direction: column; gap: 12px; }
+            .q-num { min-width: 0; }
+            .choices { width: 100%; justify-content: space-between; gap: 8px; }
+            .choice-label { flex: 1 1 0; min-width: 0; padding: 10px 8px; }
+        }
 
         /* Submit bar */
         #submit-bar { text-align: center; padding: 28px; margin-top: 20px; }
@@ -141,28 +144,18 @@
 
     <form id="exam-form">
         @csrf
-        @php
-            $cols = 6;
-            $rows = (int) ceil($totalItems / $cols);
-        @endphp
-        <div class="exam-columns-grid">
-            @for($col = 0; $col < $cols; $col++)
-                <div class="exam-column">
-                    @for($row = 1; $row <= $rows; $row++)
-                        @php($i = $col * $rows + $row)
-                        @if($i > $totalItems) @break @endif
-                        <div class="question-card" id="qcard-{{ $i }}" data-item="{{ $i }}">
-                            <div class="q-num">{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}.</div>
-                            <div class="choices">
-                                @foreach(['A','B','C','D'] as $letter)
-                                <label class="choice-label" for="a{{ $i }}_{{ $letter }}">
-                                    <input type="radio" name="answers[{{ $i }}]" id="a{{ $i }}_{{ $letter }}" value="{{ $letter }}">
-                                    <span>{{ $letter }}</span>
-                                </label>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endfor
+        <div class="exam-item-list" aria-label="Admission exam answers">
+            @for($i = 1; $i <= $totalItems; $i++)
+                <div class="question-card" id="qcard-{{ $i }}" data-item="{{ $i }}">
+                    <div class="q-num">Item #{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}</div>
+                    <div class="choices" role="radiogroup" aria-label="Answer for item {{ $i }}">
+                        @foreach(['A','B','C','D'] as $letter)
+                        <label class="choice-label" for="a{{ $i }}_{{ $letter }}">
+                            <input type="radio" name="answers[{{ $i }}]" id="a{{ $i }}_{{ $letter }}" value="{{ $letter }}">
+                            <span>{{ $letter }}</span>
+                        </label>
+                        @endforeach
+                    </div>
                 </div>
             @endfor
         </div>

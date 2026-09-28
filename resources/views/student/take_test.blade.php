@@ -386,15 +386,13 @@
             border-color: #93c5fd;
         }
 
-        /* ── Questions 2-Column Grid (Desktop) ── */
+        /* ── Questions Vertical Single-Column Stream ── */
         .questions-two-col-grid {
-            display: grid;
-            grid-auto-flow: column;
-            grid-template-rows: repeat(var(--vertical-grid-rows), minmax(0, 1fr));
-            grid-auto-columns: minmax(0, 1fr);
-            gap: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             margin-bottom: 28px;
-            overflow: auto;
+            width: 100%;
         }
 
         .question-module-card {
@@ -657,11 +655,6 @@
             .respondent-form-grid {
                 grid-template-columns: 1fr;
                 gap: 10px;
-            }
-
-            .questions-two-col-grid {
-                grid-auto-columns: minmax(260px, 1fr);
-                gap: 12px;
             }
 
             .question-module-card {

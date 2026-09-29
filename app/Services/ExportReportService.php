@@ -155,15 +155,19 @@ class ExportReportService
         if ($certificate) {
             foreach ($records as $r) {
                 $certificates[] = [
-                    'Reference: '.($r->reference ?? '-').' | Batch: '.($r->batch?->batch_name ?? 'Individual request'),
-                    'This is to certify that '.$this->name($r).', student number '.($r->student_number ?: 'N/A').', enrolled in '.$r->courseLabel().', '.($module === 'good-moral' ? 'has been issued a certificate of good moral character by the Guidance and Counseling Office.' : 'has completed the Exit Form process with the Guidance and Counseling Office.'),
-                    'Purpose: '.($r->purpose ?: 'Not provided'),
-                    'Request status: '.($r->status ?? '-').' | Date generated: '.now()->timezone('Asia/Manila')->format('F j, Y'),
+                    'name' => mb_strtoupper(preg_replace('/\s+/u', ' ', trim(($r->first_name ?? '').' '.($r->middle_name ?? '').' '.($r->last_name ?? '')))) ?: 'N/A',
+                    'student_number' => $r->student_number ?: 'N/A',
+                    'course' => $r->courseLabel(),
+                    'purpose' => $r->purpose ?: 'Not provided',
+                    'issued_at' => now()->timezone('Asia/Manila')->format('F j, Y'),
+                    'statement' => $module === 'good-moral'
+                        ? 'has been issued a certificate of good moral character.'
+                        : 'has completed the Exit Form clearance process.',
                 ];
             }
         }
 
-        return ['title' => $certificate ? ($module === 'good-moral' ? 'Good Moral Certificate' : 'Completed Exit Form Certificate') : 'Document Request Queue Summary', 'records' => $records, 'certificates' => $certificates, 'orientation' => $certificate ? 'portrait' : 'landscape', 'columns' => $certificate ? [] : ['Reference', 'Name', 'Student Number', 'Course', 'Batch', 'Document', 'Purpose', 'Status', 'Requested'], 'rows' => $certificate ? collect() : $records->map(fn ($r) => [$r->reference ?? '-', $this->name($r), $r->student_number ?: '-', $r->courseLabel(), $r->batch?->batch_name ?? '-', ServiceRequest::SERVICES[$r->service] ?? 'Document', $r->purpose ?: '-', $r->status ?? '-', $r->created_at?->format('Y-m-d') ?? '-'])];
+        return ['title' => $certificate ? ($module === 'good-moral' ? 'Certificate of Good Moral Character' : 'Exit Form Clearance Certificate') : 'Document Request Queue Summary', 'records' => $records, 'certificates' => $certificates, 'orientation' => $certificate ? 'portrait' : 'landscape', 'columns' => $certificate ? [] : ['Reference', 'Name', 'Student Number', 'Course', 'Batch', 'Document', 'Purpose', 'Status', 'Requested'], 'rows' => $certificate ? collect() : $records->map(fn ($r) => [$r->reference ?? '-', $this->name($r), $r->student_number ?: '-', $r->courseLabel(), $r->batch?->batch_name ?? '-', ServiceRequest::SERVICES[$r->service] ?? 'Document', $r->purpose ?: '-', $r->status ?? '-', $r->created_at?->format('Y-m-d') ?? '-'])];
     }
 
     private function name($record): string

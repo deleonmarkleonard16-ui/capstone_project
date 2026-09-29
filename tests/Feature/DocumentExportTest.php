@@ -118,7 +118,7 @@ class DocumentExportTest extends TestCase
         foreach ([['good-moral', 'pending', false], ['good-moral', 'approved', true], ['exit-form', 'ready', false], ['exit-form', 'completed', true]] as [$module, $status, $eligible]) {
             $record = $this->requestRecord($module, ['status' => $status]);
             $response = $this->get('/staff/'.$module.'/export?type=certificate&request_id='.$record->id);
-            if ($eligible) $response->assertOk()->assertSee('Santos, Maria')->assertSee($record->reference)->assertSee('Guidance Counselor');
+            if ($eligible) $response->assertOk()->assertSee('MARIA SANTOS')->assertSee('Guidance Counselor')->assertSee('border: 4px double #222', false);
             else $response->assertRedirect('/staff/exports')->assertSessionHas('error');
         }
         $goodMoral = $this->requestRecord();

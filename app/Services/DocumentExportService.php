@@ -73,8 +73,12 @@ class DocumentExportService
                 $section->addText($document['title'], ['bold' => true, 'size' => 14], ['alignment' => 'center']);
                 foreach ($document['metadata'] as $label => $value) $section->addText($label.': '.$value, ['size' => 9]);
             }
-            foreach ($certificate as $paragraph) $section->addText($paragraph, [], ['spaceAfter' => 180]);
-            $this->signatures($section);
+            $section->addText('This certifies that '.$certificate['name'].', student number '.$certificate['student_number'].', enrolled in '.$certificate['course'].', '.$certificate['statement'], [], ['spaceAfter' => 180]);
+            $section->addText('Purpose: '.$certificate['purpose'], ['bold' => true]);
+            $section->addText('Issued: '.$certificate['issued_at'], ['bold' => true]);
+            $section->addTextBreak(3);
+            $section->addText('___________________________', [], ['alignment' => 'right']);
+            $section->addText('Guidance Counselor', [], ['alignment' => 'right']);
         }
         if ($document['columns'] !== []) {
             $table = $section->addTable(['borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60]);
@@ -130,7 +134,14 @@ class DocumentExportService
             foreach ($document['summary'] as $label => $value) $write([$label, $value]);
             $write($document['columns']);
             foreach ($document['rows'] as $row) $write($row);
-            foreach ($document['certificates'] as $certificate) foreach ($certificate as $paragraph) $write([$paragraph]);
+            foreach ($document['certificates'] as $certificate) {
+                $write(['Name', $certificate['name']]);
+                $write(['Student Number', $certificate['student_number']]);
+                $write(['Course', $certificate['course']]);
+                $write(['Statement', $certificate['statement']]);
+                $write(['Purpose', $certificate['purpose']]);
+                $write(['Issued', $certificate['issued_at']]);
+            }
             $write(['Prepared by: Guidance Staff', 'Approved by: Guidance Counselor']);
             rewind($stream);
             $bytes = stream_get_contents($stream);

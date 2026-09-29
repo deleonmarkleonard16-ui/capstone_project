@@ -9,11 +9,32 @@ use App\Models\User;
 use App\Services\AdmissionReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Tests\TestCase;
 
 class AdmissionReportsTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_cutoff_migration_recovers_a_table_left_by_failed_mysql_index_creation(): void
+    {
+        Schema::dropIfExists('admission_interview_cutoffs');
+        Schema::create('admission_interview_cutoffs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('admission_cycle_id')->constrained()->cascadeOnDelete();
+            $table->string('course_code', 30);
+            $table->unsignedInteger('top_limit');
+            $table->timestamps();
+        });
+
+        $migration = require database_path('migrations/2026_09_30_000003_create_admission_interview_cutoffs.php');
+        $migration->up();
+
+        $this->assertTrue(Schema::hasIndex('admission_interview_cutoffs', 'adm_interview_cycle_course_uq', 'unique'));
+        $migration->up();
+        $this->assertTrue(Schema::hasIndex('admission_interview_cutoffs', ['admission_cycle_id', 'course_code'], 'unique'));
+    }
 
     public function test_program_thresholds_cutoffs_quotas_and_masterlist_rank(): void
     {

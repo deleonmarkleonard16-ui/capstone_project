@@ -109,8 +109,11 @@
 <body>
 
 <div class="header">
-    <h1>PANGASINAN STATE UNIVERSITY – SAN CARLOS CAMPUS</h1>
-    <div class="sub-office">Guidance and Counseling Services Office</div>
+    <h1>Pangasinan State University - San Carlos Campus</h1>
+    <div class="sub-office">Guidance and Counseling Office</div>
+    <div>Date Generated: {{ now()->timezone('Asia/Manila')->format('F j, Y g:i A') }} (Asia/Manila)</div>
+    <div>Batch: {{ $appointment->batch?->batch_name ?? $appointment->sourceBatch?->batch_name ?? 'Individual request' }}</div>
+    <div>Active Filters: Appointment {{ $appointment->getKey() }} / Career assessment</div>
     <h2>CONFIDENTIAL PSYCHOLOGICAL ASSESSMENT REPORT / CAREER TEST EVALUATION</h2>
 </div>
 
@@ -141,6 +144,8 @@
 </div>
 
 <div class="footer-section">
+    <div style="margin-top: 32px;">Prepared by: ___________________________<br>Guidance Staff</div>
+    <div style="margin-top: 32px;">Approved by: ___________________________<br>Guidance Counselor</div>
     <div class="or-line">
         <span><strong>O.R. Date:</strong> {{ $appointment->or_date ? $appointment->or_date->format('F d, Y') : ($appointment->serviceRequest?->or_date ? \Illuminate\Support\Carbon::parse($appointment->serviceRequest->or_date)->format('F d, Y') : '___________________') }}</span>
         <span><strong>O.R. Number:</strong> {{ $appointment->or_number ?: ($appointment->serviceRequest?->or_number ?: '___________________') }}</span>
@@ -156,6 +161,7 @@
 <div class="actions">
     <button class="btn" onclick="window.print()">Print Report</button>
     <a class="btn btn-outline" href="{{ request()->fullUrlWithQuery(['format' => 'pdf']) }}">Download Official PDF</a>
+    <a class="btn btn-outline" href="{{ request()->fullUrlWithQuery(['format' => 'docx']) }}">Download DOCX</a>
 </div>
 
 </body>

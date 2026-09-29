@@ -40,7 +40,7 @@
             <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
         </button>
         <a class="btn btn-primary btn-sm"
-           href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
+           href="{{ route('admin.admission.report', array_merge(request()->only(['course', 'status', 'batch_group']), ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx'])) }}">
             <i class="bi bi-file-earmark-word me-1"></i> DOCX Export
         </a>
         @if ($cycle->isActive())

@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
+<div class="mb-3">
+    @foreach(['html' => 'Print official report', 'pdf' => 'Export PDF', 'docx' => 'Export DOCX', 'csv' => 'Export CSV'] as $format => $label)
+        <a class="btn btn-outline-primary btn-sm" href="{{ route(auth()->user()->role.'.guidance-testing.export', ['type' => 'individual', 'submission_id' => $submission->id, 'format' => $format, 'auto_print' => $format === 'html' ? 1 : 0]) }}">{{ $label }}</a>
+    @endforeach
+</div>
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <div>
         <h1 class="h3 mb-1">Assessment Review</h1>

@@ -11,11 +11,19 @@ class CareerReportController extends Controller
     public function __invoke(Request $request, GuidanceAppointment $appointment)
     {
         abort_unless($appointment->status === 'Completed' && $appointment->test_category === 'career', 404);
-        $request->validate(['format' => 'nullable|in:html,pdf']);
-        $appointment->load(['applicant', 'response', 'serviceRequest']);
+        $request->validate(['format' => 'nullable|in:html,pdf,docx,csv']);
+        if (in_array($request->input('format'), ['pdf', 'docx', 'csv'], true)) {
+            $request->merge(['type' => 'individual', 'appointment_id' => $appointment->getKey()]);
+
+            return app(DocumentExportController::class)->export($request, 'career');
+        }
+        $appointment->load(['applicant', 'response', 'serviceRequest', 'batch', 'sourceBatch']);
 
         $summary = $appointment->response?->testSummaries()['career'] ?? null;
-        abort_unless($summary && count($summary['scores'] ?? []) >= 3, 409, 'A scored career assessment is required.');
+        $records = collect($summary['scores'] ?? []);
+        if ($records->isEmpty() || $records->count() < 3) {
+            return redirect()->route($request->user()->role.'.exports.index')->with('error', 'A scored career assessment is required.');
+        }
 
         $scores = $summary['scores'];
         arsort($scores, SORT_NUMERIC);
@@ -47,34 +55,6 @@ class CareerReportController extends Controller
             'interestLevel',
             'counselorName'
         ))->render();
-
-        if ($request->query('format') === 'pdf') {
-            try {
-                $dompdfOptions = new \Dompdf\Options();
-                $dompdfOptions->set('isRemoteEnabled', false);
-                $dompdfOptions->set('isHtml5ParserEnabled', true);
-                $pdf = new \Dompdf\Dompdf($dompdfOptions);
-                $pdf->loadHtml($html);
-                $pdf->setPaper('A4', 'portrait');
-                $pdf->render();
-
-                $studentName = \Illuminate\Support\Str::slug(
-                    $appointment->applicant->full_name ?? 'applicant'
-                );
-                $filename = "career-report-{$studentName}-" . now()->format('Y-m-d') . '.pdf';
-
-                return response($pdf->output())
-                    ->header('Content-Type', 'application/pdf')
-                    ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('Career Report PDF Export Error', [
-                    'appointment_id' => $appointment->getKey(),
-                    'message'        => $e->getMessage(),
-                ]);
-                return redirect()->back()
-                    ->with('error', 'Career report PDF generation failed: ' . $e->getMessage());
-            }
-        }
 
         return response($html)->header('Cache-Control', 'no-store, private');
     }

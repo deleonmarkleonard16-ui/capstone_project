@@ -18,6 +18,20 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\PreventBackHistory;
 
 Route::redirect('/', '/portal');
+// Read-only exports remain available for historical cycles as well as active ones.
+foreach (['admin', 'staff'] as $exportRole) {
+    Route::middleware(['auth', PreventBackHistory::class, 'role:'.$exportRole, \App\Http\Middleware\PrivateGuidanceResponse::class])
+        ->prefix($exportRole)->name($exportRole.'.')->group(function () use ($exportRole) {
+            $exports = \App\Http\Controllers\DocumentExportController::class;
+            Route::get('/exports', [$exports, 'index'])->name('exports.index');
+            Route::get('/analytics/export', [\App\Http\Controllers\AnalyticsController::class, 'exportReport'])->name('analytics.export');
+            foreach (array_keys(\App\Services\ExportReportService::TYPES) as $module) {
+                if ($module === 'admission' && $exportRole !== 'admin') continue;
+                Route::get('/'.$module.'/export', [$exports, 'export'])->defaults('module', $module)->name($module.'.export');
+                Route::get('/'.$module.'/print-masterlist', [$exports, 'printMasterlist'])->defaults('module', $module)->name($module.'.print-masterlist');
+            }
+        });
+}
 Route::middleware(['auth', PreventBackHistory::class, 'role:admin,staff'])->prefix('api/notifications')->name('api.notifications.')->group(function (): void {
     Route::post('/{notification}/read', [\App\Http\Controllers\GuidanceNotificationController::class, 'read'])->name('read');
     Route::post('/clear-module', [\App\Http\Controllers\GuidanceNotificationController::class, 'clearModule'])->name('clear-module');

@@ -13,8 +13,6 @@ use App\Services\AnalyticsDashboardService;
 use App\Services\GuidanceAnalyticsService;
 use App\Services\GuidanceAssessmentSessionService;
 use App\Support\CourseCatalog;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -23,6 +21,82 @@ use Illuminate\Validation\Rule;
 
 class AnalyticsController extends Controller
 {
+    /** Use the same branded renderer for institutional reports and record exports. */
+    public function exportReport(Request $request)
+    {
+        $filters = $request->validate([
+            'format' => ['nullable', Rule::in(['html', 'pdf', 'docx', 'csv'])],
+            'type' => ['nullable', Rule::in(['summary', 'records'])],
+            'cycle_id' => ['nullable', 'integer', 'exists:admission_cycles,id'],
+            'auto_print' => ['nullable', 'boolean'],
+            'course' => ['prohibited'], 'status' => ['prohibited'],
+        ]);
+        $format = $filters['format'] ?? 'html';
+        $fallback = route($request->user()->role.'.exports.index');
+        try {
+            $cycleId = isset($filters['cycle_id']) ? (int) $filters['cycle_id'] : null;
+            $metrics = $this->compileExecutiveMetrics($cycleId);
+            $dashboard = app(AnalyticsDashboardService::class);
+            $metrics['actionCenter'] = $dashboard->actionCenterCounts();
+            $metrics['documentFees'] = $dashboard->documentFeeAnalytics();
+            $records = collect();
+            $columns = ['Metric', 'Value'];
+            if (($filters['type'] ?? 'summary') === 'records') {
+                $columns = ['Reference', 'Name', 'Student ID', 'Gender', 'Course', 'Service / Assessment', 'O.R. Number', 'O.R. Date', 'Status', 'Intervention Status', 'Scores / Interpretation', 'Date'];
+                foreach (GuidanceAppointment::with(['applicant', 'serviceRequest', 'response', 'batch', 'sourceBatch'])->orderBy('guidance_appointment_id')->get() as $r) {
+                    $records->push([$r->reference ?: '-', trim(($r->last_name ?? '').', '.($r->first_name ?? '').' '.($r->middle_name ?? ''), ' ,') ?: 'N/A', $r->student_number ?? '-', $r->applicant?->gender ?? $r->serviceRequest?->gender ?? '-', $r->courseLabel(), $r->testLabel(), $r->or_number ?? $r->serviceRequest?->or_number ?? '-', $r->or_date?->format('Y-m-d') ?? $r->serviceRequest?->or_date?->format('Y-m-d') ?? '-', $r->status ?? '-', $r->counseling_status ?? 'Pending Review', $this->exportMetricText($r->response?->testSummaries() ?? []), $r->created_at?->format('Y-m-d') ?? '-']);
+                }
+                foreach (ServiceRequest::whereIn('service', ['good-moral', 'exit-form'])->get() as $r) {
+                    $records->push([$r->reference ?? '-', trim(($r->last_name ?? '').', '.($r->first_name ?? ''), ' ,') ?: 'N/A', $r->student_number ?: '-', $r->gender ?? '-', $r->courseLabel(), ServiceRequest::SERVICES[$r->service] ?? 'Document', $r->or_number ?? '-', $r->or_date?->format('Y-m-d') ?? '-', $r->status ?? '-', 'N/A', $r->purpose ?: '-', $r->created_at?->format('Y-m-d') ?? '-']);
+                }
+                foreach (AdmissionApplicant::when($cycleId, fn ($q, $id) => $q->where('admission_cycle_id', $id))->get() as $r) {
+                    $records->push([$r->application_number ?? '-', $r->full_name ?? 'N/A', $r->student_id ?? '-', $r->sex ?? '-', $r->course_choice ?? 'N/A', 'Admission', 'N/A', 'N/A', $r->qualification_status ?? 'Pending', 'N/A', 'GWA: '.($r->gwa ?? '-').'; Exam: '.($r->exam_score ?? '-').'; Total: '.($r->total_score ?? '-'), $r->created_at?->format('Y-m-d') ?? '-']);
+                }
+            } elseif (($metrics['totalRequests'] ?? 0) > 0) {
+                $appendMetric = function (string $label, $value) use (&$appendMetric, $records): void {
+                    if (is_array($value) && $value !== []) {
+                        foreach ($value as $key => $child) $appendMetric($label.' / '.\Illuminate\Support\Str::headline((string) $key), $child);
+                    } else {
+                        $records->push([$label, is_array($value) ? '-' : (string) ($value ?? '-')]);
+                    }
+                };
+                foreach ($metrics as $key => $value) {
+                    if (in_array($key, ['guidanceOnly', 'role', 'officialPrograms'], true)) continue;
+                    $appendMetric(\Illuminate\Support\Str::headline($key), $value);
+                }
+            }
+            if ($records->isEmpty()) return redirect($fallback)->with('error', 'No eligible records found for the selected filters.');
+            $document = [
+                'title' => ($filters['type'] ?? 'summary') === 'records' ? 'Institutional Administrative Records Report' : 'Executive Institutional Analytics Summary',
+                'office' => 'Guidance and Counseling Office / Testing and Admission Office',
+                'metadata' => ['Admission Cycle' => $cycleId ? (AdmissionCycle::find($cycleId)?->display_name ?? 'N/A') : 'All admission cycles', 'Academic Year' => GuidanceSetting::valueOf('academic_year', date('Y').'-'.(date('Y') + 1)), 'Guidance / Documents' => 'All batches and requests', 'Date Generated' => now()->timezone('Asia/Manila')->format('F j, Y g:i A').' (Asia/Manila)', 'Active Filters' => 'Admission cycle: '.($cycleId ?? 'All').'; Guidance / Documents: All'],
+                'summary' => [], 'certificates' => [], 'orientation' => 'landscape', 'columns' => $columns, 'rows' => $records,
+                'format' => $format, 'autoPrint' => (bool) ($filters['auto_print'] ?? false),
+            ];
+            $bytes = app(\App\Services\DocumentExportService::class)->render($document, $format);
+            $mime = match ($format) { 'pdf' => 'application/pdf', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'csv' => 'text/csv; charset=UTF-8', default => 'text/html; charset=UTF-8' };
+            $headers = ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store'];
+            if ($format !== 'html') $headers['Content-Disposition'] = 'attachment; filename="DMSGTA-institutional-report-'.now()->format('Y-m-d').'.'.$format.'"';
+
+            return response($bytes, 200, $headers);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Institutional export failed', ['exception' => $e]);
+
+            return redirect($fallback)->with('error', 'Unable to generate the document. Please contact the system administrator or try another format.');
+        }
+    }
+
+    private function exportMetricText(array $values, string $prefix = ''): string
+    {
+        $parts = [];
+        foreach ($values as $key => $value) {
+            $label = $prefix.\Illuminate\Support\Str::headline((string) $key);
+            $parts[] = is_array($value) ? $this->exportMetricText($value, $label.' / ') : $label.': '.(string) ($value ?? '-');
+        }
+
+        return implode('; ', $parts) ?: '-';
+    }
+
     /**
      * Sub-module tab analytics (Psychological, Personality, Career).
      */
@@ -154,40 +228,9 @@ class AnalyticsController extends Controller
      */
     public function exportPdf(Request $request, AnalyticsDashboardService $dashboardService)
     {
-        $selectedCycleId = $request->query('cycle_id') ? (int) $request->query('cycle_id') : null;
-        $data = $this->compileExecutiveMetrics($selectedCycleId);
-        $data['actionCenter']  = $dashboardService->actionCenterCounts();
-        $data['documentFees']  = $dashboardService->documentFeeAnalytics();
-        $data['counselorName'] = GuidanceSetting::valueOf('guidance_counselor_name', 'Ms. Noemi C. Carlos');
-        $data['academicYear']  = GuidanceSetting::valueOf('academic_year', date('Y') . '-' . (date('Y') + 1));
-        $data['generatedAt']   = now()->timezone('Asia/Manila')->format('F d, Y h:i A');
+        $request->merge(['format' => 'pdf', 'type' => 'summary']);
 
-        $html = view('admin.analytics-pdf', $data)->render();
-
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', false);
-        $options->set('defaultFont', 'DejaVu Sans');
-
-        $filename = 'PSU_San_Carlos_Institutional_Analytics_' . now()->format('Y_m_d') . '.pdf';
-
-        try {
-            $dompdf = new Dompdf($options);
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
-            return response($dompdf->output())
-                ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Analytics PDF Export Error', [
-                'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString(),
-            ]);
-            return redirect()->back()
-                ->with('error', 'Analytics PDF export failed: ' . $e->getMessage());
-        }
+        return $this->exportReport($request);
     }
 
     /**
@@ -195,104 +238,9 @@ class AnalyticsController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        $filename = 'PSU_San_Carlos_Analytics_Data_' . now()->format('Y_m_d') . '.csv';
+        $request->merge(['format' => 'csv', 'type' => 'records']);
 
-        $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Pragma'              => 'no-cache',
-            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires'             => '0',
-        ];
-
-        $callback = function () {
-            $output = fopen('php://output', 'w');
-            fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-            fputcsv($output, [
-                'Reference Code',
-                'Student / Applicant Name',
-                'Student ID Number',
-                'Gender',
-                'Degree Program',
-                'Service / Assessment',
-                'O.R. Number',
-                'O.R. Date',
-                'Status',
-                'Intervention Status',
-                'Severity / Interpretations',
-                'Date Recorded',
-            ]);
-
-            $appointments = GuidanceAppointment::with(['applicant', 'serviceRequest', 'response'])
-                ->latest('guidance_appointment_id')
-                ->cursor();
-
-            foreach ($appointments as $app) {
-                $name = $app->applicant?->full_name ?? ($app->serviceRequest ? trim($app->serviceRequest->first_name . ' ' . $app->serviceRequest->last_name) : 'N/A');
-                $sid = $app->student_number ?? ($app->applicant?->application_number ?? 'Not Provided');
-                $gender = $app->applicant?->gender ?? ($app->serviceRequest?->gender ?? 'Not Specified');
-                $course = CourseCatalog::allOptions()[$app->courseLabel()] ?? $app->courseLabel();
-                $tests = $app->testLabel();
-                $orNumber = $app->or_number ?: ($app->serviceRequest?->or_number ?? 'N/A');
-                $orDate = $app->or_date ? $app->or_date->format('Y-m-d') : ($app->serviceRequest?->or_date ? Carbon::parse($app->serviceRequest->or_date)->format('Y-m-d') : 'N/A');
-
-                $interpretations = [];
-                if ($app->response) {
-                    $summaries = $app->response->testSummaries();
-                    foreach ($summaries as $testKey => $sum) {
-                        $interp = $sum['interpretation'] ?? [];
-                        foreach ($interp as $dim => $val) {
-                            $interpretations[] = ucfirst($dim) . ': ' . $val;
-                        }
-                    }
-                }
-                $interpStr = !empty($interpretations) ? implode('; ', $interpretations) : 'None';
-
-                fputcsv($output, [
-                    $app->request_code,
-                    mb_strtoupper($name),
-                    $sid,
-                    ucfirst($gender),
-                    $course,
-                    $tests,
-                    $orNumber,
-                    $orDate,
-                    $app->status,
-                    $app->counseling_status ?? 'Pending Review',
-                    $interpStr,
-                    $app->created_at ? $app->created_at->format('Y-m-d H:i') : '',
-                ]);
-            }
-
-            $requests = ServiceRequest::whereIn('service', ['good-moral', 'exit-form'])
-                ->latest('id')
-                ->cursor();
-
-            foreach ($requests as $req) {
-                $name = trim($req->first_name . ' ' . $req->last_name);
-                $course = CourseCatalog::allOptions()[$req->course] ?? $req->course;
-
-                fputcsv($output, [
-                    $req->reference,
-                    mb_strtoupper($name),
-                    $req->student_number ?: 'Not Provided',
-                    ucfirst($req->gender ?? 'Not Specified'),
-                    $course,
-                    ServiceRequest::SERVICES[$req->service] ?? $req->service,
-                    $req->or_number ?: 'N/A',
-                    $req->or_date ? Carbon::parse($req->or_date)->format('Y-m-d') : 'N/A',
-                    ucfirst($req->status),
-                    'N/A',
-                    'Document Request (' . ($req->copies ?? 1) . ' copies)',
-                    $req->created_at ? $req->created_at->format('Y-m-d H:i') : '',
-                ]);
-            }
-
-            fclose($output);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $this->exportReport($request);
     }
 
     /**

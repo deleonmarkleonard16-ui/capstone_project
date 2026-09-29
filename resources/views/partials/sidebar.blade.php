@@ -43,6 +43,9 @@
 
             <nav aria-label="Main navigation" class="d-flex flex-column gap-1">
                 {{-- Dashboard --}}
+                <a class="sidebar-link {{ request()->routeIs($role.'.exports.*') ? 'active' : '' }}" href="{{ route($role.'.exports.index') }}">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Document Exports
+                </a>
                 <a class="sidebar-link {{ request()->routeIs("{$role}.dashboard") ? 'active' : '' }}"
                    href="{{ route("{$role}.dashboard") }}">
                     <i class="bi bi-grid-1x2-fill"></i> Dashboard

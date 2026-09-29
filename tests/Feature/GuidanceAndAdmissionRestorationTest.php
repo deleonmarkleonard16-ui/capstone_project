@@ -128,7 +128,10 @@ class GuidanceAndAdmissionRestorationTest extends TestCase
             ->assertOk()
             ->assertSee('Exit Form / Clearance Requests')
             ->assertSee('SARAH LIM')
-            ->assertSee('Print Exit Clearance Slip');
+            ->assertDontSee('Print Exit Clearance Slip');
+
+        ServiceRequest::where('reference', 'EF-SARAH01')->update(['status' => 'completed']);
+        $this->get(route('staff.exit-form'))->assertOk()->assertSee('Print Exit Clearance Slip');
     }
 
     public function test_admission_evaluation_computes_total_marks_and_ranks_passers(): void

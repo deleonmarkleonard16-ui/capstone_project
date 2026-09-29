@@ -577,12 +577,18 @@ class AdmissionPipelineController extends Controller
             $psuLogoUrl = 'data:image/jpeg;base64,'.base64_encode((string) file_get_contents($logoPath));
         }
 
-        $html = view('admin.admission.paper', compact('applicant', 'totalItems', 'isPdf', 'psuLogoUrl'))->render();
-        $filename = 'PSU-CAT-Answer-Sheet-'.Str::slug($applicant->application_number).'.pdf';
+        try {
+            $html = view('admin.admission.paper', compact('applicant', 'totalItems', 'isPdf', 'psuLogoUrl'))->render();
+            $filename = 'PSU-CAT-Answer-Sheet-'.Str::slug($applicant->application_number ?? 'applicant').'.pdf';
 
-        return response($this->pdf($html))
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="'.$filename.'"');
+            return response($this->pdf($html))
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'inline; filename="'.$filename.'"');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Admission answer sheet PDF failed', ['exception' => $e]);
+
+            return redirect()->route('admin.exports.index')->with('error', 'Unable to generate the document. Please contact the system administrator or try another format.');
+        }
     }
 
     public function scanner()
@@ -633,89 +639,7 @@ class AdmissionPipelineController extends Controller
 
     public function report(Request $request)
     {
-        $cycleId = $request->input('cycle_id');
-        $cycle = $cycleId ? AdmissionCycle::find($cycleId) : $this->active();
-        if (!$cycle) return $this->gatekeeperRedirect();
-
-        $data = $request->validate([
-            'type'        => ['required', Rule::in(['summary', 'qualified', 'not-qualified'])],
-            'course'      => 'nullable|string|max:30',
-            'batch_id'    => 'nullable|string|max:100',
-            'batch_group' => 'nullable|string|max:100',
-            'format'      => ['nullable', Rule::in(['html', 'pdf', 'docx'])],
-        ]);
-
-        $batch = $data['batch_id'] ?? $data['batch_group'] ?? null;
-
-        $rows = $cycle->applicants()
-            ->when($data['course'] ?? null, fn ($q, $course) => $q->where('course_choice', $course))
-            ->when($batch, fn ($q, $b) => $q->where('batch_group', $b))
-            ->when($data['type'] !== 'summary', fn ($q) => $q->where('qualification_status', $data['type'] === 'qualified' ? 'Qualified' : 'Not Qualified'))
-            ->orderBy('course_choice')
-            ->orderByDesc('total_score')
-            ->get();
-
-        $format = $data['format'] ?? 'html';
-
-        // Guard: Verify active records exist before triggering file generation
-        if (in_array($format, ['docx', 'pdf'], true) && $rows->isEmpty()) {
-            return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])
-                ->with('error', 'Cannot export report: No applicant records found for the selected filters.');
-        }
-
-        // Merge course quotas into $data so the view can display quota per course
-        $data['quotas'] = DB::table('admission_course_quotas')
-            ->where('admission_cycle_id', $cycle->id)
-            ->pluck('seats', 'course_code')
-            ->all();
-
-        $safeCycleName = \Illuminate\Support\Str::slug($cycle->name ?? $cycle->cycle_name ?? 'cycle');
-        $safeType = \Illuminate\Support\Str::slug($data['type'] ?? 'summary');
-        $fileDate = now()->format('Y-m-d');
-
-        if ($format === 'docx') {
-            try {
-                $docxBytes = app(\App\Services\AdmissionDocxService::class)->render($cycle, $rows, $data['type']);
-                $filename  = "PSU-CAT-{$safeCycleName}-{$safeType}-{$fileDate}.docx";
-
-                return response($docxBytes)
-                    ->header('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-                    ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('Admission DOCX Export Error', [
-                    'cycle_id' => $cycle->id,
-                    'type'     => $data['type'] ?? 'summary',
-                    'message'  => $e->getMessage(),
-                ]);
-
-                return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])
-                    ->with('error', 'DOCX generation failed: ' . $e->getMessage());
-            }
-        }
-
-        $html = view('admin.admission.report', compact('cycle', 'rows', 'data'))->render();
-
-        if ($format === 'pdf') {
-            try {
-                $pdfBytes = $this->pdf($html);
-                $filename  = "PSU-CAT-{$safeCycleName}-{$safeType}-{$fileDate}.pdf";
-
-                return response($pdfBytes)
-                    ->header('Content-Type', 'application/pdf')
-                    ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('Admission PDF Export Error', [
-                    'cycle_id' => $cycle->id,
-                    'type'     => $data['type'] ?? 'summary',
-                    'message'  => $e->getMessage(),
-                ]);
-
-                return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])
-                    ->with('error', 'PDF generation failed: ' . $e->getMessage());
-            }
-        }
-
-        return response($html);
+        return app(DocumentExportController::class)->legacyReport($request, 'admission');
     }
 
     private function pdf(string $html): string

@@ -39,7 +39,7 @@
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.22);
-        color: #ffffff;
+        color: #fbbf24; /* amber-400 */
         font-weight: 600;
         font-size: 0.85rem;
         padding: 0.45rem 1rem;
@@ -69,22 +69,11 @@
         justify-content: center;
     }
 
-    .login-heading {
-        color: #0f172a;
-        font-size: clamp(1.15rem, 2vw, 1.5rem);
-        line-height: 1.35;
-        overflow-wrap: break-word;
-    }
-
-    .login-brand-copy {
-        min-width: 0;
-    }
-
-    .login-brand-logo {
-        width: 64px;
-        height: 64px;
-        object-fit: contain;
-        flex-shrink: 0;
+    .login-welcome-box {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 0.875rem;
+        padding: 1rem 1.25rem;
     }
 
     .custom-input-group {
@@ -250,7 +239,7 @@
                             <div class="login-hero-panel h-100 p-4 p-md-5 d-flex flex-column justify-content-between text-white">
                                 {{-- Top Badge --}}
                                 <div class="mb-4">
-                                    <span class="hero-campus-badge text-white">
+                                    <span class="hero-campus-badge">
                                         <i class="bi bi-geo-alt-fill text-warning"></i>
                                         <span>PSU San Carlos Campus</span>
                                     </span>
@@ -269,6 +258,12 @@
                                             <i class="bi bi-graph-up-arrow text-success"></i> Real-time Analytics
                                         </span>
                                     </div>
+                                    <h1 class="display-6 fw-bold text-white mb-3" style="text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); line-height: 1.2;">
+                                        Guidance Testing and Admission made easier for staff and applicants.
+                                    </h1>
+                                    <p class="lead mb-0 text-white-50" style="color: rgba(255, 255, 255, 0.92) !important; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); font-size: 1rem; line-height: 1.55;">
+                                        Use one session QR code, verify examinees quickly, monitor attendance live, and manage answer encoding with a cleaner workflow.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -277,10 +272,21 @@
                         <div class="col-12 col-lg-5 p-4 p-md-5 login-form-panel">
                             {{-- Header / Brand --}}
                             <div class="d-flex align-items-center gap-3 mb-4">
-                                <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" class="login-brand-logo">
-                                <div class="login-brand-copy">
+                                <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" style="width: 64px; height: 64px; object-fit: contain;">
+                                <div>
                                     <p class="text-uppercase text-primary fw-bold mb-0" style="font-size: 0.78rem; letter-spacing: 0.08em;">Staff Access</p>
-                                    <h1 class="login-heading fw-bold mb-0">Digital Management System for Guidance Testing and Admission</h1>
+                                    <h2 class="h4 fw-bold text-slate-800 mb-0" style="color: #0f172a;">Sign in to continue</h2>
+                                </div>
+                            </div>
+
+                            {{-- Welcome Box --}}
+                            <div class="login-welcome-box mb-4">
+                                <div class="d-flex align-items-center gap-2 fw-semibold text-slate-800 mb-1" style="color: #1e293b; font-size: 0.92rem;">
+                                    <i class="bi bi-stars text-primary"></i>
+                                    <span>Welcome back</span>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.82rem; line-height: 1.45;">
+                                    Manage applicants, session QR check-in, answer keys, attendance logs, and admission results from one place.
                                 </div>
                             </div>
 

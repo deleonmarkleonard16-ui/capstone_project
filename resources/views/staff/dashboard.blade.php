@@ -7,7 +7,7 @@
             <p class="text-muted mb-0">{{ auth()->user()->role === 'admin' ? 'Overview of applicants, sessions, attendance, and submissions.' : 'Access testing and document requests.' }}</p>
         </div>
         @if (auth()->user()->role === 'admin')
-        <a href="{{ route(auth()->user()->role.'.sessions.create') }}" class="btn btn-primary">Create Test Session</a>
+        <a href="{{ route('admin.admission.sessions.create') }}" class="btn btn-primary">Create Test Session</a>
         @endif
     </div>
 
@@ -110,23 +110,30 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2 class="h5 mb-0">Recent Sessions</h2>
-                <a href="{{ route(auth()->user()->role.'.sessions.index') }}" class="btn btn-outline-primary btn-sm">View All</a>
+                <a href="{{ route('admin.admission.sessions.index') }}" class="btn btn-outline-primary btn-sm">View All</a>
             </div>
             <div class="table-responsive">
                 <table class="table align-middle">
                     <thead>
-                        <tr><th>Title</th><th>Exam Date</th><th>Room</th><th>Status</th><th class="text-end">Actions</th></tr>
+                        <tr><th>Title</th><th>Exam Date &amp; Time</th><th>Room / Venue</th><th>Status</th><th class="text-end">Actions</th></tr>
                     </thead>
                     <tbody>
                         @forelse ($sessions as $session)
                             <tr>
-                                <td>{{ $session->title }}</td>
-                                <td>{{ $session->exam_date->format('M d, Y') }} {{ $session->start_time }}</td>
+                                <td>{{ $session->session_name }}</td>
+                                <td>{{ $session->start_time?->format('M d, Y h:i A') ?? 'Not scheduled' }}</td>
                                 <td>{{ $session->room }}</td>
-                                <td><span class="badge text-bg-secondary">{{ ucfirst(str_replace('_', ' ', $session->status)) }}</span></td>
+                                @php
+                                    $statusClass = match ($session->status) {
+                                        \App\Models\AdmissionSession::STATUS_SCHEDULED => 'text-bg-info',
+                                        \App\Models\AdmissionSession::STATUS_IN_PROGRESS => 'text-bg-warning',
+                                        \App\Models\AdmissionSession::STATUS_COMPLETED => 'text-bg-success',
+                                        default => 'text-bg-secondary',
+                                    };
+                                @endphp
+                                <td><span class="badge {{ $statusClass }}">{{ $session->status }}</span></td>
                                 <td class="text-end">
-                                    <a href="{{ route(auth()->user()->role.'.sessions.assignments.index', $session) }}" class="btn btn-outline-primary btn-sm">Assignments</a>
-                                    <a href="{{ route(auth()->user()->role.'.sessions.monitoring.show', $session) }}" class="btn btn-primary btn-sm">Monitor</a>
+                                    <a href="{{ route('admin.admission.sessions.show', $session) }}" class="btn btn-primary btn-sm">Monitor</a>
                                 </td>
                             </tr>
                         @empty

@@ -217,7 +217,12 @@ class AdmissionPipelineController extends Controller
         $examFilter = trim((string) $request->query('exam_filter', ''));
         $interviewFilter = trim((string) $request->query('interview_filter', ''));
         $stanine = $request->query('stanine');
-        $sort = $request->query('sort', 'course_last_name');
+
+        // Assign ranks across the entire cycle before applying display filters.
+        $ranks = $cycle->applicants()->orderByDesc('total_score')
+            ->orderByDesc('stanine_score')->orderByDesc('gwa')
+            ->orderByDesc('interview_score')->orderBy('id')
+            ->pluck('id')->flip()->map(fn ($index) => $index + 1);
 
         $query = $cycle->applicants();
 
@@ -259,13 +264,8 @@ class AdmissionPipelineController extends Controller
             $query->where('stanine_score', (int) $stanine);
         }
 
-        // Sorting logic
-        match ($sort) {
-            'gwa_desc' => $query->orderByDesc('gwa'),
-            'total_desc' => $query->orderByDesc('total_score'),
-            'last_name' => $query->orderBy('last_name')->orderBy('first_name'),
-            default => $query->orderBy('course_choice')->orderBy('last_name'),
-        };
+        $query->orderByDesc('total_score')->orderByDesc('stanine_score')
+            ->orderByDesc('gwa')->orderByDesc('interview_score')->orderBy('id');
 
         $applicants = $query->paginate(25)->withQueryString();
 
@@ -287,8 +287,12 @@ class AdmissionPipelineController extends Controller
             'allCycles' => $allCycles,
             'isLocked' => $isLocked,
             'applicants' => $applicants,
+            'ranks' => $ranks,
             'search' => $search,
             'courses' => CourseCatalog::allOptions(),
+            'reportPrograms' => array_unique(array_merge(array_keys(CourseCatalog::allOptions()),
+                $cycle->applicants()->distinct()->pluck('course_choice')->all())),
+            'reportCutoffs' => app(\App\Services\AdmissionReportService::class)->cutoffs($cycle),
             'batchGroups' => $batchGroups,
             'sessionOptions' => $sessionOptions,
         ]);

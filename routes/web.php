@@ -249,6 +249,12 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::get('/applicants/{applicant}/encode', [$c, 'encode'])->name('encode');
         Route::post('/applicants/{applicant}/encode', [$c, 'submitPaper'])->name('encode.submit');
         Route::get('/report', [$c, 'report'])->name('report');
+        $reports = \App\Http\Controllers\AdmissionReportController::class;
+        Route::get('/reports/psu-cat-qualifiers', [$reports, 'psuCatQualifiers'])->name('reports.psu-cat-qualifiers');
+        Route::post('/reports/interview-qualifiers', [$reports, 'interviewQualifiers'])->name('reports.interview-qualifiers');
+        Route::get('/reports/interview-non-qualifiers', [$reports, 'interviewNonQualifiers'])->name('reports.interview-non-qualifiers');
+        Route::get('/reports/final-enrollment-qualified', [$reports, 'finalEnrollmentQualified'])->name('reports.final-enrollment-qualified');
+        Route::get('/reports/final-enrollment-waitlisted', [$reports, 'finalEnrollmentWaitlisted'])->name('reports.final-enrollment-waitlisted');
         Route::get('/proctoring', fn () => view('admin.admission.incidents'))->name('proctoring');
         Route::get('/security-incidents', [\App\Http\Controllers\AdmissionExamController::class, 'incidents'])->name('incidents');
     });

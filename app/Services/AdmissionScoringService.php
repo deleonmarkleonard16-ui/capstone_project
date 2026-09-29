@@ -83,10 +83,23 @@ class AdmissionScoringService
         $quotas = DB::table('admission_course_quotas')
             ->where('admission_cycle_id', $cycle->id)
             ->pluck('seats', 'course_code');
+        $cutoffs = DB::table('admission_interview_cutoffs')
+            ->where('admission_cycle_id', $cycle->id)
+            ->pluck('top_limit', 'course_code');
 
         $itemCount = max(1, (int) ($cycle->total_items ?: (DB::table('admission_answer_keys')->where('admission_cycle_id', $cycle->id)->count() ?: 80)));
 
         foreach ($cycle->applicants()->get()->groupBy('course_choice') as $course => $group) {
+            $boardProgram = in_array($course, ['BEED', 'BSED-FIL', 'BSED-SOC', 'BTLEd'], true);
+            $invited = $group->filter(fn (AdmissionApplicant $a) => $a->stanine_score !== null
+                && (!$boardProgram || $a->stanine_score >= 4))
+                ->sort(function (AdmissionApplicant $a, AdmissionApplicant $b): int {
+                    foreach (['exam_score', 'stanine_score', 'gwa'] as $field) {
+                        $comparison = ($b->{$field} ?? -1) <=> ($a->{$field} ?? -1);
+                        if ($comparison !== 0) return $comparison;
+                    }
+                    return $a->id <=> $b->id;
+                })->take((int) ($cutoffs[$course] ?? $group->count()))->pluck('id')->flip();
             $ranked = $group->map(function (AdmissionApplicant $applicant) use ($cycle, $itemCount): AdmissionApplicant {
                 $total = $applicant->exam_score === null || $applicant->gwa === null || $applicant->interview_score === null
                     ? null
@@ -99,11 +112,18 @@ class AdmissionScoringService
 
                 $applicant->forceFill(['total_score' => $total]);
                 return $applicant;
-            })->sortByDesc('total_score')->values();
+            })->sort(function (AdmissionApplicant $a, AdmissionApplicant $b): int {
+                foreach (['total_score', 'stanine_score', 'gwa', 'interview_score'] as $field) {
+                    $comparison = ($b->{$field} ?? -1) <=> ($a->{$field} ?? -1);
+                    if ($comparison !== 0) return $comparison;
+                }
+                return $a->id <=> $b->id;
+            })->values();
 
             $qualified = 0;
             foreach ($ranked as $applicant) {
-                $eligible = $applicant->total_score !== null && $applicant->stanine_score >= $cycle->passing_stanine;
+                $eligible = $applicant->total_score !== null && (float) $applicant->interview_score > 0
+                    && $invited->has($applicant->id);
                 $status = $applicant->total_score === null
                     ? 'Pending'
                     : ($eligible && $qualified < (int) ($quotas[$course] ?? 0) ? 'Qualified' : 'Not Qualified');

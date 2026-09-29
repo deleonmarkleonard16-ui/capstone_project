@@ -57,6 +57,47 @@
 </div>
 
 {{-- ── ARCHIVED CYCLE LOCKED BANNER ── --}}
+@if($cycle->isActive())
+<div class="card page-card shadow-sm mb-3">
+    <div class="card-body p-3">
+        <h2 class="h6 mb-2">Admission Reports</h2>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            @foreach([
+                'psu-cat-qualifiers' => 'PSU-CAT Roster',
+                'interview-non-qualifiers' => 'Not Qualified for Interview',
+                'final-enrollment-qualified' => 'Qualified for Enrollment',
+                'final-enrollment-waitlisted' => 'Waitlisted',
+            ] as $report => $label)
+                <div class="btn-group btn-group-sm" role="group" aria-label="{{ $label }} exports">
+                    <a class="btn btn-outline-primary" href="{{ route('admin.admission.reports.'.$report, ['format' => 'pdf', 'batch_group' => request('batch_group')]) }}">{{ $label }} PDF</a>
+                    <a class="btn btn-outline-primary" href="{{ route('admin.admission.reports.'.$report, ['format' => 'docx', 'batch_group' => request('batch_group')]) }}">DOCX</a>
+                </div>
+            @endforeach
+        </div>
+        <form method="post" action="{{ route('admin.admission.reports.interview-qualifiers') }}">
+            @csrf
+            @if(request('batch_group')) <input type="hidden" name="batch_group" value="{{ request('batch_group') }}"> @endif
+            <div class="fw-semibold small mb-1">Interview top limits by program</div>
+            <p class="small text-muted mb-2">Board programs require stanine 4 or higher. Other programs accept all recorded stanines. Zero selects no applicants.</p>
+            <div class="row g-2">
+                @foreach($reportPrograms as $code)
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <label class="form-label small mb-1" for="top-limit-{{ $loop->index }}">{{ $code }}</label>
+                        <input id="top-limit-{{ $loop->index }}" class="form-control form-control-sm" type="number" min="0" max="100000" required name="top_limits[{{ $code }}]" value="{{ old('top_limits.'.$code, $reportCutoffs[$code] ?? 100000) }}">
+                    </div>
+                @endforeach
+            </div>
+            @error('top_limits') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+            <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-primary btn-sm" name="format" value="pdf">Save Limits &amp; Export Interview PDF</button>
+                <button class="btn btn-outline-primary btn-sm" name="format" value="docx">Save Limits &amp; Export Interview DOCX</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@endif
+
 @if ($isLocked)
     <div class="alert alert-secondary border d-flex align-items-center justify-content-between flex-wrap gap-2 py-2 px-3 mb-3">
         <div class="d-flex align-items-center gap-2">
@@ -166,12 +207,7 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <select class="form-select form-select-sm" name="sort">
-                        <option value="course_last_name" @selected(request('sort','course_last_name') === 'course_last_name')>Sort by Course</option>
-                        <option value="gwa_desc" @selected(request('sort') === 'gwa_desc')>Highest GWA</option>
-                        <option value="total_desc" @selected(request('sort') === 'total_desc')>Highest Total Score</option>
-                        <option value="last_name" @selected(request('sort') === 'last_name')>Last Name A–Z</option>
-                    </select>
+                    <div class="form-control form-control-sm bg-light text-muted">Ranked by total, stanine, GWA, interview</div>
                 </div>
                 <div class="col-md-2 d-flex gap-1">
                     <button class="btn btn-primary btn-sm flex-fill">Apply Filters</button>
@@ -191,7 +227,7 @@
             <table class="table table-sm align-middle mb-0" id="masterlist-table">
                 <thead class="table-light">
                     <tr>
-                        <th class="ps-3">NO.</th>
+                        <th class="ps-3">RANK</th>
                         <th>LAST NAME</th>
                         <th>GIVEN NAME</th>
                         <th>MIDDLE NAME</th>
@@ -212,7 +248,7 @@
                 <tbody>
                 @forelse ($applicants as $i => $applicant)
                     <tr>
-                        <td class="ps-3">{{ $applicants->firstItem() + $i }}</td>
+                        <td class="ps-3 fw-bold">#{{ $ranks[$applicant->id] }}</td>
                         <td class="fw-bold">{{ mb_strtoupper($applicant->last_name) }}</td>
                         <td>{{ mb_strtoupper($applicant->first_name) }}</td>
                         <td>{{ $applicant->middle_name ? mb_strtoupper($applicant->middle_name) : '–' }}</td>

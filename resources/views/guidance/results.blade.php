@@ -2,6 +2,9 @@
 
 @section('content')
 <x-report-export-actions :parameters="['appointment_id' => $appointment->getKey()]" />
+@if($appointment->test_category === 'psychological' || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7'], true))
+    <a class="btn btn-primary mb-3 no-print" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}">Official psychological assessment report</a>
+@endif
 @if($appointment->test_category === 'career')<a class="btn btn-primary mb-3" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}">Career assessment report / PDF</a>@endif
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     <div>

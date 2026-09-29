@@ -58,3 +58,19 @@ Composer already declares `dompdf/dompdf` and `phpoffice/phpword`. DOCX also req
 PDF, DOCX and HTML include the university, office, title, date generated in Asia/Manila, selected cycle/batch and filter criteria, plus Prepared by Guidance Staff / Approved by Guidance Counselor signature lines. Exit certificates describe completion within the Guidance and Counseling Office.
 
 Run `php artisan test --filter=DocumentExportTest` for filter isolation, eligibility, all-format empty results, actual PDF/DOCX generation, XML escaping, print behavior and failure handling.
+
+## Official psychological assessment report
+
+The assessment results page links to the institutional **OFFICE OF ADMISSION AND GUIDANCE SERVICES — PSYCHOLOGICAL ASSESSMENT** report, based on `PscyhTest_Report.docx`.
+
+- `GET /admin/guidance/report/preview/{appointment_id}` renders the printable A4 portrait view; `auto_print=1` opens the print dialog.
+- `GET /admin/guidance/report/download/{appointment_id}?format=pdf|docx` downloads the same report (default PDF).
+- The same endpoints are available under `/staff`, protected by the corresponding role. All responses disable caching.
+
+Completed psychological appointments with at least one valid scored result are eligible. The report reads `guidance_test_responses.score_summary` through `testSummaries()`, including legacy single-instrument summaries. It never modifies scores. Missing, invalid or incomplete instrument results leave their cells blank and display a counselor review note; empty results redirect with an error.
+
+The institutional DASS column mapping is **Normal → Very Low, Mild → Low, Moderate → Average, Severe → High, Extremely Severe → Very High**. PHQ-9 and GAD-7 use their stored severity labels directly. All five scale results must be available and Normal/Minimal to select **Fit for deployment**. Complete assessments with Mild/Moderate results select **Fit for deployment with Reservation**. Any Severe/Extremely Severe result or PHQ-9 Moderately Severe result selects **For Counseling**, even when other instruments are missing. Partial unflagged reports leave all recommendations unchecked.
+
+Profile details come from the applicant and linked request, with appointment origin and current/source batch fallbacks for course, section and purpose. Examination date uses the response timestamp in Asia/Manila. O.R. details prefer the appointment and then the request. The configured counselor name populates the review signature line; the administered-by signature remains blank for signing. The seal notice and tax-stamp text are printed as required by the template.
+
+`GuidanceReportController`, `PsychologicalReportService`, `PsychologicalReportDocxWriter` and `resources/views/guidance/psychological-report.blade.php` implement this report using the shared PDF/DOCX renderer. Run `php artisan test --filter=GuidanceReportTest` for report-specific checks.

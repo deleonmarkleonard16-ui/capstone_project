@@ -19,7 +19,7 @@ class DocumentExportService
                 'pdf' => $this->pdf($document),
                 'docx' => $this->docx($document),
                 'csv' => $this->csv($document),
-                default => view('exports.document', $document)->render(),
+                default => view($document['view'] ?? 'exports.document', $document)->render(),
             };
         } catch (\Throwable $e) {
             throw new \RuntimeException('Document generation failed.', 0, $e);
@@ -36,7 +36,7 @@ class DocumentExportService
         $options->set('isPhpEnabled', false);
         $options->set('defaultFont', 'DejaVu Sans');
         $pdf = new Dompdf($options);
-        $pdf->loadHtml(view('exports.document', $document)->render(), 'UTF-8');
+        $pdf->loadHtml(view($document['view'] ?? 'exports.document', $document)->render(), 'UTF-8');
         $pdf->setPaper('A4', $document['orientation']);
         $pdf->render();
         $bytes = $pdf->output();
@@ -54,6 +54,11 @@ class DocumentExportService
         }
         $word = new PhpWord();
         \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
+        if (($document['view'] ?? null) === 'guidance.psychological-report') {
+            app(PsychologicalReportDocxWriter::class)->write($word, $document);
+
+            return $this->wordBytes($word);
+        }
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(10);
         $section = $word->addSection(['orientation' => $document['orientation'], 'marginTop' => 720, 'marginBottom' => 720, 'marginLeft' => 720, 'marginRight' => 720]);
@@ -94,6 +99,12 @@ class DocumentExportService
             $this->signatures($section);
         }
         $section->addFooter()->addPreserveText('DMSGTA | Page {PAGE} of {NUMPAGES}', ['size' => 8], ['alignment' => 'center']);
+
+        return $this->wordBytes($word);
+    }
+
+    private function wordBytes(PhpWord $word): string
+    {
         $path = tempnam(sys_get_temp_dir(), 'dmsgta_');
         if ($path === false) throw new \RuntimeException('Unable to create an export temporary file.');
         try {

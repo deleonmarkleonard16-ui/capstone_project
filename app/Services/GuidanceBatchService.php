@@ -6,6 +6,7 @@ use App\Events\GuidanceBatchStarted;
 use App\Models\Applicant;
 use App\Models\GuidanceAppointment;
 use App\Models\GuidanceTestBatch;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +18,7 @@ class GuidanceBatchService
     {
         $path = $csv->getRealPath();
         $sample = @file_get_contents($path, false, null, 0, 4096);
-        abort_unless(is_string($sample) && trim($sample) !== '', 422, 'CSV is empty.');
+        if (!is_string($sample) || trim($sample) === '') throw ValidationException::withMessages(['roster' => 'CSV is empty.']);
 
         // Auto-detect delimiter from the header line (commas, semicolons, tabs)
         $firstLine = strtok($sample, "\r\n") ?: '';
@@ -34,7 +35,7 @@ class GuidanceBatchService
         $file = fopen($path, 'r');
         try {
             $rawHeader = fgetcsv($file, 0, $delimiter, '"', '');
-            abort_unless(is_array($rawHeader) && !empty($rawHeader), 422, 'CSV is empty.');
+            if (!is_array($rawHeader) || !$rawHeader) throw ValidationException::withMessages(['roster' => 'CSV is empty.']);
 
             // Strip UTF-8 BOM if present on the first column
             $rawHeader[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $rawHeader[0]);
@@ -64,7 +65,9 @@ class GuidanceBatchService
 
             $required = ['student_id', 'first_name', 'last_name'];
             $missing = array_diff($required, $header);
-            abort_if(!empty($missing), 422, 'CSV requires unique student_id, first_name and last_name columns.');
+            if ($missing || count($header) !== count(array_unique($header))) {
+                throw ValidationException::withMessages(['roster' => 'CSV requires unique student_id, first_name and last_name columns.']);
+            }
 
             $headerCount = count($header);
             $rows = []; $seen = [];
@@ -73,17 +76,12 @@ class GuidanceBatchService
                     continue; // Skip blank or whitespace lines
                 }
 
-                // Slice or pad row values to match header count
-                if (count($values) > $headerCount) {
-                    $values = array_slice($values, 0, $headerCount);
-                } elseif (count($values) < $headerCount) {
-                    $values = array_pad($values, $headerCount, '');
-                }
+                if (count($values) !== $headerCount) throw ValidationException::withMessages(['roster' => 'CSV row '.(count($rows) + 2).' has the wrong number of columns.']);
 
                 $row = array_combine($header, array_map(fn ($v) => trim((string) $v), $values));
                 Validator::make($row, ['student_id' => 'required|string|max:100', 'first_name' => 'required|string|max:100', 'middle_name' => 'nullable|string|max:100', 'last_name' => 'required|string|max:100'])->validate();
                 $key = mb_strtolower($row['student_id']);
-                abort_if(isset($seen[$key]), 422, 'Duplicate student ID in roster.');
+                if (isset($seen[$key])) throw ValidationException::withMessages(['roster' => 'Duplicate student ID in roster: '.$row['student_id'].'.']);
                 $seen[$key] = true;
                 $row['student_id'] = mb_strtoupper($row['student_id']);
                 $row['first_name'] = mb_strtoupper($row['first_name']);
@@ -92,9 +90,9 @@ class GuidanceBatchService
                     $row['middle_name'] = mb_strtoupper($row['middle_name']);
                 }
                 $rows[] = $row;
-                abort_if(count($rows) > 500, 422, 'A batch may contain at most 500 students.');
+                if (count($rows) > 500) throw ValidationException::withMessages(['roster' => 'A batch may contain at most 500 students.']);
             }
-            abort_if(!$rows, 422, 'CSV has no students.');
+            if (!$rows) throw ValidationException::withMessages(['roster' => 'CSV has no students.']);
         } finally { fclose($file); }
         return $rows;
     }
@@ -103,15 +101,32 @@ class GuidanceBatchService
     {
         Validator::make($metadata, ['course' => \App\Support\CourseCatalog::rule()])->validate();
         $rows = $this->parseRoster($csv);
-        return DB::transaction(function () use ($metadata, $rows) {
-            $category = array_search($metadata['test_type'], GuidanceCategories::LABELS, true);
-            $batch = GuidanceTestBatch::create($metadata + ['module_type' => $metadata['test_type'], 'batch_token' => bin2hex(random_bytes(32))]);
-            foreach ($rows as $row) {
-                $applicant = Applicant::create(['application_number' => 'GT-'.strtoupper(bin2hex(random_bytes(12))), 'first_name' => $row['first_name'], 'middle_name' => $row['middle_name'] ?? null, 'last_name' => $row['last_name'], 'status' => 'pending']);
-                $batch->appointments()->create(['applicant_id' => $applicant->id, 'student_id_number' => $row['student_id'], 'origin_course' => $batch->course, 'origin_section' => $batch->year_section, 'request_code' => app(GuidanceReferenceService::class)->reserve(), 'test_category' => $category, 'test_type' => GuidanceCategories::TESTS[$category][0], 'test_types' => GuidanceCategories::TESTS[$category], 'student_status' => 'student', 'status' => 'Pending Payment', 'attendance_status' => 'Pending Scan']);
-            }
-            return $batch;
-        }, 3);
+        try {
+            return DB::transaction(function () use ($metadata, $rows) {
+                $category = array_search($metadata['test_type'], GuidanceCategories::LABELS, true);
+                foreach ($rows as $row) {
+                    if (GuidanceAppointment::where('student_id_number', $row['student_id'])
+                        ->where('test_category', $category)
+                        ->whereIn('status', ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'])
+                        ->where('is_archived', false)->exists()) {
+                        throw ValidationException::withMessages(['roster' => $row['student_id'].' already has an active '.$metadata['test_type'].' request.']);
+                    }
+                }
+                $batch = GuidanceTestBatch::create($metadata + ['module_type' => $metadata['test_type'], 'batch_token' => bin2hex(random_bytes(32))]);
+                foreach ($rows as $row) {
+                    $applicant = GuidanceAppointment::where('student_id_number', $row['student_id'])
+                        ->whereHas('applicant', fn ($query) => $query->where('first_name', $row['first_name'])
+                            ->where('last_name', $row['last_name'])
+                            ->where('middle_name', $row['middle_name'] ?? null))
+                        ->with('applicant')->first()?->applicant;
+                    $applicant ??= Applicant::create(['application_number' => 'GT-'.strtoupper(bin2hex(random_bytes(12))), 'first_name' => $row['first_name'], 'middle_name' => $row['middle_name'] ?? null, 'last_name' => $row['last_name'], 'status' => 'pending']);
+                    $batch->appointments()->create(['applicant_id' => $applicant->id, 'student_id_number' => $row['student_id'], 'origin_course' => $batch->course, 'origin_section' => $batch->year_section, 'request_code' => app(GuidanceReferenceService::class)->reserve(), 'test_category' => $category, 'test_type' => GuidanceCategories::TESTS[$category][0], 'test_types' => GuidanceCategories::TESTS[$category], 'student_status' => 'student', 'status' => 'Pending Payment', 'attendance_status' => 'Pending Scan']);
+                }
+                return $batch;
+            }, 3);
+        } catch (UniqueConstraintViolationException $e) {
+            throw ValidationException::withMessages(['roster' => 'This batch conflicts with an existing active request or batch record.']);
+        }
     }
 
     public function verify(GuidanceTestBatch $batch, array $identity): GuidanceAppointment

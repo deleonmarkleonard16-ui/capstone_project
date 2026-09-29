@@ -75,4 +75,22 @@ class DocumentWorkflowTest extends TestCase
         $this->assertDatabaseCount('guidance_appointments', 0);
         $this->assertDatabaseCount('guidance_test_responses', 0);
     }
+
+    public function test_document_batch_rejects_only_active_same_service_and_rolls_back(): void
+    {
+        $this->staff();
+        $payload = fn (string $name) => [
+            'batch_name' => $name, 'course' => 'BSIT', 'reason_for_request' => 'Graduation',
+            'roster' => UploadedFile::fake()->createWithContent('roster.csv', "student_id,first_name,last_name\n26-SC-1111,Ana,Cruz\n"),
+        ];
+        $this->post(route('staff.good-moral.batches.store'), $payload('FIRST'))->assertSessionHasNoErrors();
+        $this->postJson(route('staff.good-moral.batches.store'), $payload('DUPLICATE'))
+            ->assertUnprocessable()->assertJsonValidationErrors('roster');
+        $this->assertDatabaseCount('guidance_test_batches', 1);
+        $this->post(route('staff.exit-form.batches.store'), $payload('OTHER SERVICE'))->assertSessionHasNoErrors();
+
+        ServiceRequest::where('service', 'good-moral')->update(['status' => 'completed', 'archived_at' => now()]);
+        $this->post(route('staff.good-moral.batches.store'), $payload('REPEAT'))->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('guidance_test_batches', 3);
+    }
 }

@@ -17,7 +17,9 @@ return new class extends Migration {
             $table->enum('attendance_status', ['Pending Scan', 'Ready', 'Absent', 'Approved', 'Completed', 'Claimed/Completed'])->default('Pending Scan')->change();
         });
         Schema::table('service_requests', function (Blueprint $table) {
-            $table->foreignId('batch_id')->nullable()->constrained('guidance_test_batches', 'batch_id')->restrictOnDelete();
+            if (!Schema::hasColumn('service_requests', 'batch_id')) {
+                $table->foreignId('batch_id')->nullable()->after('id')->constrained('guidance_test_batches', 'batch_id')->nullOnDelete();
+            }
             $table->index(['service', 'batch_id', 'archived_at']);
         });
     }

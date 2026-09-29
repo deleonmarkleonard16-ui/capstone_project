@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /** Statuses that constitute an "active" request. */
-    private const ACTIVE = "'pending','proof_review','approved','processing','ready','scheduled'";
+    private const ACTIVE = "'pending','receipt-uploaded','proof_review','approved','processing','in-progress','ready','scheduled'";
 
     public function up(): void
     {
@@ -38,7 +38,7 @@ return new class extends Migration
                 DB::statement("
                     ALTER TABLE service_requests
                     ADD COLUMN active_guard CHAR(1)
-                        AS (CASE WHEN status IN (" . self::ACTIVE . ") THEN '1' ELSE NULL END)
+                        AS (CASE WHEN archived_at IS NULL AND status IN (" . self::ACTIVE . ") THEN '1' ELSE NULL END)
                         STORED
                 ");
             } else {
@@ -68,7 +68,7 @@ return new class extends Migration
                 DB::statement("
                     ALTER TABLE guidance_appointments
                     ADD COLUMN active_guard CHAR(1)
-                        AS (CASE WHEN status IN ('Pending Payment','Receipt Uploaded','Approved','In-Progress')
+                        AS (CASE WHEN is_archived = 0 AND status IN ('Pending Payment','Receipt Uploaded','Approved','In-Progress')
                             THEN '1' ELSE NULL END)
                         STORED
                 ");

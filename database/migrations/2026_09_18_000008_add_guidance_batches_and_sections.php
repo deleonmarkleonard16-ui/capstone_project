@@ -20,8 +20,9 @@ return new class extends Migration {
             $table->timestamps();
         });
         Schema::table('guidance_appointments', function (Blueprint $table) {
-            $table->unsignedBigInteger('batch_id')->nullable();
-            $table->foreign('batch_id')->references('batch_id')->on('guidance_test_batches')->restrictOnDelete();
+            if (!Schema::hasColumn('guidance_appointments', 'batch_id')) {
+                $table->foreignId('batch_id')->nullable()->after('guidance_appointment_id')->constrained('guidance_test_batches', 'batch_id')->nullOnDelete();
+            }
             $table->enum('attendance_status', ['Pending Scan', 'Ready', 'Absent', 'Completed'])->default('Pending Scan');
             $table->string('student_id_number', 100)->nullable();
             $table->unsignedBigInteger('source_batch_id')->nullable();

@@ -34,7 +34,7 @@ class ServiceRequest extends Model
      * A new submission from the same student for the same service is blocked
      * while any prior request is in one of these statuses.
      */
-    public const ACTIVE_STATUSES = ['pending', 'proof_review', 'approved', 'processing', 'ready', 'scheduled'];
+    public const ACTIVE_STATUSES = ['pending', 'receipt-uploaded', 'proof_review', 'approved', 'processing', 'in-progress', 'ready', 'scheduled'];
 
     /**
      * Check whether the given student already has an active request for

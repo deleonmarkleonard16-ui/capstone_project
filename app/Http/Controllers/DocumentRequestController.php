@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\GuidanceTestBatch;
 use App\Models\ServiceRequest;
 use App\Services\GuidanceBatchService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -79,24 +80,33 @@ class DocumentRequestController extends Controller
             'roster' => 'required|file|max:2048|mimes:csv,txt',
         ]);
         $rows = $rosters->parseRoster($request->file('roster'));
-        DB::transaction(function () use ($module, $data, $rows) {
-            $batch = GuidanceTestBatch::create([
-                'batch_token' => bin2hex(random_bytes(32)), 'batch_name' => $data['batch_name'],
-                'course' => $data['course'], 'year_section' => $data['year_section'] ?? null, 'module_type' => self::MODULES[$module],
-                'test_type' => null, 'reason_for_request' => $data['reason_for_request'],
-                'status' => 'Pending Registration',
-            ]);
-            foreach ($rows as $row) {
-                ServiceRequest::create([
-                    'batch_id' => $batch->getKey(), 'reference' => ServiceRequest::newReference($module),
-                    'service' => $module, 'first_name' => $row['first_name'],
-                    'middle_name' => $row['middle_name'] ?? null, 'last_name' => $row['last_name'],
-                    'student_status' => 'student', 'student_number' => $row['student_id'],
-                    'course' => $data['course'], 'purpose' => $data['reason_for_request'],
-                    'copies' => 1, 'status' => 'pending',
+        try {
+            DB::transaction(function () use ($module, $data, $rows) {
+                foreach ($rows as $row) {
+                    if (ServiceRequest::hasActiveRequest($row['student_id'], $module)) {
+                        throw ValidationException::withMessages(['roster' => $row['student_id'].' already has an active '.self::MODULES[$module].' request.']);
+                    }
+                }
+                $batch = GuidanceTestBatch::create([
+                    'batch_token' => bin2hex(random_bytes(32)), 'batch_name' => $data['batch_name'],
+                    'course' => $data['course'], 'year_section' => $data['year_section'] ?? null, 'module_type' => self::MODULES[$module],
+                    'test_type' => null, 'reason_for_request' => $data['reason_for_request'],
+                    'status' => 'Pending Registration',
                 ]);
-            }
-        }, 3);
+                foreach ($rows as $row) {
+                    ServiceRequest::create([
+                        'batch_id' => $batch->getKey(), 'reference' => ServiceRequest::newReference($module),
+                        'service' => $module, 'first_name' => $row['first_name'],
+                        'middle_name' => $row['middle_name'] ?? null, 'last_name' => $row['last_name'],
+                        'student_status' => 'student', 'student_number' => $row['student_id'],
+                        'course' => $data['course'], 'purpose' => $data['reason_for_request'],
+                        'copies' => 1, 'status' => 'pending',
+                    ]);
+                }
+            }, 3);
+        } catch (UniqueConstraintViolationException $e) {
+            throw ValidationException::withMessages(['roster' => 'This batch conflicts with an existing active request or batch record.']);
+        }
         return redirect()->route(auth()->user()->role.'.'.$module.'.batches')->with('success', 'Document batch imported.');
     }
 

@@ -219,4 +219,27 @@ class GuidanceBatchTest extends TestCase
         $this->assertCount(1, $batch2->appointments);
         $this->assertSame('23-SC-003', $batch2->appointments->first()->student_id_number);
     }
+
+    public function test_existing_student_can_join_new_category_but_active_same_category_is_rejected(): void
+    {
+        $this->actingAs($this->staff());
+        $batch = $this->batch();
+        $first = $batch->appointments()->where('student_id_number', '001')->firstOrFail();
+        $metadata = ['batch_name' => 'ANOTHER-CLASS', 'course' => 'BSIT', 'reason_for_request' => 'Practicum', 'test_type' => 'Psychological Assessment'];
+        $roster = fn () => UploadedFile::fake()->createWithContent('roster.csv', "student_id,first_name,middle_name,last_name\n001,Maria,Cruz,Santos\n");
+
+        $this->postJson(route('staff.guidance-batches.store'), $metadata + ['roster' => $roster()])
+            ->assertUnprocessable()->assertJsonValidationErrors('roster');
+        $this->assertDatabaseCount('guidance_test_batches', 1);
+
+        $metadata['test_type'] = 'Career Test';
+        $this->post(route('staff.guidance-batches.store'), $metadata + ['roster' => $roster()])->assertSessionHasNoErrors();
+        $second = GuidanceTestBatch::where('batch_name', 'ANOTHER-CLASS')->firstOrFail()->appointments()->firstOrFail();
+        $this->assertSame($first->applicant_id, $second->applicant_id);
+
+        $first->update(['status' => 'Completed', 'is_archived' => true, 'archived_at' => now()]);
+        $metadata['batch_name'] = 'REPEAT-CLASS';
+        $metadata['test_type'] = 'Psychological Assessment';
+        $this->post(route('staff.guidance-batches.store'), $metadata + ['roster' => $roster()])->assertSessionHasNoErrors();
+    }
 }

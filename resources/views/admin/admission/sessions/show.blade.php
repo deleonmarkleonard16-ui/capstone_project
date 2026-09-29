@@ -8,12 +8,12 @@
                 <i class="bi bi-arrow-left"></i>
             </a>
             <h1 class="h3 mb-0">{{ $session->session_name }}</h1>
-            @if ($session->status === 'Completed' || $session->allApplicantsSubmitted())
+            @if ($session->status === 'Completed')
                 <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i> Completed</span>
             @elseif ($session->status === 'In-Progress')
                 <span class="badge bg-warning text-dark fs-6"><i class="bi bi-play-circle-fill me-1"></i> In-Progress</span>
             @else
-                <span class="badge bg-info text-dark fs-6"><i class="bi bi-calendar-event me-1"></i> Scheduled</span>
+                <span class="badge bg-secondary fs-6"><i class="bi bi-calendar-event me-1"></i> Scheduled</span>
             @endif
         </div>
         <p class="text-muted mb-0 small">

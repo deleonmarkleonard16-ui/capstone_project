@@ -123,7 +123,7 @@
                             $assignedCount  = $session->applicants_count;
                             $submittedCount = $session->submitted_count;
                             $pct            = $assignedCount > 0 ? round(($submittedCount / $assignedCount) * 100) : 0;
-                            $isDone         = $session->status === 'Completed' || ($assignedCount > 0 && $assignedCount === $submittedCount);
+                            $isDone         = $session->status === 'Completed';
                         @endphp
                         <tr class="{{ $session->status === 'In-Progress' ? 'table-warning bg-opacity-25' : ($isDone ? 'table-light opacity-75' : '') }}">
                             <td class="ps-3">
@@ -173,7 +173,7 @@
                                 </div>
                             </td>
                             <td>
-                                @if ($session->status === 'Completed' || $isDone)
+                                @if ($session->status === 'Completed')
                                     <span class="badge bg-success">
                                         <i class="bi bi-check-circle me-1"></i> Completed
                                     </span>
@@ -182,7 +182,7 @@
                                         <i class="bi bi-play-circle-fill me-1"></i> In-Progress
                                     </span>
                                 @else
-                                    <span class="badge bg-info text-dark">
+                                    <span class="badge bg-secondary">
                                         <i class="bi bi-calendar-event me-1"></i> Scheduled
                                     </span>
                                 @endif

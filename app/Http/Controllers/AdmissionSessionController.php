@@ -9,6 +9,7 @@ use App\Services\AdmissionScoringService;
 use App\Support\CourseCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -282,6 +283,10 @@ class AdmissionSessionController extends Controller
 
         $scoring->evaluate($cycle);
 
+        if ($session->status === AdmissionSession::STATUS_COMPLETED) {
+            Cache::flush();
+        }
+
         return redirect()->route('admin.admission.sessions.index')
             ->with('success', "Session '{$session->session_name}' updated successfully.");
     }
@@ -299,6 +304,10 @@ class AdmissionSessionController extends Controller
 
         $session->update(['status' => $data['status']]);
 
+        if ($session->status === AdmissionSession::STATUS_COMPLETED) {
+            Cache::flush();
+        }
+
         return back()->with('success', "Session '{$session->session_name}' status changed to {$session->status}.");
     }
 
@@ -308,6 +317,7 @@ class AdmissionSessionController extends Controller
         abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot complete session on an archived cycle.');
 
         $session->update(['status' => AdmissionSession::STATUS_COMPLETED]);
+        Cache::flush();
 
         return back()->with('success', "Session '{$session->session_name}' has been marked as Completed.");
     }

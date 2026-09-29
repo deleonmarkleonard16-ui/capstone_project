@@ -125,10 +125,10 @@
                                 <td>{{ $session->room }}</td>
                                 @php
                                     $statusClass = match ($session->status) {
-                                        \App\Models\AdmissionSession::STATUS_SCHEDULED => 'text-bg-info',
-                                        \App\Models\AdmissionSession::STATUS_IN_PROGRESS => 'text-bg-warning',
-                                        \App\Models\AdmissionSession::STATUS_COMPLETED => 'text-bg-success',
-                                        default => 'text-bg-secondary',
+                                        \App\Models\AdmissionSession::STATUS_SCHEDULED => 'bg-secondary',
+                                        \App\Models\AdmissionSession::STATUS_IN_PROGRESS => 'bg-warning text-dark',
+                                        \App\Models\AdmissionSession::STATUS_COMPLETED => 'bg-success',
+                                        default => 'bg-secondary',
                                     };
                                 @endphp
                                 <td><span class="badge {{ $statusClass }}">{{ $session->status }}</span></td>

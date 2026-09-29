@@ -194,8 +194,8 @@
                                         <form method="POST" action="{{ route('admin.admission.sessions.status', $session) }}" class="d-inline">
                                             @csrf
                                             <input type="hidden" name="status" value="In-Progress">
-                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Start Session">
-                                                <i class="bi bi-play-fill"></i> Start
+                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Launch Session">
+                                                <i class="bi bi-play-fill"></i> Start Test / Launch Session
                                             </button>
                                         </form>
                                     @elseif($session->status === 'In-Progress' && !$cycle->isCompleted())

@@ -8,13 +8,23 @@ use App\Models\GuidanceSecurityIncident;
 use App\Models\GuidanceTestQrCode;
 use App\Models\GuidanceTestSecurityLog;
 use App\Services\GuidanceAssessmentSessionService;
+use App\Services\AdmissionScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class GuidanceSecurityController extends Controller
 {
-    public function store(Request $request, GuidanceAssessmentSessionService $sessions)
+    public function store(Request $request, GuidanceAssessmentSessionService $sessions, AdmissionScoringService $admissionScoring)
     {
+        if ($request->filled('admission_token')) {
+            $token = (string) $request->input('admission_token');
+            abort_unless((bool) preg_match('/^[A-Za-z0-9]{64}$/D', $token), 422);
+            abort_unless(hash_equals((string) $request->session()->get('admission_exam_token'), hash('sha256', $token)), 403);
+            $aliases = ['back_navigation' => 'back_button', 'app_switch' => 'tab_switch'];
+            $request->merge(['incident_type' => $aliases[$request->input('incident_type')] ?? $request->input('incident_type')]);
+            return app(AdmissionExamController::class)->strike($request, $token, $admissionScoring);
+        }
+
         $data = $request->validate([
             'token' => ['nullable', 'string', 'regex:/^[a-f0-9]{64}$/D'],
             'appointment_id' => ['nullable'],

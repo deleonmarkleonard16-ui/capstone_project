@@ -7,25 +7,26 @@
     <title>PSU-CAT Digital Exam – {{ $applicant->application_number }}</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; background: #0d1b3e; color: #e0e8f8; font-family: Arial, Helvetica, sans-serif; }
+        html, body { height: 100%; background-color: #ffffff !important; color: #111827; font-family: Arial, Helvetica, sans-serif; }
         body { user-select: none; -webkit-user-select: none; overflow-x: hidden; }
 
         /* ── FORCED FULLSCREEN KIOSK LOCKDOWN MODAL ── */
         #kiosk-lock {
             position: fixed; inset: 0; z-index: 9999;
-            background: linear-gradient(135deg, #0d1b3e 0%, #1a3066 100%);
+            background-color: #ffffff !important;
             display: flex; align-items: center; justify-content: center;
             flex-direction: column; text-align: center; padding: 32px;
             transition: opacity 0.3s;
         }
         #kiosk-lock.hidden { display: none; }
-        #kiosk-lock .psu-logo { font-size: 15px; text-transform: uppercase; letter-spacing: 2px; color: #ffd700; margin-bottom: 8px; }
-        #kiosk-lock h1 { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 6px; }
-        #kiosk-lock .sub { color: #a8c0e8; font-size: 14px; margin-bottom: 24px; }
-        #kiosk-lock .applicant-badge { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 12px 24px; margin-bottom: 28px; }
-        #kiosk-lock .applicant-badge .name { font-size: 20px; font-weight: 700; color: #fff; }
-        #kiosk-lock .applicant-badge .appno { font-size: 13px; color: #ffd700; font-family: monospace; margin-top: 4px; }
-        #kiosk-lock .instructions { font-size: 13px; color: #a8c0e8; max-width: 480px; margin-bottom: 24px; line-height: 1.6; }
+        #kiosk-lock .psu-logo { font-size: 15px; text-transform: uppercase; letter-spacing: 2px; color: #92400e; margin-bottom: 8px; }
+        #kiosk-lock h1 { font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 6px; }
+        #kiosk-lock .sub { color: #475569; font-size: 14px; margin-bottom: 24px; }
+        #kiosk-lock .applicant-badge { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px 24px; margin-bottom: 20px; }
+        #kiosk-lock .applicant-badge .name { font-size: 20px; font-weight: 700; color: #111827; }
+        #kiosk-lock .applicant-badge .appno { font-size: 13px; color: #92400e; font-family: monospace; margin-top: 4px; }
+        #kiosk-lock .instructions { font-size: 13px; color: #334155; max-width: 560px; margin-bottom: 24px; line-height: 1.6; }
+        .security-notice { max-width: 680px; margin-bottom: 20px; padding: 16px; border: 2px solid #dc2626; background: #fef2f2; color: #991b1b; font-weight: 800; line-height: 1.5; }
         #kiosk-lock .instructions ul { text-align: left; margin: 8px 0 0 0; padding-left: 18px; }
         #kiosk-lock .instructions ul li { margin-bottom: 4px; }
         #enter-btn { background: #ffd700; color: #0d1b3e; border: 0; padding: 14px 40px; font-size: 17px; font-weight: 800; border-radius: 8px; cursor: pointer; letter-spacing: 0.5px; transition: transform 0.1s, box-shadow 0.1s; }
@@ -34,11 +35,11 @@
         #lock-msg { font-size: 13px; color: #ff9090; margin-top: 14px; min-height: 20px; }
 
         /* ── EXAM SHELL (hidden until fullscreen) ── */
-        #exam-shell { display: none; max-width: 960px; margin: 0 auto; padding: 20px; }
+        #exam-shell { display: none; max-width: 960px; margin: 0 auto; padding: 20px; background-color: #ffffff !important; }
         #exam-shell.visible { display: block; }
 
         /* Sticky header */
-        #exam-header { position: sticky; top: 0; z-index: 100; background: #0d1b3e; border-bottom: 2px solid #1e3a7c; padding: 12px 0; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+        #exam-header { position: sticky; top: 0; z-index: 100; background: #ffffff; border-bottom: 2px solid #cbd5e1; padding: 12px 0; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
         #exam-header .left { font-size: 13px; color: #a8c0e8; }
         #exam-header .left strong { color: #fff; font-size: 15px; display: block; }
         #timer { background: #1e3a7c; border-radius: 8px; padding: 8px 20px; font-size: 22px; font-weight: 800; font-family: monospace; color: #ffd700; }
@@ -93,6 +94,9 @@
         #strike-modal-inner p { font-size: 14px; color: #555; margin-bottom: 20px; line-height: 1.6; }
         #strike-continue { background: #0d1b3e; color: #fff; border: 0; padding: 12px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; }
         @media print { body { visibility: hidden; } }
+        .question-card { background-color: #ffffff !important; color: #111827; border-color: #cbd5e1; }
+        .q-num, #exam-header .left strong { color: #111827; }
+        #exam-header .left, #answered-count { color: #475569; }
     </style>
 </head>
 <body>
@@ -111,6 +115,10 @@
         <div class="appno">{{ $applicant->application_number }} · {{ $applicant->course_choice }}</div>
     </div>
 
+    <div class="security-notice" role="alert">
+        SECURITY NOTICE: This is an official admission exam. Taking screenshots, screen recording, exiting fullscreen mode, or switching tabs is strictly prohibited and monitored in real-time.
+    </div>
+
     <div class="instructions">
         <strong>Before you begin, read carefully:</strong>
         <ul>
@@ -123,7 +131,7 @@
     </div>
 
     <button id="enter-btn" type="button">
-        🔒 Enter Fullscreen &amp; Begin Exam
+        Enable Fullscreen
     </button>
     <div id="lock-msg"></div>
 </div>
@@ -184,7 +192,7 @@
 
 <script>
 const SUBMIT_URL  = @json(route('admission.submit', $token));
-const STRIKE_URL  = @json(route('admission.strike', $token));
+const STRIKE_URL  = @json(route('guidance.log-strike'));
 const COMPLETE_URL = @json(route('admission.complete'));
 const CSRF        = document.querySelector('meta[name="csrf-token"]').content;
 const INITIAL_STRIKES = {{ (int)$applicant->strike_count }};
@@ -308,7 +316,14 @@ async function reportIncident(type) {
                 'Accept':        'application/json',
                 'X-CSRF-TOKEN':  CSRF,
             },
-            body: JSON.stringify({ incident_type: type, answers: collectAnswers() }),
+            body: JSON.stringify({
+                admission_token: @json($token),
+                student_id: @json($applicant->student_id ?: $applicant->application_number),
+                course_program: @json($applicant->course_choice),
+                timestamp: new Date().toISOString(),
+                incident_type: type,
+                answers: collectAnswers()
+            }),
         });
 
         if (!res.ok) return;
@@ -435,6 +450,22 @@ enterBtn.addEventListener('click', async () => {
         enterBtn.disabled = false;
     }
 });
+
+// Attempt kiosk mode as soon as the admin-controlled redirect completes.
+// If the browser requires a user gesture, the security notice remains over the questions.
+async function launchKiosk() {
+    try {
+        await document.documentElement.requestFullscreen();
+        started = true;
+        kioskLock.classList.add('hidden');
+        examShell.classList.add('visible');
+        updateAnswerCount();
+        startTimer();
+    } catch (_) {
+        lockMsg.textContent = 'Your browser requires one tap to enable mandatory fullscreen mode.';
+    }
+}
+window.addEventListener('load', launchKiosk, { once: true });
 </script>
 </body>
 </html>

@@ -40,10 +40,7 @@ class AdmissionCheckinController extends Controller
         if ($checkedInApplicantId && $checkedInSessionId === $session->id) {
             $applicant = AdmissionApplicant::find($checkedInApplicantId);
             if ($applicant && !$applicant->submitted_at) {
-                if ($session->isInProgress() || $session->status === 'In-Progress') {
-                    return redirect()->route('admission.take', ['token' => $applicant->exam_token]);
-                }
-                return redirect()->route('admission.checkin.waiting', ['session_token' => $session_token]);
+                return redirect()->route('admission.waiting', ['session_token' => $session_token]);
             }
         }
 
@@ -144,13 +141,8 @@ class AdmissionCheckinController extends Controller
             'admission_checkin_session_id'   => $session->id,
         ]);
 
-        // If session is already In-Progress, go straight to digital lockdown exam
-        if ($session->isInProgress() || $session->status === 'In-Progress') {
-            return redirect()->route('admission.take', ['token' => $applicant->exam_token]);
-        }
-
-        // If session is Scheduled, show waiting room
-        return redirect()->route('admission.checkin.waiting', ['session_token' => $session_token])
+        // Every verified examinee passes through the synchronized waiting room.
+        return redirect()->route('admission.waiting', ['session_token' => $session_token])
             ->with('success', 'Attendance verified! Please wait for the admin to start the exam.');
     }
 
@@ -168,11 +160,24 @@ class AdmissionCheckinController extends Controller
 
         $applicant = AdmissionApplicant::findOrFail($applicantId);
 
-        // If session is already In-Progress, redirect to lockdown exam
-        if ($session->isInProgress() || $session->status === 'In-Progress') {
-            return redirect()->route('admission.take', ['token' => $applicant->exam_token]);
-        }
-
         return view('admission.waiting', compact('session', 'applicant'));
+    }
+
+    /** Polling endpoint used by the waiting room for an admin-controlled launch. */
+    public function state(string $session_token)
+    {
+        $session = AdmissionSession::where('qr_token', $session_token)->firstOrFail();
+        $applicant = AdmissionApplicant::findOrFail(session('admission_checkin_applicant_id'));
+
+        abort_unless((int) session('admission_checkin_session_id') === (int) $session->id
+            && (int) $applicant->admission_session_id === (int) $session->id, 403);
+
+        $launched = $session->isInProgress();
+
+        return response()->json([
+            'launched' => $launched,
+            'status' => $session->status,
+            'take_url' => $launched ? route('admission.take', $applicant->exam_token) : null,
+        ])->header('Cache-Control', 'no-store, private');
     }
 }

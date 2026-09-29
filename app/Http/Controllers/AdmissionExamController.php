@@ -17,9 +17,19 @@ class AdmissionExamController extends Controller
             ->firstOrFail();
     }
 
+    private function authorizeExamBrowser(Request $request, AdmissionApplicant $applicant, string $token): void
+    {
+        abort_unless($applicant->admissionSession?->isInProgress(), 409, 'The proctor has not launched this examination session.');
+        abort_unless((int) $request->session()->get('admission_checkin_applicant_id') === (int) $applicant->id, 403);
+        abort_unless(hash_equals((string) $request->session()->get('admission_exam_token'), hash('sha256', $token)), 403);
+    }
+
     public function take(string $token)
     {
         $applicant = $this->applicant($token);
+        abort_unless($applicant->admissionSession?->isInProgress(), 409, 'The proctor has not launched this examination session.');
+        abort_unless((int) session('admission_checkin_applicant_id') === (int) $applicant->id, 403);
+        session(['admission_exam_token' => hash('sha256', $token)]);
         $totalItems = max(1, (int) ($applicant->cycle?->total_items ?: 80));
 
         // Auto-seed / initialize answer key items if not yet configured by admin
@@ -53,6 +63,7 @@ class AdmissionExamController extends Controller
     public function submit(Request $request, string $token, AdmissionScoringService $scoring)
     {
         $applicant = $this->applicant($token);
+        $this->authorizeExamBrowser($request, $applicant, $token);
         $totalItems = max(1, (int) ($applicant->cycle?->total_items ?: 80));
 
         $data = $request->validate([
@@ -73,6 +84,7 @@ class AdmissionExamController extends Controller
     public function strike(Request $request, string $token, AdmissionScoringService $scoring)
     {
         $applicantPreCheck = $this->applicant($token);
+        $this->authorizeExamBrowser($request, $applicantPreCheck, $token);
         $totalItems = max(1, (int) ($applicantPreCheck->cycle?->total_items ?: 80));
 
         $data = $request->validate([
@@ -98,6 +110,9 @@ class AdmissionExamController extends Controller
             // Log to guidance_test_security_logs (shared table, applicant_id branch)
             DB::table('guidance_test_security_logs')->insert([
                 'applicant_id'  => $applicant->id,
+                'student_id' => $applicant->student_id ?: $applicant->application_number,
+                'course_program' => $applicant->course_choice ?: 'Not provided',
+                'current_test_taking' => 'PSU College Admission Test',
                 'incident_type' => $data['incident_type'],
                 'strike_number' => $applicant->strike_count,
                 'created_at'    => now(),

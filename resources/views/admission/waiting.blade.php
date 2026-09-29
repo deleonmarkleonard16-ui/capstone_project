@@ -1,6 +1,12 @@
 @php $isGuestView = true; @endphp
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    html, body, main, .content-wrapper { background-color: #ffffff !important; }
+</style>
+@endpush
+
 @section('content')
 <div class="d-flex justify-content-center py-3 py-md-5">
     <div style="max-width: 580px; width: 100%;">
@@ -25,7 +31,7 @@
                 </h1>
 
                 <p class="text-muted small mb-4" style="font-size: 13.5px; line-height: 1.45;">
-                    Your attendance has been recorded. Please stay on this page while waiting for the staff to start the exam.
+                    Waiting for the Guidance Admin/Proctor to start the examination session...
                 </p>
 
                 {{-- 3 Metadata Stat Boxes --}}
@@ -56,23 +62,10 @@
                     </div>
                 </div>
 
-                {{-- Interactive Action or Waiting Alert --}}
-                @if ($session->isInProgress() || $session->status === 'In-Progress')
-                    <div class="mb-3">
-                        <a href="{{ route('admission.take', $applicant->exam_token) }}"
-                           class="btn btn-success btn-lg w-100 fw-bold py-3 rounded-3 shadow-sm"
-                           style="font-size: 16px;">
-                            <i class="bi bi-play-circle-fill me-2"></i> Start Examination Now
-                        </a>
-                    </div>
-                    <div class="text-muted small" style="font-size: 12px;">
-                        The proctor has activated this session. Click the button above to begin.
-                    </div>
-                @else
-                    <div class="rounded-3 p-3 text-center small mb-0" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 13px;">
-                        Waiting for the staff to click <strong>Start Test</strong>. This page refreshes automatically every 10 seconds.
-                    </div>
-                @endif
+                <div class="rounded-3 p-3 text-center small mb-0" role="status" aria-live="polite" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 13px;">
+                    <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                    Waiting for the Guidance Admin/Proctor to start the examination session...
+                </div>
 
             </div>
         </div>
@@ -81,15 +74,23 @@
 
 @push('scripts')
 <script>
-    // Auto-refresh every 10 seconds while session is in Scheduled status
-    @if (!$session->isInProgress() && $session->status !== 'In-Progress')
-        setTimeout(function() {
-            window.location.reload();
-        }, 10000);
-    @else
-        // Automatically redirect to exam if active
-        window.location.href = "{{ route('admission.take', $applicant->exam_token) }}";
-    @endif
+    const stateUrl = @json(route('admission.waiting.state', $session->qr_token));
+    let redirecting = false;
+    async function awaitLaunch() {
+        if (redirecting) return;
+        try {
+            const response = await fetch(stateUrl, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            if (response.ok) {
+                const state = await response.json();
+                if (state.launched && state.take_url) {
+                    redirecting = true;
+                    window.location.replace(state.take_url);
+                }
+            }
+        } catch (_) { /* transient network failure: next poll retries */ }
+    }
+    awaitLaunch();
+    setInterval(awaitLaunch, 2500);
 </script>
 @endpush
 @endsection

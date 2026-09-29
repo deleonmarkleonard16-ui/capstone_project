@@ -56,7 +56,16 @@ class AdmissionPipelineTest extends TestCase
         $cycle = AdmissionCycle::create(['name' => '2026', 'academic_year' => '2026-2027', 'is_active' => true]);
         $applicant = AdmissionApplicant::create(['admission_cycle_id' => $cycle->id, 'application_number' => 'A-002', 'first_name' => 'Ben', 'last_name' => 'Cruz', 'course_choice' => 'BSIT', 'exam_token' => str_repeat('a', 64)]);
         foreach (range(1, 80) as $item) DB::table('admission_answer_keys')->insert(['admission_cycle_id' => $cycle->id, 'item_number' => $item, 'correct_answer' => 'A', 'created_at' => now(), 'updated_at' => now()]);
-        $this->get('/admission/take/'.str_repeat('a', 64))->assertOk();
+        $session = \App\Models\AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Security regression',
+            'start_time' => now(), 'start_number' => 1, 'end_number' => 1,
+            'qr_token' => str_repeat('b', 64), 'status' => 'In-Progress',
+        ]);
+        $applicant->update(['admission_session_id' => $session->id]);
+        $this->withSession(['admission_checkin_applicant_id' => $applicant->id])
+            ->get('/admission/take/'.str_repeat('a', 64))->assertOk()
+            ->assertSee('Item #01')->assertSee('Item #80')
+            ->assertSee('exam-item-list flex flex-col gap-3');
         foreach (range(1, 3) as $strike) $this->postJson('/admission/take/'.str_repeat('a', 64).'/strike', ['incident_type' => 'back_button', 'answers' => [1 => 'A']])->assertOk()->assertJsonPath('strikes', $strike);
         $this->assertNotNull($applicant->fresh()->submitted_at);
         $this->assertSame(3, DB::table('guidance_test_security_logs')->where('applicant_id', $applicant->id)->count());

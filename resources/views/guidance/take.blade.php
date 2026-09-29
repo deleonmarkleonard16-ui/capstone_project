@@ -1,5 +1,6 @@
 @extends('guidance.layout')
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/answer-sheet.css') }}">
 <style>
 body { user-select:none; -webkit-user-select:none; }
 #assessment-lock { position:fixed;inset:0;z-index:2000;background:#000;display:flex;align-items:center;justify-content:center;padding:20px; }
@@ -16,132 +17,6 @@ body { user-select:none; -webkit-user-select:none; }
 .stepper-pill.active { background: #2563eb; }
 .stepper-pill.completed { background: #16a34a; }
 
-/* ── Vertical Column Answer Sheet Styling ── */
-.vertical-sheet-column {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 10px;
-}
-.vertical-item-row {
-    padding: 8px 10px;
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 0.15s ease;
-    border-radius: 6px;
-}
-.vertical-item-row:last-child {
-    border-bottom: none;
-}
-.vertical-item-row:hover {
-    background: #f8fafc;
-}
-.vertical-item-row.unanswered {
-    background: #fef2f2;
-    border: 1px solid #fca5a5;
-}
-.bubble-choice-label {
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 34px;
-    height: 32px;
-    padding: 0 6px;
-    border-radius: 6px;
-    border: 1.5px solid #cbd5e1;
-    background: #ffffff;
-    font-size: 13px;
-    font-weight: 700;
-    color: #334155;
-    user-select: none;
-    transition: all 0.15s ease;
-}
-.bubble-choice-label:hover {
-    border-color: #2563eb;
-    color: #1d4ed8;
-    background: #eff6ff;
-}
-/* ── Question Module Cards (Matching Screenshot) ── */
-.questions-two-col-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(var(--vertical-grid-rows), minmax(0, 1fr));
-    grid-auto-columns: minmax(0, 1fr);
-    gap: 14px 16px;
-    margin-bottom: 24px;
-    overflow: auto;
-}
-@media (max-width: 767.98px) {
-    .questions-two-col-grid {
-        grid-auto-columns: minmax(260px, 1fr);
-        gap: 12px;
-    }
-}
-.question-module-card {
-    background-color: #fcfcfd;
-    border: 1px solid #f1f2f4;
-    border-radius: 8px;
-    padding: 14px 14px 12px;
-    transition: all 0.15s ease;
-}
-.question-module-card.unanswered {
-    border-color: #fca5a5;
-    background-color: #fff9f9;
-}
-.question-number-title {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 2px 0;
-}
-.question-instructions-sub {
-    font-size: 0.725rem;
-    color: #6b7280;
-    margin: 0 0 10px 0;
-}
-.choices-vertical-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.choice-item-label {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 7px 12px;
-    margin: 0;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.15s ease;
-}
-.choice-item-label:hover {
-    border-color: #93c5fd;
-    background-color: #f8fafc;
-}
-.choice-radio-input {
-    margin: 0;
-    width: 15px;
-    height: 15px;
-    accent-color: #2563eb;
-    cursor: pointer;
-}
-.choice-text-span {
-    font-size: 0.8125rem;
-    color: #374151;
-    font-weight: 400;
-    line-height: 1.25;
-}
-.choice-item-label:has(.choice-radio-input:checked) {
-    background-color: #eff6ff !important;
-    border-color: #3b82f6 !important;
-}
-.choice-item-label:has(.choice-radio-input:checked) .choice-text-span {
-    color: #1d4ed8 !important;
-    font-weight: 600 !important;
-}
 </style>
 @endpush
 
@@ -169,7 +44,7 @@ body { user-select:none; -webkit-user-select:none; }
 <div id="assessment-lock" role="dialog" aria-modal="true" aria-labelledby="lock-title">
     <div class="card shadow-lg"><div class="card-body p-4 text-center">
         <h1 class="h4 fw-bold mb-3" id="lock-title">Ready to start?</h1>
-        <p class="text-muted">Record each answer in the vertical answer sheet below using your paper question booklet.</p>
+        <p class="text-muted">Digital Answer Sheet</p>
         <div class="alert alert-warning text-start small">
             <strong>Lockdown Rules:</strong>
             <ul class="mb-0 ps-3 mt-1">
@@ -239,15 +114,15 @@ body { user-select:none; -webkit-user-select:none; }
                 </div>
                 <div class="col-12 col-md-6">
                     <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">Student ID / App Number</span>
-                    <strong class="text-dark font-monospace">{{ $applicant?->application_number ?? 'N/A' }}</strong>
+                    <strong class="text-dark font-monospace">{{ $appointment->student_id_number ?? $appointment->serviceRequest?->student_number ?? $applicant?->application_number ?? 'N/A' }}</strong>
                 </div>
                 <div class="col-12 col-md-6">
                     <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">O.R. # / Request Code</span>
-                    <strong class="text-dark font-monospace">{{ $appointment->request_code ?? 'N/A' }}</strong>
+                    <strong class="text-dark font-monospace">{{ $appointment->or_number ?: 'N/A' }}</strong>
                 </div>
                 <div class="col-12 col-md-6">
-                    <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">Date of Assessment</span>
-                    <strong class="text-dark">{{ now()->format('F d, Y') }}</strong>
+                    <span class="text-muted d-block" style="font-size: 0.725rem; text-transform: uppercase;">Course</span>
+                    <strong class="text-dark">{{ $appointment->serviceRequest?->courseLabel() ?: ($appointment->origin_course ?? 'N/A') }}</strong>
                 </div>
             </div>
         </div>
@@ -269,94 +144,18 @@ body { user-select:none; -webkit-user-select:none; }
                     $def = $definitions[$test] ?? $definition;
                     $isSingle = !$appointment->test_types;
                     
-                    // Split items into 2-3 balanced vertical columns
-                    $itemsCount = count($section['items']);
-                    $colsCount = $itemsCount > 20 ? 3 : ($itemsCount > 10 ? 2 : 1);
-                    $chunkSize = (int) ceil($itemsCount / $colsCount);
-                    $itemChunks = array_chunk($section['items'], max(1, $chunkSize));
                 @endphp
 
                 <div class="assessment-step" data-step="{{ $stepNum }}" data-test="{{ $test }}" @if($stepNum !== 1) hidden @endif>
-                    @if(in_array($test, ['dass21', 'phq9', 'gad7', 'bfpi'], true))
-                        {{-- ── 2-COLUMN QUESTION CARDS GRID (MATCHING SCREENSHOTS) ── --}}
-                        <div class="questions-two-col-grid" data-total-items="{{ count($section['items']) }}" style="--vertical-grid-rows: {{ (int) ceil(count($section['items']) / 6) }}">
-                            @foreach($section['items'] as $item)
-                                @php
-                                    $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
-                                    $fieldId = "item-{$test}-{$item}";
-                                    $currentVal = $sessionState['answers'][$test][$item] ?? $sessionState['answers'][$item] ?? null;
-                                @endphp
-                                <div class="question-module-card item-card" id="card-{{ $test }}-{{ $item }}" data-item="{{ $item }}">
-                                    <h3 class="question-number-title">Question {{ $item }}</h3>
-                                    <p class="question-instructions-sub">Select the response that best matches the paper test item.</p>
-
-                                    <div class="choices-vertical-list">
-                                        @foreach($def['choices'] as $choice => $choiceText)
-                                            @php
-                                                $isChecked = ($currentVal !== null && (string) $currentVal === (string) $choice);
-                                            @endphp
-                                            <label class="choice-item-label" for="{{ $fieldId }}-{{ $choice }}">
-                                                <input class="choice-radio-input" id="{{ $fieldId }}-{{ $choice }}" type="radio" name="{{ $inputName }}" value="{{ $choice }}" @checked($isChecked) required>
-                                                <span class="choice-text-span">{{ $choiceText }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        {{-- ── MULTI-COLUMN BUBBLE GRID (FOR BFPI / LARGE TESTS) ── --}}
-                        <div class="card mb-3 bg-light border-0">
-                            <div class="card-body p-3">
-                                <h3 class="h6 mb-1 fw-bold text-primary">{{ $section['label'] }}</h3>
-                                <p class="text-muted small mb-0">Refer to your paper question booklet for {{ \App\Services\GuidanceTestScoringService::LABELS[$test] ?? $test }}. Record your answer for all {{ $def['items'] }} items in the vertical grid below.</p>
-                            </div>
-                        </div>
-
-                        <div class="row g-3">
-                            @foreach($itemChunks as $chunk)
-                                <div class="col-12 col-md-{{ 12 / count($itemChunks) }}">
-                                    <div class="vertical-sheet-column shadow-sm">
-                                        <div class="text-center py-1 mb-2 border-bottom fw-bold small text-secondary bg-light rounded-2">
-                                            Items {{ $chunk[0] }} – {{ end($chunk) }}
-                                        </div>
-                                        @foreach($chunk as $item)
-                                            @php
-                                                $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
-                                                $fieldId = "item-{$test}-{$item}";
-                                            @endphp
-                                            <div class="d-flex flex-column vertical-item-row item-card" id="card-{{ $test }}-{{ $item }}" data-item="{{ $item }}">
-                                                @if(!empty($def['questions'][$item]))
-                                                    <div class="small text-muted mb-1 fw-medium">{{ $def['questions'][$item] }}</div>
-                                                @endif
-                                                <div class="d-flex align-items-center justify-content-between">
-                                                    <span class="fw-bold small text-secondary font-monospace" style="min-width: 32px;">
-                                                        {{ str_pad($item, 2, '0', STR_PAD_LEFT) }}.
-                                                    </span>
-                                                    <div class="d-flex gap-1 gap-sm-2 flex-wrap justify-content-end">
-                                                        @for($choice = $def['min']; $choice <= $def['max']; $choice++)
-                                                            @php
-                                                                $currentVal = $sessionState['answers'][$test][$item] ?? $sessionState['answers'][$item] ?? null;
-                                                                $isChecked = ($currentVal !== null && (string) $currentVal === (string) $choice);
-                                                                $choiceText = $def['choices'][$choice] ?? null;
-                                                            @endphp
-                                                            <label class="bubble-choice-label" for="{{ $fieldId }}-{{ $choice }}" title="Item {{ $item }}: {{ $choice }}{{ $choiceText ? ' - ' . $choiceText : '' }}">
-                                                                <input class="bubble-choice-input" id="{{ $fieldId }}-{{ $choice }}" type="radio" name="{{ $inputName }}" value="{{ $choice }}" @checked($isChecked) required>
-                                                                <span>{{ $test === 'bfpi' ? number_format($choice, 2) : $choice }}</span>
-                                                                @if($choiceText)
-                                                                    <span class="visually-hidden">{{ $choiceText }}</span>
-                                                                @endif
-                                                            </label>
-                                                        @endfor
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
+                    <div class="answer-sheet-matrix" data-total-items="{{ count($section['items']) }}" style="--vertical-grid-rows: {{ count($section['items']) }}">
+                        @foreach($section['items'] as $item)
+                            @php
+                                $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
+                                $currentVal = old($isSingle ? "answers.$item" : "answers.$test.$item", $sessionState['answers'][$test][$item] ?? $sessionState['answers'][$item] ?? null);
+                            @endphp
+                            <x-answer-sheet-item :item="$item" :name="$inputName" :choices="range($def['min'], $def['max'])" :selected="$currentVal" :id-prefix="'item-'.$test" :card-id="'card-'.$test.'-'.$item" />
+                        @endforeach
+                    </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                         @if($stepNum < $totalSteps)
@@ -380,7 +179,7 @@ body { user-select:none; -webkit-user-select:none; }
             </span>
         </div>
         <h2 class="h4 fw-bold mb-2">Assessment completed</h2>
-        <p class="text-muted mb-4">Your saved responses have been recorded for Guidance Office review. Wait for the printed result that will be provided by the Guidance Office.</p>
+        <p class="text-muted mb-4">Assessment completed. Your saved responses have been recorded for Guidance Office review. Please wait for the printed result that will be provided by the Guidance Office.</p>
         <a class="btn btn-primary px-4" href="/portal?service=good-moral#track">Return to portal</a>
     </div>
 </section>
@@ -389,9 +188,9 @@ body { user-select:none; -webkit-user-select:none; }
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.questions-two-col-grid').forEach((grid) => {
+    document.querySelectorAll('.answer-sheet-matrix').forEach((grid) => {
         const sync = () => {
-            const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
+            const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 992 ? 1 : window.innerWidth < 1400 ? 2 : 3;
             grid.style.setProperty('--vertical-grid-rows', Math.ceil(Number(grid.dataset.totalItems) / columns));
         };
         sync(); window.addEventListener('resize', sync);

@@ -202,32 +202,20 @@
                 foreach ($tests as $testKey => $testData) {
             @endphp
                 @php
-                    $definition = app(\App\Services\GuidanceTestScoringService::class)->definition($testKey);
-                    $questions = app(\App\Http\Controllers\GuidanceAssessmentController::class)->getQuestionsFor($testKey);
+                    $definition = app(\App\Services\GuidanceTestScoringService::class)->answerSheetDefinition($testKey);
                     $rawAnswers = $appointment->response->answers[$testKey] ?? (!$appointment->test_types ? $appointment->response->answers : []);
                     $itemCount = $testData['total_items'] ?? $definition['items'];
                     $instrument = ['dass21' => 'DASS-21', 'phq9' => 'PHQ-9', 'gad7' => 'GAD-7', 'bfpi' => 'BFPI', 'career' => 'RIASEC'][$testKey] ?? strtoupper($testKey);
                 @endphp
                 <article class="hard-copy-test">
                     <div class="hard-copy-heading">
-                        <div><div class="small text-uppercase">Guidance and Counseling Services Office</div><h3>Hard-Copy Questionnaire &amp; Answer Sheet — {{ $instrument }}</h3></div>
+                        <div><div class="small text-uppercase">Guidance and Counseling Services Office</div><h3>Recorded Digital Answer Sheet — {{ $instrument }}</h3></div>
                         <div class="text-end small">Date: {{ $appointment->response?->created_at?->timezone('Asia/Manila')->format('M d, Y') ?? 'N/A' }}</div>
                     </div>
                     <div class="hard-copy-profile">
                         <span><b>Name:</b> {{ $appointment->applicant->full_name }}</span>
                         <span><b>Course / Section:</b> {{ $appointment->serviceRequest?->courseLabel() ?: 'N/A' }}{{ $appointment->serviceRequest?->year_section ? ' / '.$appointment->serviceRequest->year_section : '' }}</span>
                         <span><b>Student Number:</b> {{ $appointment->serviceRequest?->student_number ?: 'N/A' }}</span>
-                    </div>
-                    <p class="hard-copy-instruction">Questionnaire with recorded answers. The filled circle is the response saved for this assessment.</p>
-                    <div class="hard-copy-questions">
-                        @forelse($questions as $item => $question)
-                            <div class="hard-copy-question"><span class="question-no">{{ $item }}.</span><span>{{ $question }}</span></div>
-                        @empty
-                            <p class="text-muted">Use the approved questionnaire booklet for this instrument.</p>
-                        @endforelse
-                        @if($testKey === 'bfpi' && count($questions) < $itemCount)
-                            <p class="small text-muted mb-0">Continue with the approved BFPI question booklet for items {{ count($questions) + 1 }}–{{ $itemCount }}.</p>
-                        @endif
                     </div>
                     <h4 class="hard-copy-answer-title">Recorded Answer Sheet</h4>
                     <table class="hard-copy-answer-sheet">
@@ -269,9 +257,6 @@
     .hard-copy-profile { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; padding: 8px 0; border-bottom: 1px solid #777; }
     .hard-copy-profile span:last-child { grid-column: span 2; }
     .hard-copy-instruction { margin: 10px 0; font-style: italic; }
-    .hard-copy-questions { columns: 2; column-gap: 28px; }
-    .hard-copy-question { break-inside: avoid; display: flex; gap: 5px; margin-bottom: 7px; line-height: 1.25; }
-    .question-no { font-weight: 700; min-width: 22px; }
     .hard-copy-answer-title { font-size: 12pt; margin: 14px 0 5px; }
     .hard-copy-answer-sheet { width: 100%; border-collapse: collapse; text-align: center; font-size: 9pt; }
     .hard-copy-answer-sheet th, .hard-copy-answer-sheet td { border: 1px solid #444; padding: 3px 5px; }

@@ -682,6 +682,7 @@
             }
         }
     </style>
+<link rel="stylesheet" href="{{ asset('css/answer-sheet.css') }}">
 </head>
 <body oncontextmenu="return false;">
 
@@ -732,7 +733,6 @@
         'dass21' => [
             'title'       => 'DASS-21 Answer Sheet',
             'tag'         => 'Depression, Anxiety, Stress Scales',
-            'instruction' => 'Rate how much each statement applied to you using the DASS-21 scale from 0 to 3.',
             'count'       => 21,
             'choices'     => [
                 0 => 'Never',
@@ -745,7 +745,6 @@
         'phq9' => [
             'title'       => 'PHQ-9 Answer Sheet',
             'tag'         => 'Patient Health Questionnaire',
-            'instruction' => 'Choose how often each problem bothered you over the last two weeks.',
             'count'       => 9,
             'choices'     => [
                 0 => 'Not at all',
@@ -758,7 +757,6 @@
         'gad7' => [
             'title'       => 'GAD-7 Answer Sheet',
             'tag'         => 'Generalized Anxiety Disorder',
-            'instruction' => 'Choose how often each problem bothered you over the last two weeks.',
             'count'       => 7,
             'choices'     => [
                 0 => 'Not at all',
@@ -771,7 +769,6 @@
         'bfpi' => [
             'title'       => 'Big Five Personality Test Answer Sheet',
             'tag'         => 'Big Five Personality Inventory (BFI-44)',
-            'instruction' => 'Rate each item from 1 (Disagree) to 5 (Agree) using your paper question booklet.',
             'count'       => 44,
             'choices'     => [
                 1 => 'Disagree (D)',
@@ -820,8 +817,6 @@
 
         <!-- Beige / Sand Info Box (How to Answer + Time Remaining + Assessment Flow) -->
         <div class="beige-info-card">
-            <div class="info-card-header">How to answer</div>
-            <div class="info-card-instruction">{{ $cfg['instruction'] }}</div>
 
             <!-- 40-Minute Global Session Timer Inner Box -->
             <div class="timer-inner-card">
@@ -925,24 +920,23 @@
             </div>
 
             <!-- Questions in 2-Column Grid (Desktop) - Radio choices only -->
-            <div class="questions-two-col-grid" id="questionsGrid" data-total-items="{{ $itemCount }}" style="--vertical-grid-rows: {{ (int) ceil($itemCount / 6) }}">
+            <div class="answer-sheet-matrix" id="questionsGrid" data-total-items="{{ $itemCount }}" style="--vertical-grid-rows: {{ (int) ceil($itemCount / 6) }}">
                 @for($i = 1; $i <= $itemCount; $i++)
                     @php
                         $inputName = "answers[{$currentTest}][{$i}]";
                         $savedVal = old("answers.{$currentTest}.{$i}", $savedAnswers[$i] ?? null);
                     @endphp
 
-                    <div class="question-module-card" id="qcard_{{ $i }}" data-question-num="{{ $i }}">
-                        <h3 class="question-number-title">Question {{ $i }}</h3>
-                        <p class="question-instructions-sub">Select the response that best matches the paper test item.</p>
+                    <div class="question-module-card answer-sheet-row" id="qcard_{{ $i }}" data-question-num="{{ $i }}">
+                        <span class="answer-sheet-item">Item #{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}</span>
 
-                        <div class="choices-vertical-list">
+                        <div class="answer-sheet-options">
                             @foreach($cfg['choices'] as $cVal => $cText)
                                 @php
                                     $isChecked = ($savedVal !== null && (string)$savedVal === (string)$cVal);
                                     $radioId = "q_{$currentTest}_{$i}_{$cVal}";
                                 @endphp
-                                <label class="choice-item-label {{ $isChecked ? 'selected' : '' }}" for="{{ $radioId }}">
+                                <label class="answer-sheet-choice choice-item-label {{ $isChecked ? 'selected' : '' }}" for="{{ $radioId }}">
                                     <input type="radio" 
                                            class="choice-radio-input" 
                                            name="{{ $inputName }}" 
@@ -950,7 +944,7 @@
                                            value="{{ $cVal }}" 
                                            @checked($isChecked)
                                            required>
-                                    <span class="choice-text-span">{{ $cText }}</span>
+                                    <span class="choice-text-span">{{ $cVal }}</span>
                                 </label>
                             @endforeach
                         </div>
@@ -960,7 +954,6 @@
 
             <!-- Bottom Submit Button Aligned to the Right -->
             <div class="bottom-submit-wrapper">
-                <span class="text-muted small"><i class="bi bi-info-circle me-1"></i> Ensure all questions are answered before continuing.</span>
                 <button type="submit" class="btn-submit-action" id="submitBtn">
                     <span>{{ $cfg['submitText'] }}</span>
                     <i class="bi bi-arrow-right-short fs-5"></i>
@@ -1000,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const questionsGrid = document.getElementById('questionsGrid');
     const syncVerticalQuestionFlow = () => {
         if (!questionsGrid) return;
-        const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
+        const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 992 ? 1 : window.innerWidth < 1400 ? 2 : 3;
         questionsGrid.style.setProperty('--vertical-grid-rows', Math.ceil(Number(questionsGrid.dataset.totalItems) / columns));
     };
     syncVerticalQuestionFlow();

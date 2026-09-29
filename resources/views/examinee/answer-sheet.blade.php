@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+<link rel="stylesheet" href="{{ asset('css/answer-sheet.css') }}">
 <div class="row g-4">
     <div class="col-lg-3">
         <div class="timer-box sticky-top" style="top: 20px;">
@@ -12,12 +13,6 @@
                 </div>
             </div>
             
-            <div class="card page-card shadow-sm border-0 mt-3 d-none d-lg-block">
-                <div class="card-body p-3 small text-muted">
-                    <div class="fw-bold text-dark mb-1"><i class="bi bi-info-circle me-1"></i> Paper-Based Mode</div>
-                    Read items from your paper questionnaire and shade your corresponding answers below.
-                </div>
-            </div>
         </div>
     </div>
 
@@ -26,7 +21,7 @@
             <div class="card-body p-4">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-4 border-bottom">
                     <div>
-                        <h1 class="h4 mb-1 fw-bold text-primary">PSU-CAT Paper-Based Answer Sheet</h1>
+                        <h1 class="h4 mb-1 fw-bold text-primary">PSU-CAT Digital Answer Sheet</h1>
                         <p class="text-muted small mb-0">
                             <strong>{{ $assignment->applicant->full_name }}</strong> &nbsp;·&nbsp;
                             <code>{{ $assignment->applicant->application_number }}</code> &nbsp;·&nbsp;
@@ -44,44 +39,9 @@
                     @csrf
                     
                     {{-- ── VERTICAL MULTI-COLUMN ANSWER GRID ── --}}
-                    @php
-                        // Split sequential items down six balanced desktop columns.
-                        $desktopColumns = 6;
-                        $itemsPerColumn = (int) ceil(count($questionNumbers) / $desktopColumns);
-                        $chunks = array_chunk($questionNumbers, $itemsPerColumn);
-                    @endphp
-
-                    <div class="row g-3 vertical-sheet-container">
-                        @foreach ($chunks as $colIndex => $chunk)
-                            <div class="col-12 col-sm-6 col-lg-3 col-xl-2">
-                                <div class="vertical-column-card p-2 border rounded-3 bg-light-subtle h-100">
-                                    <div class="text-center py-1 mb-2 border-bottom fw-bold small text-secondary bg-white rounded-2">
-                                        Items {{ $chunk[0] }} – {{ end($chunk) }}
-                                    </div>
-                                    <div class="vertical-items-list">
-                                        @foreach ($chunk as $number)
-                                            <div class="d-flex align-items-center justify-content-between py-1 px-2 border-bottom vertical-item-row" data-item="{{ $number }}">
-                                                <span class="fw-bold small text-muted font-monospace item-label" style="min-width: 32px;">
-                                                    {{ str_pad($number, 2, '0', STR_PAD_LEFT) }}.
-                                                </span>
-                                                <div class="d-flex gap-1 gap-sm-2 choices-group">
-                                                    @foreach (['A', 'B', 'C', 'D'] as $choice)
-                                                        <label class="vertical-bubble-label mb-0" for="q{{ $number }}{{ $choice }}" title="Item {{ $number }}: {{ $choice }}">
-                                                            <input class="form-check-input vertical-bubble-input" 
-                                                                   type="radio" 
-                                                                   name="q{{ $number }}" 
-                                                                   id="q{{ $number }}{{ $choice }}" 
-                                                                   value="{{ $choice }}" 
-                                                                   @checked(old("q{$number}", $answerSheet->{"q{$number}"} ?? null) === $choice)>
-                                                            <span class="bubble-text">{{ $choice }}</span>
-                                                        </label>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="admission-answer-sheet flex flex-col gap-3">
+                        @foreach($questionNumbers as $number)
+                            <x-answer-sheet-item :item="$number" :name="'q'.$number" :choices="['A', 'B', 'C', 'D']" :selected="old('q'.$number, $answerSheet->{'q'.$number} ?? null)" id-prefix="admission" :required="false" />
                         @endforeach
                     </div>
 

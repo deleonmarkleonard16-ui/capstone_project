@@ -60,9 +60,9 @@
         .choice-label:has(input:checked) { background: #dbeafe; border-color: #3b82f6; color: #102a63; }
         @media (max-width: 575.98px) {
             #exam-shell { padding: 14px; }
-            .question-card { align-items: flex-start; flex-direction: column; gap: 12px; }
-            .q-num { min-width: 0; }
-            .choices { width: 100%; justify-content: space-between; gap: 8px; }
+            .question-card { align-items: center; flex-direction: row; gap: 8px; }
+            .q-num { min-width: 0; flex-shrink: 0; font-size: 12px; }
+            .choices { min-width: 0; flex: 1; justify-content: space-between; gap: 8px; }
             .choice-label { flex: 1 1 0; min-width: 0; padding: 10px 8px; }
         }
 
@@ -97,6 +97,8 @@
         .question-card { background-color: #ffffff !important; color: #111827; border-color: #cbd5e1; }
         .q-num, #exam-header .left strong { color: #111827; }
         #exam-header .left, #answered-count { color: #475569; }
+        .choice-label { color: #334155; }
+        #exam-header { gap: 8px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
@@ -126,7 +128,7 @@
             <li>Exiting fullscreen, switching tabs, or losing window focus counts as a <strong>security strike</strong>.</li>
             <li>Using Print Screen, Ctrl+P, or similar keys is <strong>prohibited</strong>.</li>
             <li>3 strikes result in <strong>automatic exam submission</strong>.</li>
-            <li>There are <strong>{{ $totalItems }} questions</strong>. Choose A, B, C, or D for each item.</li>
+            <li>There are <strong>{{ $totalItems }} items</strong>. Choose A, B, C, or D for each item.</li>
         </ul>
     </div>
 
@@ -144,6 +146,7 @@
         <div class="left">
             <strong>PSU-CAT Exam · {{ $applicant->application_number }}</strong>
             {{ mb_strtoupper($applicant->full_name) }} · {{ $applicant->course_choice }}
+            <div>Student ID: {{ $applicant->student_id ?: $applicant->application_number }} | O.R. Number: {{ $applicant->or_number ?: 'N/A' }}</div>
         </div>
         <div id="timer">00:00</div>
     </div>
@@ -152,7 +155,7 @@
 
     <form id="exam-form">
         @csrf
-        <div class="exam-item-list" aria-label="Admission exam answers">
+        <div class="exam-item-list flex flex-col gap-3" aria-label="Admission exam answers">
             @for($i = 1; $i <= $totalItems; $i++)
                 <div class="question-card" id="qcard-{{ $i }}" data-item="{{ $i }}">
                     <div class="q-num">Item #{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}</div>

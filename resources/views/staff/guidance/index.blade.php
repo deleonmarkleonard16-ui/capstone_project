@@ -78,7 +78,7 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <div>
                     <h2 class="h5 section-title mb-1">Completed Student Assessment Submissions</h2>
-                    <p class="text-muted small mb-0">Online questionnaires taken by students via their tracking portal.</p>
+                    <p class="text-muted small mb-0">Digital answer sheets submitted by students.</p>
                 </div>
                 <span class="badge bg-primary fs-6">{{ count($recentSubmissions) }} Submissions</span>
             </div>

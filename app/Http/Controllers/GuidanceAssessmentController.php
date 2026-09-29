@@ -37,7 +37,7 @@ class GuidanceAssessmentController extends Controller
             'entry' => $entry,
             'test' => $test,
             'testTitle' => self::TESTS[$test],
-            'questions' => $this->getQuestionsFor($test),
+            'definition' => app(GuidanceTestScoringService::class)->answerSheetDefinition($test),
             'submission' => $submission,
         ]);
     }
@@ -108,7 +108,7 @@ class GuidanceAssessmentController extends Controller
         );
 
         return redirect()->route('guidance.test.show', ['reference' => $entry->reference, 'test' => $test])
-            ->with('success', 'Assessment submitted successfully! Your responses and scores have been recorded.');
+            ->with('success', 'Assessment completed. Your saved responses have been recorded for Guidance Office review. Please wait for the printed result that will be provided by the Guidance Office.');
     }
 
     public function staffReview(GuidanceTestSubmission $submission)
@@ -118,7 +118,7 @@ class GuidanceAssessmentController extends Controller
             'submission' => $submission,
             'entry' => $submission->serviceRequest,
             'testTitle' => self::TESTS[$submission->test_type] ?? ucfirst($submission->test_type),
-            'questions' => $this->getQuestionsFor($submission->test_type),
+            'items' => range(1, app(GuidanceTestScoringService::class)->definition($submission->test_type)['items']),
         ]);
     }
 
@@ -128,76 +128,6 @@ class GuidanceAssessmentController extends Controller
         $submission->update($data);
 
         return back()->with('success', 'Counselor notes saved successfully.');
-    }
-
-    public function getQuestionsFor(string $test): array
-    {
-        return match ($test) {
-            'dass21' => [
-                1 => 'I found it hard to wind down.',
-                2 => 'I was aware of dryness of my mouth.',
-                3 => 'I couldn’t seem to experience any positive feeling at all.',
-                4 => 'I experienced breathing difficulty (e.g. excessively rapid breathing).',
-                5 => 'I found it difficult to work up the initiative to do things.',
-                6 => 'I tended to over-react to situations.',
-                7 => 'I experienced trembling (e.g. in the hands).',
-                8 => 'I felt that I was using a lot of nervous energy.',
-                9 => 'I was worried about situations in which I might panic and make a fool of myself.',
-                10 => 'I felt that I had nothing to look forward to.',
-                11 => 'I found myself getting agitated.',
-                12 => 'I found it difficult to relax.',
-                13 => 'I felt down-hearted and blue.',
-                14 => 'I was intolerant of anything that kept me from getting on with what I was doing.',
-                15 => 'I felt I was close to panic.',
-                16 => 'I was unable to become enthusiastic about anything.',
-                17 => 'I felt I wasn’t worth much as a person.',
-                18 => 'I felt that I was rather touchy.',
-                19 => 'I was aware of the action of my heart in the absence of physical exertion.',
-                20 => 'I felt scared without any good reason.',
-                21 => 'I felt that life was meaningless.',
-            ],
-            'phq9' => [
-                1 => 'Little interest or pleasure in doing things.',
-                2 => 'Feeling down, depressed, or hopeless.',
-                3 => 'Trouble falling or staying asleep, or sleeping too much.',
-                4 => 'Feeling tired or having little energy.',
-                5 => 'Poor appetite or overeating.',
-                6 => 'Feeling bad about yourself — or that you are a failure or have let yourself or your family down.',
-                7 => 'Trouble concentrating on things, such as reading the newspaper or watching television.',
-                8 => 'Moving or speaking so slowly that other people could have noticed, or being fidgety/restless.',
-                9 => 'Thoughts that you would be better off dead, or of hurting yourself in some way.',
-            ],
-            'gad7' => [
-                1 => 'Feeling nervous, anxious, or on edge.',
-                2 => 'Not being able to stop or control worrying.',
-                3 => 'Worrying too much about different things.',
-                4 => 'Trouble relaxing.',
-                5 => 'Being so restless that it is hard to sit still.',
-                6 => 'Becoming easily annoyed or irritable.',
-                7 => 'Feeling afraid, as if something awful might happen.',
-            ],
-            'bfpi' => [
-                1 => 'Extraversion: I see myself as someone who is outgoing, sociable, and talkative.',
-                2 => 'Agreeableness: I see myself as someone who is generally trusting, considerate, and kind.',
-                3 => 'Conscientiousness: I see myself as someone who does a thorough job and is dependable.',
-                4 => 'Emotional Stability: I see myself as someone who is relaxed and handles stress well.',
-                5 => 'Openness to Experience: I see myself as someone who has an active imagination and values artistic experiences.',
-                6 => 'Extraversion: I see myself as someone who generates a lot of enthusiasm.',
-                7 => 'Agreeableness: I see myself as someone who is helpful and unselfish with others.',
-                8 => 'Conscientiousness: I see myself as someone who perseveres until the task is finished.',
-                9 => 'Emotional Stability: I see myself as someone who remains calm in tense situations.',
-                10 => 'Openness to Experience: I see myself as someone who is curious about many different things.',
-            ],
-            'career' => [
-                1 => 'Realistic: I like to work with tools, machinery, equipment, or hands-on physical activities.',
-                2 => 'Investigative: I enjoy analyzing problems, researching scientific ideas, or solving complex puzzles.',
-                3 => 'Artistic: I enjoy creating art, writing, music, designing, or expressing unique creative ideas.',
-                4 => 'Social: I like teaching, helping, counseling, or caring for other people.',
-                5 => 'Enterprising: I enjoy leading teams, persuading others, marketing, or starting business projects.',
-                6 => 'Conventional: I like organizing records, working with numbers, databases, and structured procedures.',
-            ],
-            default => [],
-        };
     }
 
 }

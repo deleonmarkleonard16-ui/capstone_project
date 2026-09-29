@@ -54,6 +54,17 @@ class GuidanceTestScoringService
         return self::DIFFICULTY_CHOICES[$value] ?? "Unknown ($value)";
     }
 
+    public function answerSheetDefinition(string $test): array
+    {
+        $definition = $this->definition($test);
+        return [
+            'items' => $definition['items'],
+            'min' => $definition['min'],
+            'max' => $definition['max'],
+            'choices' => array_combine(range($definition['min'], $definition['max']), range($definition['min'], $definition['max'])),
+        ];
+    }
+
     public function definition(string $test): array
     {
         if ($test === 'dass21') {

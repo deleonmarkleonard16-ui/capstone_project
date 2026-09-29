@@ -17,7 +17,7 @@
     <div class="card">
         <div class="check">✅</div>
         <h1>Exam Submitted Successfully</h1>
-        <p>Your answers for the <strong>PSU-CAT Digital Exam</strong> have been recorded. Please return your test permit to the proctor and wait for further instructions.</p>
+        <p>Assessment completed. Your saved responses have been recorded for Guidance Office review. Please wait for the printed result that will be provided by the Guidance Office.</p>
         <div class="footer">Pangasinan State University – San Carlos Campus · Guidance Office</div>
     </div>
 </body>

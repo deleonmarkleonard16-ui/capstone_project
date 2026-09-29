@@ -125,7 +125,9 @@ class GuidanceAdministrationTest extends TestCase
             ->assertSee('DASS-21')
             ->assertSee('PHQ-9')
             ->assertSee('GAD-7')
-            ->assertSee('Hard-Copy Questionnaire &amp; Answer Sheet', false)
+            ->assertSee('Recorded Digital Answer Sheet', false)
+            ->assertDontSee('I found it hard to wind down.')
+            ->assertDontSee('Feeling nervous, anxious, or on edge.')
             ->assertSee('Course / Section')
             ->assertSee('Student Number');
     }

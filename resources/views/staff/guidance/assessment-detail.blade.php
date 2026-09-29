@@ -83,13 +83,13 @@
             <div class="card-body p-4">
                 <h2 class="h5 mb-3">Student Responses</h2>
                 @php $answers = $submission->answers ?? []; @endphp
-                @forelse($questions as $idx => $qText)
+                @forelse($items as $idx)
                     <div class="mb-3 p-3 rounded border bg-light">
-                        <p class="mb-1 fw-semibold small">{{ $idx }}. {{ $qText }}</p>
+                        <p class="mb-1 fw-semibold small">Item #{{ str_pad($idx, 2, '0', STR_PAD_LEFT) }}</p>
                         <p class="mb-0 text-primary">Answer: <strong>{{ $answers[$idx] ?? '—' }}</strong></p>
                     </div>
                 @empty
-                    <p class="text-muted">No questions found for this test type.</p>
+                    <p class="text-muted">No items found for this test type.</p>
                 @endforelse
             </div>
         </div>

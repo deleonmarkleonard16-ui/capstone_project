@@ -7,7 +7,7 @@
         </span>
     </div>
     <h1 class="h4 fw-bold mb-2">{{ $terminated ? 'Assessment ended by proctor' : 'Assessment completed' }}</h1>
-    <p class="text-muted mb-4">Your saved responses have been recorded for Guidance Office review. Wait for the printed result that will be provided by the Guidance Office.</p>
+    <p class="text-muted mb-4">Assessment completed. Your saved responses have been recorded for Guidance Office review. Please wait for the printed result that will be provided by the Guidance Office.</p>
     <a class="btn btn-primary px-4" href="{{ route('portal.index') }}?service=testing#track">Return to portal</a>
 </div>
 @endsection

@@ -69,7 +69,7 @@ class GuidanceAppointmentController extends Controller
         $sessions->expireDue();
         $qr = $this->activeQr($token);
         $definitions = [];
-        foreach ($qr->appointment->testTypes() as $test) $definitions[$test] = $scoring->definition($test);
+        foreach ($qr->appointment->testTypes() as $test) $definitions[$test] = $scoring->answerSheetDefinition($test);
         $definition = $definitions[$qr->appointment->test_type] ?? reset($definitions);
         return view('guidance.take', [
             'token' => $token,

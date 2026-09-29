@@ -116,7 +116,7 @@ class GuidanceReviewTest extends TestCase
         $appointment = $entry->guidanceAppointments->first();
         $this->actingAs($this->staff())->postJson(route('staff.guidance-appointments.verify', $appointment))->assertOk();
         $token = $appointment->fresh()->qrCode->token;
-        $this->get(route('guidance.take', $token))->assertOk()->assertSee('I like to work with tools')->assertSee('Extremely interested');
+        $this->get(route('guidance.take', $token))->assertOk()->assertSee('Item #01')->assertDontSee('I like to work with tools')->assertDontSee('Extremely interested');
         $this->postJson(route('guidance.start', $token))->assertOk();
         $this->submitGuidanceSections($token, ['career' => [1 => 1, 2 => 5, 3 => 4, 4 => 5, 5 => 2, 6 => 3]])->assertOk();
         $result = $appointment->fresh()->response->score_summary['tests']['career'];

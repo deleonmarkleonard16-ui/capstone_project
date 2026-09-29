@@ -34,6 +34,32 @@ class GuidancePipelineTest extends TestCase
         return $user;
     }
 
+    public function test_all_guidance_instruments_render_only_numbered_responses(): void
+    {
+        $scoring = app(GuidanceTestScoringService::class);
+        foreach (['dass21', 'phq9', 'gad7', 'bfpi', 'career'] as $test) {
+            $appointment = $this->requestAssessment($test);
+            $appointment = GuidanceAppointment::orderByDesc('guidance_appointment_id')->firstOrFail();
+            $this->actingAs($this->staff())->post(route('staff.guidance-appointments.verify', $appointment))->assertRedirect();
+            auth()->logout();
+            $response = $this->get(route('guidance.take', $appointment->fresh()->qrCode->token));
+            $response->assertOk()->assertSee('Item #01')->assertSee('answer-sheet-matrix')
+                ->assertDontSee('Select the response that best matches')
+                ->assertDontSee('I found it hard to wind down.')
+                ->assertDontSee('Feeling nervous, anxious, or on edge.')
+                ->assertSee('id="security-blackout"', false)
+                ->assertSee('id="assessment-lock"', false);
+            $definition = $scoring->definition($test);
+            foreach ($definition['questions'] ?? [] as $prompt) {
+                $response->assertDontSee($prompt);
+            }
+            $safeDefinition = $response->viewData('definitions')[$test];
+            $this->assertArrayNotHasKey('questions', $safeDefinition);
+            $this->assertSame(range($definition['min'], $definition['max']), array_values($safeDefinition['choices']));
+            $this->assertSame($definition['items'], substr_count($response->getContent(), 'class="answer-sheet-row item-card"'));
+        }
+    }
+
     public function test_complete_verified_workflow_and_token_replay_protection(): void
     {
         $this->get(route('guidance.request'))->assertRedirect('/portal?service=testing#request');

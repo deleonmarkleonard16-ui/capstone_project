@@ -1,11 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="no-print mb-3">
-    @foreach(['html' => 'Print official report', 'pdf' => 'Export PDF', 'docx' => 'Export DOCX', 'csv' => 'Export CSV'] as $format => $label)
-        <a class="btn btn-outline-primary btn-sm" href="{{ route(auth()->user()->role.'.guidance-testing.export', ['type' => 'individual', 'appointment_id' => $appointment->getKey(), 'format' => $format, 'auto_print' => $format === 'html' ? 1 : 0]) }}">{{ $label }}</a>
-    @endforeach
-</div>
+<x-report-export-actions :parameters="['appointment_id' => $appointment->getKey()]" />
 @if($appointment->test_category === 'career')<a class="btn btn-primary mb-3" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}">Career assessment report / PDF</a>@endif
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     <div>

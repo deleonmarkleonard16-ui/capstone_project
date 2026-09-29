@@ -63,6 +63,33 @@ class GuidanceReportTest extends TestCase
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
     }
 
+    public function test_appointment_results_use_the_requested_assessment_type_without_export_bar(): void
+    {
+        $this->login();
+
+        foreach ([
+            ['psychological', 'dass21', 'Psychological Assessment Results', 'Official scoring summary and interpretation for Guidance Counselor review.', 'Official psychological assessment report', 'CONFIDENTIAL PSYCHOLOGICAL ASSESSMENT REPORT'],
+            ['career', 'career', 'Career Assessment Results', 'Official RIASEC trait scoring summary and career interest interpretation.', 'Career assessment report / PDF', 'CONFIDENTIAL CAREER ASSESSMENT REPORT'],
+            ['personality', 'bfpi', 'Personality Assessment Results', 'Official Big Five Personality Inventory scoring summary and trait evaluation.', 'Personality assessment report / PDF', 'CONFIDENTIAL PERSONALITY ASSESSMENT REPORT'],
+        ] as [$category, $type, $title, $subtitle, $badge, $header]) {
+            $appointment = $this->appointment();
+            $appointment->update(['test_category' => $category, 'test_type' => $type, 'test_types' => [$type]]);
+            $appointment->response->update(['score_summary' => ['tests' => []]]);
+
+            $this->get(route('admin.guidance-appointments.show-results', $appointment))
+                ->assertOk()
+                ->assertSee($title)
+                ->assertSee($subtitle)
+                ->assertSee($badge)
+                ->assertSee($header)
+                ->assertSee('Print Report')
+                ->assertDontSee('Print official report')
+                ->assertDontSee('Export PDF')
+                ->assertDontSee('Export DOCX')
+                ->assertDontSee('Export CSV');
+        }
+    }
+
     public function test_all_dass_levels_use_institutional_columns_and_recommendations(): void
     {
         foreach (['Normal' => ['Very Low', 'Fit for deployment'], 'Mild' => ['Low', 'Fit for deployment with Reservation'], 'Moderate' => ['Average', 'Fit for deployment with Reservation'], 'Severe' => ['High', 'For Counseling'], 'Extremely Severe' => ['Very High', 'For Counseling']] as $level => [$column, $recommendation]) {

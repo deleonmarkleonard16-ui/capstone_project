@@ -1,15 +1,37 @@
 @extends('layouts.app')
 
 @section('content')
-<x-report-export-actions :parameters="['appointment_id' => $appointment->getKey()]" />
-@if($appointment->test_category === 'psychological' || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7'], true))
-    <a class="btn btn-primary mb-3 no-print" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}">Official psychological assessment report</a>
-@endif
-@if($appointment->test_category === 'career')<a class="btn btn-primary mb-3" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}">Career assessment report / PDF</a>@endif
+@php
+    $testType = strtolower((string) ($appointment->test_category ?: $appointment->test_type ?: $appointment->service_type ?: 'psychological'));
+
+    if (str_contains($testType, 'career')) {
+        $pageTitle = 'Career Assessment Results';
+        $pageSubtitle = 'Official RIASEC trait scoring summary and career interest interpretation.';
+        $badgeLabel = 'Career assessment report / PDF';
+        $docHeader = 'CONFIDENTIAL CAREER ASSESSMENT REPORT';
+    } elseif (str_contains($testType, 'personality') || $testType === 'bfpi') {
+        $pageTitle = 'Personality Assessment Results';
+        $pageSubtitle = 'Official Big Five Personality Inventory scoring summary and trait evaluation.';
+        $badgeLabel = 'Personality assessment report / PDF';
+        $docHeader = 'CONFIDENTIAL PERSONALITY ASSESSMENT REPORT';
+    } else {
+        $pageTitle = 'Psychological Assessment Results';
+        $pageSubtitle = 'Official scoring summary and interpretation for Guidance Counselor review.';
+        $badgeLabel = 'Official psychological assessment report';
+        $docHeader = 'CONFIDENTIAL PSYCHOLOGICAL ASSESSMENT REPORT';
+    }
+@endphp
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     <div>
-        <h1 class="h3 mb-1">Psychological Assessment Results</h1>
-        <p class="text-muted mb-0">Official scoring summary and interpretation for Guidance Counselor review.</p>
+        @if($appointment->test_category === 'psychological' || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7'], true))
+            <a class="badge bg-primary text-white text-decoration-none mb-2 p-2" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}">{{ $badgeLabel }}</a>
+        @elseif($appointment->test_category === 'career')
+            <a class="badge bg-primary text-white text-decoration-none mb-2 p-2" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}">{{ $badgeLabel }}</a>
+        @else
+            <span class="badge bg-primary text-white mb-2 p-2">{{ $badgeLabel }}</span>
+        @endif
+        <h1 class="h3 mb-1">{{ $pageTitle }}</h1>
+        <p class="text-muted mb-0">{{ $pageSubtitle }}</p>
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route(auth()->user()->role.'.guidance-appointments.completed') }}" class="btn btn-outline-secondary">← Completed List</a>
@@ -22,7 +44,7 @@
         <div class="text-center pb-3 mb-4 border-bottom">
             <h2 class="h5 mb-1 text-uppercase fw-bold">Pangasinan State University – San Carlos Campus</h2>
             <div class="text-muted small">Guidance and Counseling Services Office</div>
-            <div class="fw-semibold mt-2">CONFIDENTIAL PSYCHOLOGICAL ASSESSMENT REPORT</div>
+            <div class="fw-semibold mt-2">{{ $docHeader }}</div>
         </div>
 
         <div class="row g-3 mb-4 pb-3 border-bottom">
@@ -194,7 +216,9 @@
                 @endfor
                 </tbody></table></div>
             @endforeach
-            <p class="small text-muted">Psychological Assessment scores shown above are raw subscale sums (0–21), classified using raw-score cutoffs. Screening severity is for counselor review.</p>
+            @if(array_intersect(['dass21', 'phq9', 'gad7'], array_keys($tests)))
+                <p class="small text-muted">Psychological Assessment scores shown above are raw subscale sums (0–21), classified using raw-score cutoffs. Screening severity is for counselor review.</p>
+            @endif
         </div>
         <section class="hard-copy-packet">
             @php

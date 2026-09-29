@@ -39,7 +39,7 @@
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.22);
-        color: #fbbf24; /* amber-400 */
+        color: #ffffff;
         font-weight: 600;
         font-size: 0.85rem;
         padding: 0.45rem 1rem;
@@ -48,17 +48,12 @@
         letter-spacing: 0.02em;
     }
 
-    .hero-feature-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        background: rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #e2e8f0;
-        font-size: 0.75rem;
-        padding: 0.3rem 0.75rem;
-        border-radius: 0.5rem;
+    .login-hero-title {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.25;
+        color: #ffffff;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
     }
 
     /* ── Form & Inputs Styling ── */
@@ -67,13 +62,6 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-    }
-
-    .login-welcome-box {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1px solid #e2e8f0;
-        border-radius: 0.875rem;
-        padding: 1rem 1.25rem;
     }
 
     .custom-input-group {
@@ -174,43 +162,6 @@
         box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.3);
     }
 
-    /* ── Credentials Callout Card ── */
-    .credentials-callout-card {
-        background-color: #f8fafc;
-        border: 1px solid rgba(226, 232, 240, 0.85);
-        border-radius: 0.875rem;
-        padding: 0.875rem 1rem;
-        box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
-    }
-
-    .role-badge-mini {
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        padding: 0.2rem 0.5rem;
-        border-radius: 0.375rem;
-        text-transform: uppercase;
-    }
-
-    .role-badge-admin {
-        background-color: #fef3c7;
-        color: #92400e;
-        border: 1px solid #fde68a;
-    }
-
-    .role-badge-staff {
-        background-color: #e0f2fe;
-        color: #0369a1;
-        border: 1px solid #bae6fd;
-    }
-
-    .cred-code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.82rem;
-        color: #334155;
-        font-weight: 600;
-    }
-
     @media (max-width: 991.98px) {
         .login-hero-panel {
             min-height: 380px;
@@ -224,6 +175,9 @@
         }
         .login-form-panel {
             padding: 1.75rem 1.25rem !important;
+        }
+        .login-hero-title {
+            font-size: 1.5rem;
         }
     }
 </style>
@@ -239,31 +193,17 @@
                             <div class="login-hero-panel h-100 p-4 p-md-5 d-flex flex-column justify-content-between text-white">
                                 {{-- Top Badge --}}
                                 <div class="mb-4">
-                                    <span class="hero-campus-badge">
+                                    <span class="hero-campus-badge text-white">
                                         <i class="bi bi-geo-alt-fill text-warning"></i>
                                         <span>PSU San Carlos Campus</span>
                                     </span>
                                 </div>
 
-                                {{-- Hero Bottom Content --}}
-                                <div class="col-12 col-xl-11 mt-auto">
-                                    <div class="d-flex flex-wrap gap-2 mb-3">
-                                        <span class="hero-feature-chip">
-                                            <i class="bi bi-qr-code text-warning"></i> QR Session Check-in
-                                        </span>
-                                        <span class="hero-feature-chip">
-                                            <i class="bi bi-shield-check text-info"></i> Instant Verification
-                                        </span>
-                                        <span class="hero-feature-chip">
-                                            <i class="bi bi-graph-up-arrow text-success"></i> Real-time Analytics
-                                        </span>
-                                    </div>
-                                    <h1 class="display-6 fw-bold text-white mb-3" style="text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); line-height: 1.2;">
-                                        Guidance Testing and Admission made easier for staff and applicants.
+                                {{-- Main system title --}}
+                                <div class="col-12 col-xl-11 flex-grow-1 d-flex align-items-center">
+                                    <h1 class="login-hero-title text-white mb-0">
+                                        Digital Management System for Guidance Testing and Admission
                                     </h1>
-                                    <p class="lead mb-0 text-white-50" style="color: rgba(255, 255, 255, 0.92) !important; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35); font-size: 1rem; line-height: 1.55;">
-                                        Use one session QR code, verify examinees quickly, monitor attendance live, and manage answer encoding with a cleaner workflow.
-                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -276,17 +216,6 @@
                                 <div>
                                     <p class="text-uppercase text-primary fw-bold mb-0" style="font-size: 0.78rem; letter-spacing: 0.08em;">Staff Access</p>
                                     <h2 class="h4 fw-bold text-slate-800 mb-0" style="color: #0f172a;">Sign in to continue</h2>
-                                </div>
-                            </div>
-
-                            {{-- Welcome Box --}}
-                            <div class="login-welcome-box mb-4">
-                                <div class="d-flex align-items-center gap-2 fw-semibold text-slate-800 mb-1" style="color: #1e293b; font-size: 0.92rem;">
-                                    <i class="bi bi-stars text-primary"></i>
-                                    <span>Welcome back</span>
-                                </div>
-                                <div class="text-muted" style="font-size: 0.82rem; line-height: 1.45;">
-                                    Manage applicants, session QR check-in, answer keys, attendance logs, and admission results from one place.
                                 </div>
                             </div>
 
@@ -333,8 +262,10 @@
                                                 type="button" 
                                                 id="togglePassword" 
                                                 onclick="togglePasswordVisibility()" 
-                                                title="Toggle password visibility"
-                                                aria-label="Toggle password visibility">
+                                                title="Show password"
+                                                aria-label="Show password"
+                                                aria-controls="password"
+                                                aria-pressed="false">
                                             <i class="bi bi-eye" id="togglePasswordIcon"></i>
                                         </button>
                                     </div>
@@ -359,31 +290,6 @@
                                 </div>
                             </form>
 
-                            {{-- Demo Credentials Callout Card --}}
-                            <div class="credentials-callout-card mt-4">
-                                <div class="d-flex align-items-center justify-content-between mb-2 pb-1 border-bottom border-slate-200">
-                                    <div class="d-flex align-items-center gap-1.5 text-slate-700 fw-semibold" style="font-size: 0.78rem; color: #334155;">
-                                        <i class="bi bi-key-fill text-primary"></i>
-                                        <span>Demo Credentials</span>
-                                    </div>
-                                    <span class="text-muted" style="font-size: 0.72rem;">Quick reference</span>
-                                </div>
-                                <div class="d-flex flex-column gap-1.5">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <span class="role-badge-mini role-badge-admin">Admin</span>
-                                        <span class="cred-code">admin@psu-scc.test</span>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <span class="role-badge-mini role-badge-staff">Staff</span>
-                                        <span class="cred-code">staff@psu-scc.test</span>
-                                    </div>
-                                    <div class="d-flex align-items-center justify-content-between pt-1 border-top border-slate-100">
-                                        <span class="text-muted fw-semibold" style="font-size: 0.72rem; text-transform: uppercase;">Password</span>
-                                        <span class="cred-code text-primary">password</span>
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 </div>
@@ -395,6 +301,7 @@
 <script>
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('password');
+    const toggleButton = document.getElementById('togglePassword');
     const toggleIcon = document.getElementById('togglePasswordIcon') || document.querySelector('#togglePassword i');
     if (!passwordInput) return;
 
@@ -410,6 +317,13 @@ function togglePasswordVisibility() {
             toggleIcon.classList.remove('bi-eye-slash');
             toggleIcon.classList.add('bi-eye');
         }
+    }
+    if (toggleButton) {
+        const isVisible = passwordInput.type === 'text';
+        const label = isVisible ? 'Hide password' : 'Show password';
+        toggleButton.setAttribute('aria-pressed', String(isVisible));
+        toggleButton.setAttribute('aria-label', label);
+        toggleButton.title = label;
     }
 }
 </script>

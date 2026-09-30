@@ -173,6 +173,8 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::post('/psychological/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'store'])->defaults('module', 'psychological')->name('psychological.batches.store');
     Route::get('/psychological/analytics', [\App\Http\Controllers\AnalyticsController::class, 'index'])->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.analytics');
     Route::get('/psychological/archive', [PsychologicalRequestController::class, 'index'])->defaults('mode', 'archive')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.archive');
+    Route::get('/psychological/certificate/{appointment}', \App\Http\Controllers\PsychologicalCertificateController::class)
+        ->whereNumber('appointment')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.certificate');
     Route::patch('/psychological/{serviceRequest}', [PsychologicalRequestController::class, 'update'])->name('psychological.update');
     Route::get('/psychological/{serviceRequest}/receipt', [PsychologicalRequestController::class, 'proof'])->name('psychological.proof');
 

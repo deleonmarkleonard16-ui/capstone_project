@@ -136,7 +136,7 @@
                     </button>
                 </form>
                 @unless($isLocked)
-                    <button class="btn btn-primary btn-sm" id="btn-save-grid" type="button">
+                    <button class="btn btn-primary btn-sm" id="btn-save-grid" form="encoding-form" type="submit">
                         <i class="bi bi-save me-1"></i> Save Encoded Rows
                     </button>
                 @endunless
@@ -383,7 +383,7 @@
                 @unless($isLocked)
                     <div class="d-flex gap-2 align-items-center">
                         <span id="save-status-indicator" class="small text-muted d-none"></span>
-                        <button class="btn btn-primary btn-sm" id="btn-save-grid-bottom" type="button">
+                        <button class="btn btn-primary btn-sm" id="btn-save-grid-bottom" form="encoding-form" type="submit">
                             <i class="bi bi-save me-1"></i> Save Encoded Rows
                         </button>
                     </div>
@@ -554,7 +554,7 @@ function loadBatchGroup(value) {
 
         try {
             const formData = new FormData(form);
-            const saveUrl = "{{ route('admin.admission.applicants.store-batch-encoded') }}";
+            const saveUrl = form.action || "{{ route('admin.admission.applicants.store-batch-encoded') }}";
 
             const response = await fetch(saveUrl, {
                 method: 'POST',
@@ -568,11 +568,6 @@ function loadBatchGroup(value) {
             });
 
             if (!response.ok) {
-                // If endpoint returns error or redirect, fallback to form submit
-                if (response.status === 419 || response.status === 404) {
-                    form.submit();
-                    return;
-                }
                 const errData = await response.json().catch(() => ({}));
                 throw new Error(errData.message || 'Server error ' + response.status);
             }
@@ -585,11 +580,26 @@ function loadBatchGroup(value) {
                 statusIndicator.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' + (data.message || 'Saved successfully');
                 setTimeout(() => { statusIndicator.classList.add('d-none'); }, 4000);
             }
+
+            // Sync generated applicant IDs to hidden inputs
+            if (data.saved_ids && Array.isArray(data.saved_ids) && data.saved_ids.length > 0) {
+                let idIdx = 0;
+                grid.querySelectorAll('#grid-body tr').forEach(function (tr) {
+                    const ln = tr.querySelector('input[name$="[last_name]"]')?.value.trim();
+                    const fn = tr.querySelector('input[name$="[first_name]"]')?.value.trim();
+                    const idInput = tr.querySelector('.cell-id');
+                    if (ln && fn && idInput && !idInput.value && idIdx < data.saved_ids.length) {
+                        idInput.value = data.saved_ids[idIdx++];
+                    }
+                });
+            }
         } catch (error) {
             console.error('Batch save error:', error);
-            showToast('Save failed: ' + error.message + '. Submitting standard form…', 'warning');
-            // Graceful fallback to full HTTP POST form submit
-            setTimeout(() => { form.submit(); }, 600);
+            showToast('Save error: ' + error.message, 'danger');
+            if (statusIndicator) {
+                statusIndicator.className = 'small text-danger fw-semibold';
+                statusIndicator.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> ' + error.message;
+            }
         } finally {
             buttons.forEach(b => {
                 b.disabled = false;
@@ -598,8 +608,10 @@ function loadBatchGroup(value) {
         }
     }
 
-    if (saveBtnTop) saveBtnTop.addEventListener('click', executeBatchSave);
-    if (saveBtnBottom) saveBtnBottom.addEventListener('click', executeBatchSave);
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        executeBatchSave();
+    });
 
     function showToast(msg, type) {
         const container = document.getElementById('toast-container') || (() => {

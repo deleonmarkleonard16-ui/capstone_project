@@ -416,12 +416,10 @@ class AdmissionPipelineController extends Controller
                 $applicant->last_name            = $lastName;
                 $applicant->first_name           = $firstName;
                 $applicant->middle_name          = $middleName;
-                if ($courseChoice1 !== '') {
-                    $applicant->course_choice_1  = $courseChoice1;
-                    $applicant->course_choice    = $courseChoice1;
-                }
-                $applicant->course_choice_2      = $courseChoice2;
-                $applicant->second_course_choice = $courseChoice2;
+                $applicant->course_choice_1      = $courseChoice1 ?: null;
+                $applicant->course_choice        = $courseChoice1 ?: null;
+                $applicant->course_choice_2      = $courseChoice2 ?: null;
+                $applicant->second_course_choice = $courseChoice2 ?: null;
                 $applicant->sex                  = $sex;
                 $applicant->special_group        = $specialGroup;
                 $applicant->cmfl                 = $cmfl;

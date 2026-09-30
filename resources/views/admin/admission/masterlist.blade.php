@@ -226,6 +226,11 @@
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0" id="masterlist-table">
                 <thead class="table-light">
+                    @php
+                        $gwaWeight = (float) ($cycle->gwa_weight ?? 20);
+                        $catWeight = (float) ($cycle->exam_weight ?? 60);
+                        $interviewWeight = (float) ($cycle->interview_weight ?? 20);
+                    @endphp
                     <tr>
                         <th class="ps-3">RANK</th>
                         <th>LAST NAME</th>
@@ -236,9 +241,9 @@
                         <th>SEX</th>
                         <th>4PS/OSY/IP/PWD/SP</th>
                         <th>CMFL</th>
-                        <th>GWA (%)</th>
-                        <th>CAT (%)</th>
-                        <th>INTERVIEW (%)</th>
+                        <th>GWA ({{ $gwaWeight }}%)</th>
+                        <th>CAT ({{ $catWeight }}%)</th>
+                        <th>INTERVIEW ({{ $interviewWeight }}%)</th>
                         <th>TOTAL (%)</th>
                         <th>REMARKS</th>
                         <th class="pe-3 text-end">ACTION</th>
@@ -281,16 +286,36 @@
                         <td>{{ $applicant->sex ?: '–' }}</td>
                         <td>{{ $applicant->special_group ?: 'N/A' }}</td>
                         <td>{{ $applicant->cmfl ?: 'N/A' }}</td>
-                        <td>{{ $applicant->gwa !== null ? number_format($applicant->gwa, 2) . '%' : '–' }}</td>
                         <td>
-                            @if($applicant->cat_score_percentage !== null)
-                                <span class="fw-semibold">{{ number_format($applicant->cat_score_percentage, 2) }}%</span>
-                                <div class="text-muted" style="font-size: 10px;">({{ $applicant->exam_score }}/{{ $cycle->total_items ?: 80 }} · St. {{ $applicant->stanine_score ?? '–' }})</div>
+                            @if($applicant->gwa !== null)
+                                <span class="fw-semibold">{{ number_format($applicant->gwa, 2) }}%</span>
+                                <div class="text-muted" style="font-size: 10px;" title="{{ number_format($applicant->gwa, 2) }}% × {{ $gwaWeight }}% weight">
+                                    Wt: {{ number_format($applicant->gwa * ($gwaWeight / 100), 2) }}%
+                                </div>
                             @else
                                 <span class="text-muted">–</span>
                             @endif
                         </td>
-                        <td>{{ $applicant->interview_score !== null ? number_format($applicant->interview_score, 2) . '%' : '–' }}</td>
+                        <td>
+                            @if($applicant->cat_score_percentage !== null)
+                                <span class="fw-semibold">{{ number_format($applicant->cat_score_percentage, 2) }}%</span>
+                                <div class="text-muted" style="font-size: 10px;" title="Raw: {{ $applicant->exam_score }}/{{ $cycle->total_items ?: 80 }} · Stanine {{ $applicant->stanine_score ?? '–' }} · Weighted: {{ number_format($applicant->cat_score_percentage * ($catWeight / 100), 2) }}%">
+                                    ({{ $applicant->exam_score }}/{{ $cycle->total_items ?: 80 }} · St. {{ $applicant->stanine_score ?? '–' }} · Wt: {{ number_format($applicant->cat_score_percentage * ($catWeight / 100), 2) }}%)
+                                </div>
+                            @else
+                                <span class="text-muted">–</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($applicant->interview_score !== null)
+                                <span class="fw-semibold">{{ number_format($applicant->interview_score, 2) }}%</span>
+                                <div class="text-muted" style="font-size: 10px;" title="{{ number_format($applicant->interview_score, 2) }}% × {{ $interviewWeight }}% weight">
+                                    Wt: {{ number_format($applicant->interview_score * ($interviewWeight / 100), 2) }}%
+                                </div>
+                            @else
+                                <span class="text-muted">–</span>
+                            @endif
+                        </td>
                         <td class="fw-bold">
                             @php
                                 $tot = $applicant->calculated_total ?? $applicant->total_score;

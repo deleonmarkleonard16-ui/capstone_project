@@ -7,5 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Course extends Model
 {
     protected $guarded = ['id'];
-    protected function casts(): array { return ['is_active' => 'boolean']; }
+    protected function casts(): array {
+        return [
+            'is_active' => 'boolean',
+            'is_board_program' => 'boolean',
+        ];
+    }
 }

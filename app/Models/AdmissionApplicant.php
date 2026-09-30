@@ -362,6 +362,6 @@ class AdmissionApplicant extends Model
             return 'QUALIFIED FOR NON-BOARD PROGRAMS';
         }
 
-        return 'NOT QUALIFIED';
+        return 'DID NOT MEET MINIMUM STANINE REQUIREMENT';
     }
 }

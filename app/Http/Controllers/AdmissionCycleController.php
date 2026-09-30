@@ -38,7 +38,9 @@ class AdmissionCycleController extends Controller
             'status' => ['nullable', Rule::in(array_merge(AdmissionCycle::STATUSES, ['Maintenance', 'Archived']))],
             'passing_stanine' => 'nullable|integer|between:1,9',
             'stanine_cutoff_board' => 'nullable|integer|between:1,9',
+            'stanine_board' => 'nullable|integer|between:1,9',
             'stanine_cutoff_non_board' => 'nullable|integer|between:1,9',
+            'stanine_nonboard' => 'nullable|integer|between:1,9',
             'total_items' => 'nullable|integer|between:10,200',
             'exam_weight' => 'nullable|numeric|between:0,100',
             'gwa_weight' => 'nullable|numeric|between:0,100',
@@ -74,11 +76,14 @@ class AdmissionCycleController extends Controller
         $record->cycle_name = $cycleName;
         $record->academic_year = $academicYear;
         $record->passing_stanine = (int) ($data['passing_stanine'] ?? 4);
-        if (isset($data['stanine_cutoff_board'])) {
-            $record->stanine_cutoff_board = (int) $data['stanine_cutoff_board'];
+
+        $boardCutoff = $data['stanine_board'] ?? ($data['stanine_cutoff_board'] ?? null);
+        if ($boardCutoff !== null) {
+            $record->stanine_cutoff_board = (int) $boardCutoff;
         }
-        if (isset($data['stanine_cutoff_non_board'])) {
-            $record->stanine_cutoff_non_board = (int) $data['stanine_cutoff_non_board'];
+        $nonBoardCutoff = $data['stanine_nonboard'] ?? ($data['stanine_cutoff_non_board'] ?? null);
+        if ($nonBoardCutoff !== null) {
+            $record->stanine_cutoff_non_board = (int) $nonBoardCutoff;
         }
         $record->total_items = (int) ($data['total_items'] ?? ($record->total_items ?: 80));
         $record->exam_weight = $examWeight;

@@ -31,7 +31,9 @@ class AdmissionPipelineController extends Controller
             'status' => ['nullable', Rule::in(array_merge(AdmissionCycle::STATUSES, ['Maintenance', 'Archived']))],
             'passing_stanine' => 'nullable|integer|between:1,9',
             'stanine_cutoff_board' => 'nullable|integer|between:1,9',
+            'stanine_board' => 'nullable|integer|between:1,9',
             'stanine_cutoff_non_board' => 'nullable|integer|between:1,9',
+            'stanine_nonboard' => 'nullable|integer|between:1,9',
             'total_items' => 'nullable|integer|between:10,200',
             'exam_weight' => 'nullable|numeric|between:0,100',
             'gwa_weight' => 'nullable|numeric|between:0,100',
@@ -68,11 +70,14 @@ class AdmissionPipelineController extends Controller
         $record->cycle_name = $cycleName;
         $record->academic_year = $academicYear;
         $record->passing_stanine = (int) ($data['passing_stanine'] ?? 4);
-        if (isset($data['stanine_cutoff_board'])) {
-            $record->stanine_cutoff_board = (int) $data['stanine_cutoff_board'];
+
+        $boardCutoff = $data['stanine_board'] ?? ($data['stanine_cutoff_board'] ?? null);
+        if ($boardCutoff !== null) {
+            $record->stanine_cutoff_board = (int) $boardCutoff;
         }
-        if (isset($data['stanine_cutoff_non_board'])) {
-            $record->stanine_cutoff_non_board = (int) $data['stanine_cutoff_non_board'];
+        $nonBoardCutoff = $data['stanine_nonboard'] ?? ($data['stanine_cutoff_non_board'] ?? null);
+        if ($nonBoardCutoff !== null) {
+            $record->stanine_cutoff_non_board = (int) $nonBoardCutoff;
         }
         $record->total_items = (int) ($data['total_items'] ?? ($record->total_items ?: 80));
         $record->exam_weight = $examWeight;
@@ -371,7 +376,8 @@ class AdmissionPipelineController extends Controller
         $savedCount = 0;
         $savedIds   = [];
 
-        DB::transaction(function () use ($inputRows, $cycle, $batchGroup, &$savedCount, &$savedIds) {
+        DB::beginTransaction();
+        try {
             foreach ($inputRows as $row) {
                 $lastName = trim((string) ($row['last_name'] ?? ''));
                 $firstName = trim((string) ($row['first_name'] ?? ''));
@@ -381,16 +387,14 @@ class AdmissionPipelineController extends Controller
                 }
 
                 $middleName    = trim((string) ($row['middle_name'] ?? '')) ?: null;
-                $courseChoice1 = trim((string) ($row['course_choice_1'] ?? ($row['course_choice'] ?? '')));
-                $courseChoice2 = trim((string) ($row['course_choice_2'] ?? ($row['second_course_choice'] ?? '')));
-                if ($courseChoice2 === '' || strcasecmp($courseChoice2, 'N/A') === 0 || strcasecmp($courseChoice2, 'None') === 0) {
-                    $courseChoice2 = null;
-                }
+                $courseChoice1 = trim((string) ($row['course_choice_1'] ?? ($row['course_choice'] ?? ''))) ?: null;
+                $rawC2         = trim((string) ($row['course_choice_2'] ?? ($row['second_course_choice'] ?? '')));
+                $courseChoice2 = ($rawC2 === '' || strcasecmp($rawC2, 'N/A') === 0 || strcasecmp($rawC2, 'None') === 0) ? null : $rawC2;
 
                 $sex          = trim((string) ($row['sex'] ?? '')) ?: null;
                 $specialGroup = trim((string) ($row['special_group'] ?? ($row['4ps_osy_ip_pwd_sp'] ?? ''))) ?: null;
                 $cmfl         = trim((string) ($row['cmfl'] ?? '')) ?: null;
-                $gwa          = isset($row['gwa']) && is_numeric($row['gwa']) ? (float) $row['gwa'] : null;
+                $gwa          = (isset($row['gwa']) && is_numeric($row['gwa'])) ? (float) $row['gwa'] : null;
 
                 $id = $row['id'] ?? null;
                 if ($id) {
@@ -416,14 +420,21 @@ class AdmissionPipelineController extends Controller
                 $applicant->last_name            = $lastName;
                 $applicant->first_name           = $firstName;
                 $applicant->middle_name          = $middleName;
-                $applicant->course_choice_1      = $courseChoice1 ?: null;
-                $applicant->course_choice        = $courseChoice1 ?: null;
-                $applicant->course_choice_2      = $courseChoice2 ?: null;
-                $applicant->second_course_choice = $courseChoice2 ?: null;
+                $applicant->course_choice_1      = $courseChoice1;
+                $applicant->course_choice        = $courseChoice1;
+                $applicant->course_choice_2      = $courseChoice2;
+                $applicant->second_course_choice = $courseChoice2;
                 $applicant->sex                  = $sex;
                 $applicant->special_group        = $specialGroup;
                 $applicant->cmfl                 = $cmfl;
                 $applicant->gwa                  = $gwa;
+
+                if (isset($row['exam_score']) && is_numeric($row['exam_score'])) {
+                    $applicant->exam_score = (float) $row['exam_score'];
+                }
+                if (isset($row['interview_score']) && is_numeric($row['interview_score'])) {
+                    $applicant->interview_score = (float) $row['interview_score'];
+                }
 
                 if ($batchGroup !== '' && $batchGroup !== '__all__') {
                     $applicant->batch_group = $batchGroup;
@@ -433,10 +444,31 @@ class AdmissionPipelineController extends Controller
                 $savedCount++;
                 $savedIds[] = $applicant->id;
             }
-        });
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Error saving encoding sheet rows: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to save encoded rows: ' . $e->getMessage(),
+                    'errors'  => [$e->getMessage()],
+                ], 422);
+            }
+
+            return back()->withInput()->with('error', 'Unable to save encoded rows: ' . $e->getMessage());
+        }
 
         if ($savedCount > 0) {
-            $scoring->evaluate($cycle);
+            try {
+                $scoring->evaluate($cycle);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Scoring evaluation warning on cycle: ' . $e->getMessage());
+            }
         }
 
         $message = "Successfully saved {$savedCount} row(s) to the Masterlist Encoding Sheet.";
@@ -699,6 +731,40 @@ class AdmissionPipelineController extends Controller
         $dateIssued = $day . $suffix . ' day of ' . $now->format('F Y');
 
         $remarks = $applicant->certificate_remarks;
+
+        if ($request->query('format') === 'pdf' || $request->input('format') === 'pdf') {
+            try {
+                $options = new \Dompdf\Options();
+                $options->set('isRemoteEnabled', false);
+                $options->set('isHtml5ParserEnabled', true);
+                $dompdf = new \Dompdf\Dompdf($options);
+
+                $html = view('admin.admission.certificate', compact(
+                    'applicant',
+                    'cycle',
+                    'purpose',
+                    'dateIssued',
+                    'remarks'
+                ))->render();
+
+                $dompdf->loadHtml($html, 'UTF-8');
+                $dompdf->setPaper('letter', 'portrait');
+                $dompdf->render();
+
+                $filename = 'PSU-CAT-Certificate-' . \Illuminate\Support\Str::slug($applicant->application_number ?? ('applicant-' . $applicant->id)) . '.pdf';
+
+                return response($dompdf->output(), 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Admission certificate PDF generation failed: ' . $e->getMessage(), [
+                    'exception' => $e,
+                ]);
+
+                return back()->with('error', 'Unable to generate PDF certificate: ' . $e->getMessage());
+            }
+        }
 
         return view('admin.admission.certificate', compact(
             'applicant',

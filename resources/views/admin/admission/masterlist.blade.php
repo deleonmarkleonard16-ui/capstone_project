@@ -314,12 +314,29 @@
                                         data-bs-target="#edit-applicant-{{ $applicant->id }}">
                                     {{ $isLocked ? 'View' : 'Edit' }}
                                 </button>
-                                <a class="btn btn-sm btn-outline-success"
-                                   href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'print']) }}"
-                                   target="_blank"
-                                   title="Download Certificate of Admission Test Result">
-                                    <i class="bi bi-file-earmark-text"></i>
-                                </a>
+                                <div class="btn-group">
+                                    <a class="btn btn-sm btn-outline-success"
+                                       href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'pdf']) }}"
+                                       target="_blank"
+                                       title="Download Certificate of Admission Test Result">
+                                        <i class="bi bi-file-earmark-arrow-down me-1"></i> Certificate
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="visually-hidden">Toggle Dropdown</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <li>
+                                            <a class="dropdown-item small" href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'pdf']) }}" target="_blank">
+                                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i> Download Certificate of Admission Test Result (PDF)
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item small" href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'print']) }}" target="_blank">
+                                                <i class="bi bi-printer text-primary me-2"></i> Print View / Preview
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -484,17 +501,24 @@
                                 </span>
                             </div>
                             <div class="row g-2 align-items-center">
-                                <div class="col-md-8">
+                                <div class="col-md-6">
                                     <label class="form-label form-label-sm text-muted mb-1" for="cert_purpose_{{ $applicant->id }}">Certificate Purpose / Scholarship:</label>
                                     <input type="text" class="form-control form-control-sm" id="cert_purpose_{{ $applicant->id }}"
                                            value="SCHOLARSHIP purposes only"
                                            placeholder="e.g. SCHOLARSHIP purposes only">
                                 </div>
-                                <div class="col-md-4 pt-md-3">
-                                    <button type="button" class="btn btn-outline-success btn-sm w-100 fw-semibold"
-                                            onclick="openApplicantCert({{ $applicant->id }})">
-                                        <i class="bi bi-download me-1"></i> Download Certificate
-                                    </button>
+                                <div class="col-md-6 pt-md-3">
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-success btn-sm flex-fill fw-semibold"
+                                                onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
+                                            <i class="bi bi-download me-1"></i> Download Certificate of Admission Test Result
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                onclick="openApplicantCert({{ $applicant->id }}, 'print')"
+                                                title="Print Certificate">
+                                            <i class="bi bi-printer"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -503,8 +527,8 @@
                 <div class="modal-footer d-flex justify-content-between flex-wrap gap-2">
                     <div>
                         <button type="button" class="btn btn-outline-success btn-sm"
-                                onclick="openApplicantCert({{ $applicant->id }})">
-                            <i class="bi bi-file-earmark-text me-1"></i> Download Certificate
+                                onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
+                            <i class="bi bi-file-earmark-arrow-down me-1"></i> Download Certificate of Admission Test Result
                         </button>
                     </div>
                     <div class="d-flex gap-2">
@@ -590,10 +614,10 @@
     }
 
 
-    window.openApplicantCert = function(id) {
+    window.openApplicantCert = function(id, format = 'pdf') {
         const input = document.getElementById('cert_purpose_' + id);
         const purpose = input ? input.value : 'SCHOLARSHIP purposes only';
-        const url = '{{ url("admin/admission/applicants") }}/' + id + '/certificate?purpose=' + encodeURIComponent(purpose) + '&format=print';
+        const url = '{{ url("admin/admission/applicants") }}/' + id + '/certificate?purpose=' + encodeURIComponent(purpose) + '&format=' + encodeURIComponent(format);
         window.open(url, '_blank');
     };
 

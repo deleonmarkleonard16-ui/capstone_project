@@ -27,6 +27,18 @@ final class CourseCatalog
             return false;
         }
         $code = strtoupper(trim($code));
+
+        try {
+            if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'is_board_program')) {
+                $dbVal = Course::where('code', $code)->value('is_board_program');
+                if ($dbVal !== null) {
+                    return (bool) $dbVal;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fallback to static list
+        }
+
         $boardPrograms = ['BEED', 'BSED-FIL', 'BSED-SOC', 'BTLED', 'BSED'];
         if (in_array($code, $boardPrograms, true)) {
             return true;

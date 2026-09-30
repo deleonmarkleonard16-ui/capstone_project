@@ -404,7 +404,7 @@ class AdmissionApplicant extends Model
      */
     public function getCertificateRemarksAttribute(): string
     {
-        $cycle = $this->cycle ?? $this->admissionSession?->cycle;
+        $cycle = $this->cycle ?? $this->admissionSession?->cycle ?? AdmissionCycle::active();
         $boardCutoff = $cycle ? $cycle->getBoardCutoff() : 4;
         $nonBoardCutoff = $cycle ? $cycle->getNonBoardCutoff() : 3;
 
@@ -418,7 +418,7 @@ class AdmissionApplicant extends Model
         }
 
         if ($stanine >= $nonBoardCutoff) {
-            return 'QUALIFIED FOR NON-BOARD PROGRAMS';
+            return 'QUALIFY FOR NON-BOARD PROGRAMS';
         }
 
         return 'DID NOT MEET MINIMUM STANINE REQUIREMENT';

@@ -314,29 +314,6 @@
                                         data-bs-target="#edit-applicant-{{ $applicant->id }}">
                                     {{ $isLocked ? 'View' : 'Edit' }}
                                 </button>
-                                <div class="btn-group">
-                                    <a class="btn btn-sm btn-outline-success"
-                                       href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'pdf']) }}"
-                                       target="_blank"
-                                       title="Download Certificate of Admission Test Result">
-                                        <i class="bi bi-file-earmark-arrow-down me-1"></i> Certificate
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span class="visually-hidden">Toggle Dropdown</span>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                        <li>
-                                            <a class="dropdown-item small" href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'pdf']) }}" target="_blank">
-                                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i> Download Certificate of Admission Test Result (PDF)
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item small" href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'print']) }}" target="_blank">
-                                                <i class="bi bi-printer text-primary me-2"></i> Print View / Preview
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
                             </div>
                         </td>
                     </tr>
@@ -490,46 +467,99 @@
                                    class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
 
-                        {{-- ══ CERTIFICATE OF ADMISSION TEST RESULT GENERATOR ══ --}}
-                        <div class="col-12 mt-3 pt-3 border-top bg-light-subtle rounded p-3 border">
-                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                                <label class="form-label form-label-sm fw-bold text-primary mb-0">
-                                    <i class="bi bi-file-earmark-text-fill me-1"></i> Certificate of Admission Test Result
-                                </label>
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                                    Dynamic Remarks: {{ $applicant->certificate_remarks }}
-                                </span>
-                            </div>
-                            <div class="row g-2 align-items-center">
-                                <div class="col-md-6">
-                                    <label class="form-label form-label-sm text-muted mb-1" for="cert_purpose_{{ $applicant->id }}">Certificate Purpose / Scholarship:</label>
-                                    <input type="text" class="form-control form-control-sm" id="cert_purpose_{{ $applicant->id }}"
-                                           value="SCHOLARSHIP purposes only"
-                                           placeholder="e.g. SCHOLARSHIP purposes only">
+                        @php
+                            $eval = $applicant->qualification_evaluation;
+                            $isRemarksDone = $applicant->stanine_score !== null
+                                && ($eval['status'] ?? '') !== 'Pending'
+                                && !in_array($eval['remarks'] ?? '', ['Pending', 'Scheduled', 'Absent', 'Not submitted', '']);
+                            $defaultRequestor = ($applicant->sex === 'Female' ? 'MS. ' : 'MR. ') . mb_strtoupper($applicant->last_name);
+                        @endphp
+
+                        @if($isRemarksDone)
+                            {{-- ══ CERTIFICATE OF ADMISSION TEST RESULT GENERATOR ══ --}}
+                            <div class="col-12 mt-3 pt-3 border-top bg-light-subtle rounded p-3 border">
+                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                    <label class="form-label form-label-sm fw-bold text-primary mb-0">
+                                        <i class="bi bi-file-earmark-text-fill me-1"></i> Certificate of Admission Test Result
+                                    </label>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                        Remarks: {{ $applicant->certificate_remarks }}
+                                    </span>
                                 </div>
-                                <div class="col-md-6 pt-md-3">
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-outline-success btn-sm flex-fill fw-semibold"
-                                                onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
-                                            <i class="bi bi-download me-1"></i> Download Certificate of Admission Test Result
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                onclick="openApplicantCert({{ $applicant->id }}, 'print')"
-                                                title="Print Certificate">
-                                            <i class="bi bi-printer"></i>
-                                        </button>
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-3">
+                                        <label class="form-label form-label-sm text-muted mb-1" for="cert_issued_date_{{ $applicant->id }}">Date Issued:</label>
+                                        <input type="date" class="form-control form-control-sm" id="cert_issued_date_{{ $applicant->id }}"
+                                               value="{{ now()->format('Y-m-d') }}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label form-label-sm text-muted mb-1" for="cert_requestor_{{ $applicant->id }}">Requestor Name:</label>
+                                        <input type="text" class="form-control form-control-sm" id="cert_requestor_{{ $applicant->id }}"
+                                               value="{{ $defaultRequestor }}"
+                                               placeholder="e.g. MS. PEREZ">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label form-label-sm text-muted mb-1" for="cert_purpose_{{ $applicant->id }}">Purpose:</label>
+                                        <input type="text" class="form-control form-control-sm" id="cert_purpose_{{ $applicant->id }}"
+                                               value="SCHOLARSHIP"
+                                               placeholder="e.g. SCHOLARSHIP">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="d-flex gap-1">
+                                            <button type="button" class="btn btn-outline-success btn-sm flex-fill fw-semibold"
+                                                    onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
+                                                <i class="bi bi-download me-1"></i> Download PDF
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    onclick="openApplicantCert({{ $applicant->id }}, 'print')"
+                                                    title="Print Preview">
+                                                <i class="bi bi-printer"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label form-label-sm text-muted mb-1" for="cert_or_number_{{ $applicant->id }}">O.R. # (Optional):</label>
+                                        <input type="text" class="form-control form-control-sm" id="cert_or_number_{{ $applicant->id }}"
+                                               placeholder="e.g. 1234567">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label form-label-sm text-muted mb-1" for="cert_or_date_{{ $applicant->id }}">O.R. Date (Optional):</label>
+                                        <input type="date" class="form-control form-control-sm" id="cert_or_date_{{ $applicant->id }}"
+                                               value="{{ now()->format('Y-m-d') }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small text-muted pt-2">
+                                            <i class="bi bi-info-circle me-1"></i> Certificate reflects Stanine {{ $applicant->stanine_score }} and official institutional remarks.
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        @else
+                            {{-- ══ CERTIFICATE GENERATION DISABLED UNTIL REMARKS COMPLETE ══ --}}
+                            <div class="col-12 mt-3 pt-3 border-top">
+                                <div class="alert alert-secondary py-2 small mb-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-lock-fill fs-5 text-muted"></i>
+                                    <div>
+                                        <strong>Certificate Generation Locked:</strong> Official Certificate of Admission Test Result will be available once the examinee's score and evaluation remarks are finalized.
+                                        (Current Status: <span class="badge bg-secondary">{{ $eval['remarks'] ?? 'Pending' }}</span>)
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between flex-wrap gap-2">
                     <div>
-                        <button type="button" class="btn btn-outline-success btn-sm"
-                                onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
-                            <i class="bi bi-file-earmark-arrow-down me-1"></i> Download Certificate of Admission Test Result
-                        </button>
+                        @if($isRemarksDone)
+                            <button type="button" class="btn btn-outline-success btn-sm"
+                                    onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
+                                <i class="bi bi-file-earmark-arrow-down me-1"></i> Download Certificate of Admission Test Result
+                            </button>
+                        @else
+                            <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Evaluation remarks pending">
+                                <i class="bi bi-lock me-1"></i> Certificate Locked (Pending Evaluation)
+                            </button>
+                        @endif
                     </div>
                     <div class="d-flex gap-2">
                         @if(!$isLocked)
@@ -615,9 +645,31 @@
 
 
     window.openApplicantCert = function(id, format = 'pdf') {
-        const input = document.getElementById('cert_purpose_' + id);
-        const purpose = input ? input.value : 'SCHOLARSHIP purposes only';
-        const url = '{{ url("admin/admission/applicants") }}/' + id + '/certificate?purpose=' + encodeURIComponent(purpose) + '&format=' + encodeURIComponent(format);
+        const purposeInput = document.getElementById('cert_purpose_' + id);
+        const purpose = purposeInput ? purposeInput.value : 'SCHOLARSHIP';
+
+        const requestorInput = document.getElementById('cert_requestor_' + id);
+        const requestor = requestorInput ? requestorInput.value : '';
+
+        const issuedDateInput = document.getElementById('cert_issued_date_' + id);
+        const issuedDate = issuedDateInput ? issuedDateInput.value : '';
+
+        const orNumberInput = document.getElementById('cert_or_number_' + id);
+        const orNumber = orNumberInput ? orNumberInput.value : '';
+
+        const orDateInput = document.getElementById('cert_or_date_' + id);
+        const orDate = orDateInput ? orDateInput.value : '';
+
+        const params = new URLSearchParams({
+            purpose: purpose,
+            requestor_name: requestor,
+            issued_date: issuedDate,
+            or_number: orNumber,
+            or_date: orDate,
+            format: format
+        });
+
+        const url = '{{ url("admin/admission/applicants") }}/' + id + '/certificate?' + params.toString();
         window.open(url, '_blank');
     };
 

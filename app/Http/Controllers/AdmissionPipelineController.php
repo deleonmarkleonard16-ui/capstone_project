@@ -749,23 +749,46 @@ class AdmissionPipelineController extends Controller
 
     public function certificate(Request $request, AdmissionApplicant $applicant)
     {
-        $cycle = $applicant->cycle ?? AdmissionCycle::find($applicant->admission_cycle_id);
+        $cycle = $applicant->cycle ?? AdmissionCycle::find($applicant->admission_cycle_id) ?? AdmissionCycle::active();
 
-        $purpose  = trim($request->input('purpose', 'SCHOLARSHIP purposes only'));
+        $purpose = trim((string) $request->input('purpose', 'SCHOLARSHIP'));
         if ($purpose === '') {
-            $purpose = 'SCHOLARSHIP purposes only';
+            $purpose = 'SCHOLARSHIP';
         }
 
-        // Format ordinal date: e.g. "1st day of July 2026"
-        $now = now();
-        $day = (int) $now->format('j');
-        $suffix = match(true) {
-            $day === 1 || $day === 21 || $day === 31 => 'st',
-            $day === 2 || $day === 22               => 'nd',
-            $day === 3 || $day === 23               => 'rd',
-            default                                  => 'th',
+        $defaultRequestor = ($applicant->sex === 'Female' ? 'MS. ' : 'MR. ') . mb_strtoupper($applicant->last_name);
+        $requestorName = trim((string) $request->input('requestor_name', $defaultRequestor));
+        if ($requestorName === '') {
+            $requestorName = $defaultRequestor;
+        }
+
+        $orNumber = trim((string) $request->input('or_number', ''));
+        $orDate   = trim((string) $request->input('or_date', ''));
+
+        $salutation = match(strtolower((string) $applicant->sex)) {
+            'female' => 'MS.',
+            'male'   => 'MR.',
+            default  => '',
         };
-        $dateIssued = $day . $suffix . ' day of ' . $now->format('F Y');
+
+        $rawIssuedDate = $request->input('issued_date');
+        try {
+            $dateObj = $rawIssuedDate ? \Illuminate\Support\Carbon::parse($rawIssuedDate) : now();
+        } catch (\Throwable) {
+            $dateObj = now();
+        }
+
+        $dayNum = (int) $dateObj->format('j');
+        $suffix = match(true) {
+            $dayNum === 1 || $dayNum === 21 || $dayNum === 31 => 'st',
+            $dayNum === 2 || $dayNum === 22                   => 'nd',
+            $dayNum === 3 || $dayNum === 23                   => 'rd',
+            default                                           => 'th',
+        };
+        $issuedDay   = $dayNum . $suffix;
+        $issuedMonth = $dateObj->format('F');
+        $issuedYear  = $dateObj->format('Y');
+        $dateIssued  = "Issued this {$issuedDay} day of {$issuedMonth}, {$issuedYear}.";
 
         $remarks = $applicant->certificate_remarks;
 
@@ -780,7 +803,14 @@ class AdmissionPipelineController extends Controller
                     'applicant',
                     'cycle',
                     'purpose',
+                    'requestorName',
                     'dateIssued',
+                    'issuedDay',
+                    'issuedMonth',
+                    'issuedYear',
+                    'salutation',
+                    'orNumber',
+                    'orDate',
                     'remarks'
                 ))->render();
 
@@ -807,7 +837,14 @@ class AdmissionPipelineController extends Controller
             'applicant',
             'cycle',
             'purpose',
+            'requestorName',
             'dateIssued',
+            'issuedDay',
+            'issuedMonth',
+            'issuedYear',
+            'salutation',
+            'orNumber',
+            'orDate',
             'remarks'
         ));
     }

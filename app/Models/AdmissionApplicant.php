@@ -148,6 +148,11 @@ class AdmissionApplicant extends Model
         return $value ?: ($this->attributes['second_course_choice'] ?? null);
     }
 
+    public function getSecondCourseChoiceAttribute($value): ?string
+    {
+        return $value ?: ($this->attributes['course_choice_2'] ?? null);
+    }
+
     /**
      * Schema-aware mutator: writes course_choice_2 + second_course_choice only when
      * the respective column actually exists in the table, so this never crashes on a

@@ -250,7 +250,7 @@
                         $eval = $applicant->qualification_evaluation;
                     @endphp
                     <tr>
-                        <td class="ps-3 fw-bold">#{{ $ranks[$applicant->id] }}</td>
+                        <td class="ps-3 fw-bold">#{{ $ranks[$applicant->id] ?? ($i + 1) }}</td>
                         <td class="fw-bold">{{ mb_strtoupper($applicant->last_name) }}</td>
                         <td>{{ mb_strtoupper($applicant->first_name) }}</td>
                         <td>{{ $applicant->middle_name ? mb_strtoupper($applicant->middle_name) : '–' }}</td>

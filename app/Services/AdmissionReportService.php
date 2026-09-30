@@ -12,8 +12,15 @@ class AdmissionReportService
 
     public function cutoffs(AdmissionCycle $cycle): array
     {
-        return DB::table('admission_interview_cutoffs')
-            ->where('admission_cycle_id', $cycle->id)->pluck('top_limit', 'course_code')->all();
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('admission_interview_cutoffs')) {
+                return DB::table('admission_interview_cutoffs')
+                    ->where('admission_cycle_id', $cycle->id)->pluck('top_limit', 'course_code')->all();
+            }
+        } catch (\Throwable $e) {
+            // Gracefully return empty array if table doesn't exist
+        }
+        return [];
     }
 
     public function roster(AdmissionCycle $cycle, string $type, ?string $batch = null): array

@@ -60,12 +60,14 @@ class AdmissionCycle extends Model
 
     public function getBoardCutoff(): int
     {
-        return (int) ($this->stanine_cutoff_board ?: ($this->stanine_board ?: ($this->passing_stanine ?: 4)));
+        $val = $this->attributes['stanine_cutoff_board'] ?? ($this->attributes['stanine_board'] ?? null);
+        return (int) ($val ?: ($this->attributes['passing_stanine'] ?? 4));
     }
 
     public function getNonBoardCutoff(): int
     {
-        return (int) ($this->stanine_cutoff_non_board ?: ($this->stanine_nonboard ?: 3));
+        $val = $this->attributes['stanine_cutoff_non_board'] ?? ($this->attributes['stanine_nonboard'] ?? null);
+        return (int) ($val ?: 3);
     }
 
     public function getStanineBoardAttribute(): int

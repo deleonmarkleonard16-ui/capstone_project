@@ -84,17 +84,35 @@ class AdmissionApplicantController extends Controller
                     ]);
                 }
 
-                $applicant->last_name            = $lastName;
-                $applicant->first_name           = $firstName;
-                $applicant->middle_name          = $middleName;
-                $applicant->course_choice_1      = $courseChoice1;
-                $applicant->course_choice        = $courseChoice1;
-                $applicant->course_choice_2      = $courseChoice2;
-                $applicant->second_course_choice = $courseChoice2;
-                $applicant->sex                  = $sex;
-                $applicant->special_group        = $specialGroup;
-                $applicant->cmfl                 = $cmfl;
-                $applicant->gwa                  = $gwa;
+                $applicant->last_name   = $lastName;
+                $applicant->first_name  = $firstName;
+                $applicant->middle_name = $middleName;
+                $applicant->sex         = $sex;
+                $applicant->special_group = $specialGroup;
+                $applicant->cmfl        = $cmfl;
+                $applicant->gwa         = $gwa;
+
+                // ── Course choice columns — only assign aliases that exist in the DB ──
+                // This prevents "Unknown column" SQL errors on databases where the
+                // new alias columns (second_course_choice, course_choice_1/2) haven't
+                // been migrated yet (e.g. Railway remote database).
+                static $schemaColumns = null;
+                if ($schemaColumns === null) {
+                    $schemaColumns = \Illuminate\Support\Facades\Schema::getColumnListing('admission_applicants');
+                }
+
+                // Primary (always-present) column: course_choice
+                $applicant->setAttribute('course_choice', $courseChoice1);
+
+                if (in_array('course_choice_1', $schemaColumns, true)) {
+                    $applicant->setAttribute('course_choice_1', $courseChoice1);
+                }
+                if (in_array('second_course_choice', $schemaColumns, true)) {
+                    $applicant->setAttribute('second_course_choice', $courseChoice2);
+                }
+                if (in_array('course_choice_2', $schemaColumns, true)) {
+                    $applicant->setAttribute('course_choice_2', $courseChoice2);
+                }
 
                 if (isset($row['exam_score']) && is_numeric($row['exam_score'])) {
                     $applicant->exam_score = (float) $row['exam_score'];

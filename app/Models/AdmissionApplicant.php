@@ -138,16 +138,33 @@ class AdmissionApplicant extends Model
         $this->attributes['course_choice']   = $value;
     }
 
+    /**
+     * Returns the 2nd course choice, falling back to second_course_choice alias if set.
+     * If the `course_choice_2` column does not exist on this database yet (e.g. Railway
+     * before migrations run), fall back gracefully.
+     */
     public function getCourseChoice2Attribute($value): ?string
     {
         return $value ?: ($this->attributes['second_course_choice'] ?? null);
     }
 
+    /**
+     * Schema-aware mutator: writes course_choice_2 + second_course_choice only when
+     * the respective column actually exists in the table, so this never crashes on a
+     * database that is missing one of the alias columns.
+     */
     public function setCourseChoice2Attribute($value): void
     {
-        $clean = ($value === 'N/A' || $value === 'None') ? null : $value;
-        $this->attributes['course_choice_2']      = $clean;
-        $this->attributes['second_course_choice'] = $clean;
+        $clean = ($value === 'N/A' || $value === 'None' || $value === '') ? null : $value;
+
+        $cols = $this->getSchemaColumns();
+
+        if (in_array('course_choice_2', $cols, true)) {
+            $this->attributes['course_choice_2'] = $clean;
+        }
+        if (in_array('second_course_choice', $cols, true)) {
+            $this->attributes['second_course_choice'] = $clean;
+        }
     }
 
     public function getFirstCourseChoiceAttribute(): ?string
@@ -162,15 +179,52 @@ class AdmissionApplicant extends Model
 
     public function setCourseChoiceAttribute($value): void
     {
-        $this->attributes['course_choice']   = $value;
-        $this->attributes['course_choice_1'] = $value;
+        $cols = $this->getSchemaColumns();
+
+        $this->attributes['course_choice'] = $value;
+
+        if (in_array('course_choice_1', $cols, true)) {
+            $this->attributes['course_choice_1'] = $value;
+        }
     }
 
+    /**
+     * Schema-aware mutator: writes second_course_choice + course_choice_2 only when
+     * the respective column actually exists in the table.
+     */
     public function setSecondCourseChoiceAttribute($value): void
     {
-        $clean = ($value === 'N/A' || $value === 'None') ? null : $value;
-        $this->attributes['second_course_choice'] = $clean;
-        $this->attributes['course_choice_2']      = $clean;
+        $clean = ($value === 'N/A' || $value === 'None' || $value === '') ? null : $value;
+
+        $cols = $this->getSchemaColumns();
+
+        if (in_array('second_course_choice', $cols, true)) {
+            $this->attributes['second_course_choice'] = $clean;
+        }
+        if (in_array('course_choice_2', $cols, true)) {
+            $this->attributes['course_choice_2'] = $clean;
+        }
+    }
+
+    /**
+     * Cached list of actual column names on this table (per-request, not per-instance).
+     * Used by mutators to avoid writing to columns that don't exist yet.
+     *
+     * @return string[]
+     */
+    protected function getSchemaColumns(): array
+    {
+        static $cache = null;
+        if ($cache === null) {
+            try {
+                $cache = \Illuminate\Support\Facades\Schema::getColumnListing($this->getTable());
+            } catch (\Throwable $e) {
+                // If schema inspection fails for any reason, return an empty list so
+                // the mutator writes nothing rather than crashing.
+                $cache = [];
+            }
+        }
+        return $cache;
     }
 
     /**

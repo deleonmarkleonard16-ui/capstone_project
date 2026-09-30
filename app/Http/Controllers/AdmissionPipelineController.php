@@ -417,17 +417,33 @@ class AdmissionPipelineController extends Controller
                     ]);
                 }
 
-                $applicant->last_name            = $lastName;
-                $applicant->first_name           = $firstName;
-                $applicant->middle_name          = $middleName;
-                $applicant->course_choice_1      = $courseChoice1;
-                $applicant->course_choice        = $courseChoice1;
-                $applicant->course_choice_2      = $courseChoice2;
-                $applicant->second_course_choice = $courseChoice2;
-                $applicant->sex                  = $sex;
-                $applicant->special_group        = $specialGroup;
-                $applicant->cmfl                 = $cmfl;
-                $applicant->gwa                  = $gwa;
+                $applicant->last_name   = $lastName;
+                $applicant->first_name  = $firstName;
+                $applicant->middle_name = $middleName;
+                $applicant->sex         = $sex;
+                $applicant->special_group = $specialGroup;
+                $applicant->cmfl        = $cmfl;
+                $applicant->gwa         = $gwa;
+
+                // ── Schema-aware course-choice writes ──────────────────────────
+                // Only set alias columns when they exist in the DB, so this never
+                // crashes on a remote database (Railway) missing the new columns.
+                static $schemaColumns = null;
+                if ($schemaColumns === null) {
+                    $schemaColumns = \Illuminate\Support\Facades\Schema::getColumnListing('admission_applicants');
+                }
+
+                $applicant->setAttribute('course_choice', $courseChoice1);
+
+                if (in_array('course_choice_1', $schemaColumns, true)) {
+                    $applicant->setAttribute('course_choice_1', $courseChoice1);
+                }
+                if (in_array('second_course_choice', $schemaColumns, true)) {
+                    $applicant->setAttribute('second_course_choice', $courseChoice2);
+                }
+                if (in_array('course_choice_2', $schemaColumns, true)) {
+                    $applicant->setAttribute('course_choice_2', $courseChoice2);
+                }
 
                 if (isset($row['exam_score']) && is_numeric($row['exam_score'])) {
                     $applicant->exam_score = (float) $row['exam_score'];
@@ -516,16 +532,37 @@ class AdmissionPipelineController extends Controller
             'interview_score' => 'nullable|numeric|between:0,100',
         ]);
 
+        // Schema-aware alias sync: only include alias columns that exist in the DB.
+        $schemaCols = \Illuminate\Support\Facades\Schema::getColumnListing('admission_applicants');
+
+        // Sync course_choice <-> course_choice_1
         if (empty($data['course_choice']) && !empty($data['course_choice_1'])) {
             $data['course_choice'] = $data['course_choice_1'];
         } elseif (!empty($data['course_choice'])) {
-            $data['course_choice_1'] = $data['course_choice'];
+            if (in_array('course_choice_1', $schemaCols, true)) {
+                $data['course_choice_1'] = $data['course_choice'];
+            }
+        }
+        // Remove alias keys that don't exist in this DB to avoid Unknown column errors
+        if (!in_array('course_choice_1', $schemaCols, true)) {
+            unset($data['course_choice_1']);
         }
 
+        // Sync second_course_choice <-> course_choice_2
         if (empty($data['second_course_choice']) && !empty($data['course_choice_2'])) {
-            $data['second_course_choice'] = $data['course_choice_2'];
+            if (in_array('second_course_choice', $schemaCols, true)) {
+                $data['second_course_choice'] = $data['course_choice_2'];
+            }
         } elseif (!empty($data['second_course_choice'])) {
-            $data['course_choice_2'] = $data['second_course_choice'];
+            if (in_array('course_choice_2', $schemaCols, true)) {
+                $data['course_choice_2'] = $data['second_course_choice'];
+            }
+        }
+        if (!in_array('second_course_choice', $schemaCols, true)) {
+            unset($data['second_course_choice']);
+        }
+        if (!in_array('course_choice_2', $schemaCols, true)) {
+            unset($data['course_choice_2']);
         }
 
         $record = $applicant ?? new AdmissionApplicant();

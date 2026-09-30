@@ -21,6 +21,19 @@ final class CourseCatalog
         'BSOA' => 'Bachelor of Science in Office Administration',
     ];
 
+    public static function isBoardProgram(?string $code): bool
+    {
+        if (!$code) {
+            return false;
+        }
+        $code = strtoupper(trim($code));
+        $boardPrograms = ['BEED', 'BSED-FIL', 'BSED-SOC', 'BTLED', 'BSED'];
+        if (in_array($code, $boardPrograms, true)) {
+            return true;
+        }
+        return str_starts_with($code, 'BSED') || str_starts_with($code, 'BEED') || str_starts_with($code, 'BTLED');
+    }
+
     public static function rule(): array
     {
         return ['required', 'string', function ($attribute, $value, $fail) {

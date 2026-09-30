@@ -48,6 +48,8 @@ class AdmissionCycle extends Model
             'interview_weight'=> 'decimal:2',
             'passing_rate'    => 'decimal:2',
             'passing_stanine' => 'integer',
+            'stanine_cutoff_non_board' => 'integer',
+            'stanine_cutoff_board'     => 'integer',
             'total_items'     => 'integer',
             'start_date'      => 'date',
             'end_date'        => 'date',
@@ -55,6 +57,16 @@ class AdmissionCycle extends Model
     }
 
     // ── Accessors / Mutators ──────────────────────────────────────────────────
+
+    public function getBoardCutoff(): int
+    {
+        return (int) ($this->stanine_cutoff_board ?: ($this->passing_stanine ?: 4));
+    }
+
+    public function getNonBoardCutoff(): int
+    {
+        return (int) ($this->stanine_cutoff_non_board ?: 3);
+    }
 
     /** Unified display name regardless of which column was populated. */
     public function getDisplayNameAttribute(): string

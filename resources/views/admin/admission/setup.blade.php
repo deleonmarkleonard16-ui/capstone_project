@@ -310,8 +310,14 @@
                                                     <input name="academic_year" value="{{ $cycle->academic_year }}" class="form-control form-control-sm" required>
                                                 </div>
                                                 <div class="col-4">
-                                                    <label class="form-label form-label-sm fw-semibold">Passing Stanine</label>
-                                                    <input type="number" name="passing_stanine" value="{{ $cycle->passing_stanine }}" min="1" max="9" class="form-control form-control-sm">
+                                                    <label class="form-label form-label-sm fw-semibold">Non-Board Stanine Cutoff</label>
+                                                    <input type="number" name="stanine_cutoff_non_board" value="{{ $cycle->stanine_cutoff_non_board ?? $cycle->passing_stanine ?? 3 }}" min="1" max="9" class="form-control form-control-sm">
+                                                    <div class="form-text">Non-board programs (default 3)</div>
+                                                </div>
+                                                <div class="col-4">
+                                                    <label class="form-label form-label-sm fw-semibold">Board Stanine Cutoff</label>
+                                                    <input type="number" name="stanine_cutoff_board" value="{{ $cycle->stanine_cutoff_board ?? $cycle->passing_stanine ?? 4 }}" min="1" max="9" class="form-control form-control-sm">
+                                                    <div class="form-text">Board programs (default 4)</div>
                                                 </div>
                                                 <div class="col-4">
                                                     <label class="form-label form-label-sm fw-semibold">
@@ -386,9 +392,18 @@
                                    placeholder="e.g. 2027-2028">
                         </div>
                         <div class="col-6">
-                            <label class="form-label form-label-sm fw-semibold" for="new-passing-stanine">Passing Stanine</label>
-                            <input type="number" class="form-control form-control-sm" id="new-passing-stanine" name="passing_stanine"
+                            <label class="form-label form-label-sm fw-semibold" for="new-stanine-nonboard">Non-Board Stanine Cutoff</label>
+                            <input type="number" class="form-control form-control-sm" id="new-stanine-nonboard" name="stanine_cutoff_non_board"
+                                   value="3" min="1" max="9" required>
+                            <div class="form-text">Non-board programs (default 3)</div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label form-label-sm fw-semibold" for="new-stanine-board">Board Stanine Cutoff</label>
+                            <input type="number" class="form-control form-control-sm" id="new-stanine-board" name="stanine_cutoff_board"
                                    value="4" min="1" max="9" required>
+                            <div class="form-text">Board programs (default 4)</div>
                         </div>
                     </div>
 

@@ -262,6 +262,7 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::post('/scan-paper', [$c, 'scan'])->name('scan-paper.lookup');
         Route::get('/applicants/{applicant}/encode', [$c, 'encode'])->name('encode');
         Route::post('/applicants/{applicant}/encode', [$c, 'submitPaper'])->name('encode.submit');
+        Route::get('/applicants/{applicant}/certificate', [$c, 'certificate'])->name('applicants.certificate');
         Route::get('/report', [$c, 'report'])->name('report');
         $reports = \App\Http\Controllers\AdmissionReportController::class;
         Route::get('/reports/psu-cat-qualifiers', [$reports, 'psuCatQualifiers'])->name('reports.psu-cat-qualifiers');

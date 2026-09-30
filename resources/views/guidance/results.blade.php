@@ -35,13 +35,7 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route(auth()->user()->role.'.guidance-appointments.completed') }}" class="btn btn-outline-secondary">← Completed List</a>
-        @if(auth()->user()->role === 'admin' && ($appointment->test_category === 'psychological' || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7'], true)))
-            <a href="{{ route('admin.psychological.certificate', $appointment) }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-file-earmark-check me-1" aria-hidden="true"></i> Print Certificate
-            </a>
-        @else
-            <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ Print Report</button>
-        @endif
+        <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ Print Report</button>
     </div>
 </div>
 

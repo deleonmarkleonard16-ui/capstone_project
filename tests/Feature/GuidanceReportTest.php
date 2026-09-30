@@ -82,41 +82,12 @@ class GuidanceReportTest extends TestCase
                 ->assertSee($subtitle)
                 ->assertSee($badge)
                 ->assertSee($header)
-                ->assertSee($category === 'psychological' ? 'Print Certificate' : 'Print Report')
+                ->assertSee('Print Report')
                 ->assertDontSee('Print official report')
                 ->assertDontSee('Export PDF')
                 ->assertDontSee('Export DOCX')
                 ->assertDontSee('Export CSV');
         }
-    }
-
-    public function test_psychological_certificate_is_printable_and_only_available_for_completed_assessments(): void
-    {
-        $appointment = $this->appointment();
-        $appointment->serviceRequest->update(['student_number' => '23-SC-4111']);
-        $url = '/admin/psychological/certificate/'.$appointment->getKey();
-
-        $this->get($url)->assertRedirect('/login');
-        $this->login('staff');
-        $this->get($url)->assertForbidden();
-        $this->login('admin');
-        $this->get($url)->assertOk()
-            ->assertSee('Certificate of Psychological Assessment')
-            ->assertSee('Ana &amp; &lt;Student&gt; Santos', false)
-            ->assertSee('23-SC-4111')
-            ->assertSee('Bachelor of Science in Information Technology (BSIT)')
-            ->assertSee('Practicum')
-            ->assertSee('Guidance Counselor')
-            ->assertSee('border: 4px double #000', false)
-            ->assertSee('window.print()', false);
-        $this->get(route('admin.guidance-appointments.show-results', $appointment))
-            ->assertOk()->assertSee('target="_blank"', false)->assertSee('Print Certificate')
-            ->assertDontSee('Print Report');
-
-        $appointment->update(['status' => 'Approved']);
-        $this->get($url)->assertNotFound();
-        $appointment->update(['status' => 'Completed', 'test_category' => 'career', 'test_type' => 'career']);
-        $this->get($url)->assertNotFound();
     }
 
     public function test_all_dass_levels_use_institutional_columns_and_recommendations(): void

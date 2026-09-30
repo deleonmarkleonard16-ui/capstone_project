@@ -37,12 +37,15 @@ class AdmissionCycleController extends Controller
             'academic_year' => 'nullable|string|max:50',
             'status' => ['nullable', Rule::in(array_merge(AdmissionCycle::STATUSES, ['Maintenance', 'Archived']))],
             'passing_stanine' => 'nullable|integer|between:1,9',
+            'stanine_cutoff_board' => 'nullable|integer|between:1,9',
+            'stanine_cutoff_non_board' => 'nullable|integer|between:1,9',
             'total_items' => 'nullable|integer|between:10,200',
             'exam_weight' => 'nullable|numeric|between:0,100',
             'gwa_weight' => 'nullable|numeric|between:0,100',
             'interview_weight' => 'nullable|numeric|between:0,100',
             'set_active' => 'nullable|boolean',
         ]);
+
 
         $cycleName = trim($data['cycle_name'] ?? ($data['name'] ?? ''));
         if ($cycleName === '') {
@@ -71,10 +74,17 @@ class AdmissionCycleController extends Controller
         $record->cycle_name = $cycleName;
         $record->academic_year = $academicYear;
         $record->passing_stanine = (int) ($data['passing_stanine'] ?? 4);
+        if (isset($data['stanine_cutoff_board'])) {
+            $record->stanine_cutoff_board = (int) $data['stanine_cutoff_board'];
+        }
+        if (isset($data['stanine_cutoff_non_board'])) {
+            $record->stanine_cutoff_non_board = (int) $data['stanine_cutoff_non_board'];
+        }
         $record->total_items = (int) ($data['total_items'] ?? ($record->total_items ?: 80));
         $record->exam_weight = $examWeight;
         $record->gwa_weight = $gwaWeight;
         $record->interview_weight = $interviewWeight;
+
 
         $targetStatus = $data['status'] ?? ($record->status ?: AdmissionCycle::STATUS_DRAFT);
         $shouldActivate = $request->boolean('set_active') || $targetStatus === AdmissionCycle::STATUS_ACTIVE;

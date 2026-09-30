@@ -30,12 +30,15 @@ class AdmissionPipelineController extends Controller
             'academic_year' => 'nullable|string|max:50',
             'status' => ['nullable', Rule::in(array_merge(AdmissionCycle::STATUSES, ['Maintenance', 'Archived']))],
             'passing_stanine' => 'nullable|integer|between:1,9',
+            'stanine_cutoff_board' => 'nullable|integer|between:1,9',
+            'stanine_cutoff_non_board' => 'nullable|integer|between:1,9',
             'total_items' => 'nullable|integer|between:10,200',
             'exam_weight' => 'nullable|numeric|between:0,100',
             'gwa_weight' => 'nullable|numeric|between:0,100',
             'interview_weight' => 'nullable|numeric|between:0,100',
             'set_active' => 'nullable|boolean',
         ]);
+
 
         $cycleName = trim($data['cycle_name'] ?? ($data['name'] ?? ''));
         if ($cycleName === '') {
@@ -65,10 +68,17 @@ class AdmissionPipelineController extends Controller
         $record->cycle_name = $cycleName;
         $record->academic_year = $academicYear;
         $record->passing_stanine = (int) ($data['passing_stanine'] ?? 4);
+        if (isset($data['stanine_cutoff_board'])) {
+            $record->stanine_cutoff_board = (int) $data['stanine_cutoff_board'];
+        }
+        if (isset($data['stanine_cutoff_non_board'])) {
+            $record->stanine_cutoff_non_board = (int) $data['stanine_cutoff_non_board'];
+        }
         $record->total_items = (int) ($data['total_items'] ?? ($record->total_items ?: 80));
         $record->exam_weight = $examWeight;
         $record->gwa_weight = $gwaWeight;
         $record->interview_weight = $interviewWeight;
+
 
         $targetStatus = $data['status'] ?? ($record->status ?: AdmissionCycle::STATUS_DRAFT);
         $shouldActivate = $request->boolean('set_active') || $targetStatus === AdmissionCycle::STATUS_ACTIVE;
@@ -443,12 +453,14 @@ class AdmissionPipelineController extends Controller
             'middle_name' => 'nullable|string|max:120',
             'last_name' => 'required|string|max:120',
             'course_choice' => CourseCatalog::rule(),
+            'second_course_choice' => ['nullable', CourseCatalog::rule()],
             'sex' => 'nullable|string|max:20',
             'special_group' => ['nullable', 'string', Rule::in(['N/A', '4Ps', 'OSY', 'IP', 'PWD', 'SP'])],
             'cmfl' => ['nullable', 'string', Rule::in(['N/A', '10,000 below', '10,001 to 20,000', '20,001 to 30,000', '30,001 to 50,000', '50,001 and above'])],
             'gwa' => 'nullable|numeric|between:75,100',
             'interview_score' => 'nullable|numeric|between:0,100',
         ]);
+
 
         $record = $applicant ?? new AdmissionApplicant();
         $record->fill($data);
@@ -699,6 +711,37 @@ class AdmissionPipelineController extends Controller
         }
 
         return back()->with('success', "Successfully assigned {$targetApplicants->count()} applicant(s) (Range: {$data['start_number']} to {$data['end_number']}) to session '{$sessionLabel}'.");
+    }
+
+    public function certificate(Request $request, AdmissionApplicant $applicant)
+    {
+        $cycle = $applicant->cycle ?? AdmissionCycle::find($applicant->admission_cycle_id);
+
+        $purpose  = trim($request->input('purpose', 'SCHOLARSHIP purposes only'));
+        if ($purpose === '') {
+            $purpose = 'SCHOLARSHIP purposes only';
+        }
+
+        // Format ordinal date: e.g. "1st day of July 2026"
+        $now = now();
+        $day = (int) $now->format('j');
+        $suffix = match(true) {
+            $day === 1 || $day === 21 || $day === 31 => 'st',
+            $day === 2 || $day === 22               => 'nd',
+            $day === 3 || $day === 23               => 'rd',
+            default                                  => 'th',
+        };
+        $dateIssued = $day . $suffix . ' day of ' . $now->format('F Y');
+
+        $remarks = $applicant->certificate_remarks;
+
+        return view('admin.admission.certificate', compact(
+            'applicant',
+            'cycle',
+            'purpose',
+            'dateIssued',
+            'remarks'
+        ));
     }
 
     private function active(): ?AdmissionCycle

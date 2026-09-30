@@ -229,84 +229,100 @@
                     <tr>
                         <th class="ps-3">RANK</th>
                         <th>LAST NAME</th>
-                        <th>GIVEN NAME</th>
+                        <th>FIRST NAME</th>
                         <th>MIDDLE NAME</th>
-                        <th>COURSE (1ST CHOICE)</th>
+                        <th>1ST COURSE CHOICE</th>
+                        <th>2ND COURSE CHOICE</th>
                         <th>SEX</th>
                         <th>4PS/OSY/IP/PWD/SP</th>
                         <th>CMFL</th>
-                        <th>GWA</th>
-                        <th>TEST</th>
-                        <th>STANINE</th>
-                        <th>INTERVIEW</th>
-                        <th>STATUS</th>
-                        <th>EXAM SUBMITTED</th>
-                        <th>TOTAL</th>
+                        <th>GWA (%)</th>
+                        <th>CAT (%)</th>
+                        <th>INTERVIEW (%)</th>
+                        <th>TOTAL (%)</th>
+                        <th>REMARKS</th>
                         <th class="pe-3 text-end">ACTION</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="applicants-tbody">
                 @forelse ($applicants as $i => $applicant)
+                    @php
+                        $eval = $applicant->qualification_evaluation;
+                    @endphp
                     <tr>
                         <td class="ps-3 fw-bold">#{{ $ranks[$applicant->id] }}</td>
                         <td class="fw-bold">{{ mb_strtoupper($applicant->last_name) }}</td>
                         <td>{{ mb_strtoupper($applicant->first_name) }}</td>
                         <td>{{ $applicant->middle_name ? mb_strtoupper($applicant->middle_name) : '–' }}</td>
-                        <td>
-                            <span class="badge bg-light text-dark border" title="{{ \App\Support\CourseCatalog::label($applicant->course_choice) }}">
+
+                        {{-- 1ST COURSE CHOICE with Qualification Highlighting --}}
+                        <td @if($eval['c1_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c1_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
+                            <span class="badge {{ $eval['c1_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c1_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
+                                  title="{{ \App\Support\CourseCatalog::label($applicant->course_choice) }}">
                                 {{ $applicant->course_choice }}
                             </span>
                         </td>
-                        <td>{{ $applicant->sex ?: '–' }}</td>
-                        <td>{{ $applicant->special_group ?: 'N/A' }}</td>
-                        <td>{{ $applicant->cmfl ?: 'N/A' }}</td>
-                        <td>{{ $applicant->gwa ?? '–' }}</td>
-                        <td>{{ $applicant->exam_score !== null ? number_format($applicant->exam_score, 2) : '–' }}</td>
-                        <td>
-                            @if ($applicant->stanine_score)
-                                <span class="badge {{ $applicant->stanine_score >= $cycle->passing_stanine ? 'bg-success' : 'bg-danger' }}">
-                                    {{ $applicant->stanine_score }}
+
+                        {{-- 2ND COURSE CHOICE with Qualification Highlighting --}}
+                        <td @if($eval['c2_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c2_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
+                            @if($applicant->second_course_choice)
+                                <span class="badge {{ $eval['c2_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c2_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
+                                      title="{{ \App\Support\CourseCatalog::label($applicant->second_course_choice) }}">
+                                    {{ $applicant->second_course_choice }}
                                 </span>
                             @else
                                 <span class="text-muted">–</span>
                             @endif
                         </td>
-                        <td>{{ $applicant->interview_score !== null ? number_format($applicant->interview_score, 1) : '–' }}</td>
+
+                        <td>{{ $applicant->sex ?: '–' }}</td>
+                        <td>{{ $applicant->special_group ?: 'N/A' }}</td>
+                        <td>{{ $applicant->cmfl ?: 'N/A' }}</td>
+                        <td>{{ $applicant->gwa !== null ? number_format($applicant->gwa, 2) . '%' : '–' }}</td>
                         <td>
-                            @php
-                                $status = $applicant->qualification_status ?? 'Pending';
-                                $sessionLabel = $applicant->session_label ?? 'Unassigned';
-                                $batchLabel = $applicant->batch_group ?? 'First Batch - Session A';
-                            @endphp
-                            <div>
-                                <span class="badge {{ $applicant->submitted_at ? ($status === 'Qualified' ? 'bg-success' : 'bg-danger') : 'bg-secondary' }}">
-                                    {{ $applicant->submitted_at ? $status : 'Absent in Exam' }}
-                                </span>
-                                <div class="text-muted" style="font-size:10px">{{ $batchLabel }}</div>
-                                <div class="text-muted" style="font-size:10px">{{ $sessionLabel }}</div>
-                            </div>
-                        </td>
-                        <td>
-                            @if ($applicant->submitted_at)
-                                <span class="text-success fw-semibold">Yes</span>
+                            @if($applicant->cat_score_percentage !== null)
+                                <span class="fw-semibold">{{ number_format($applicant->cat_score_percentage, 2) }}%</span>
+                                <div class="text-muted" style="font-size: 10px;">({{ $applicant->exam_score }}/{{ $cycle->total_items ?: 80 }} · St. {{ $applicant->stanine_score ?? '–' }})</div>
                             @else
-                                <span class="text-muted">No</span>
+                                <span class="text-muted">–</span>
                             @endif
                         </td>
+                        <td>{{ $applicant->interview_score !== null ? number_format($applicant->interview_score, 2) . '%' : '–' }}</td>
                         <td class="fw-bold">
-                            {{ $applicant->total_score !== null ? number_format($applicant->total_score, 2) : '–' }}
+                            @php
+                                $tot = $applicant->calculated_total ?? $applicant->total_score;
+                            @endphp
+                            {{ $tot !== null ? number_format($tot, 2) . '%' : '–' }}
+                        </td>
+                        <td>
+                            <span class="badge {{ $eval['badge'] ?? 'bg-secondary' }}">
+                                {{ $eval['remarks'] }}
+                            </span>
+                            @if($applicant->admissionSession)
+                                <div class="text-muted" style="font-size: 10px;">{{ $applicant->admissionSession->session_name ?? $applicant->session_label }}</div>
+                            @elseif($applicant->session_label)
+                                <div class="text-muted" style="font-size: 10px;">{{ $applicant->session_label }}</div>
+                            @endif
                         </td>
                         <td class="pe-3 text-end">
-                            <button class="btn btn-sm btn-outline-primary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#edit-applicant-{{ $applicant->id }}">
-                                {{ $isLocked ? 'View' : 'Edit' }}
-                            </button>
+                            <div class="d-flex justify-content-end gap-1">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#edit-applicant-{{ $applicant->id }}">
+                                    {{ $isLocked ? 'View' : 'Edit' }}
+                                </button>
+                                <a class="btn btn-sm btn-outline-success"
+                                   href="{{ route('admin.admission.applicants.certificate', [$applicant, 'format' => 'print']) }}"
+                                   target="_blank"
+                                   title="Download Certificate of Admission Test Result">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="16" class="text-center text-muted py-5">
+                        <td colspan="15" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>
                             No applicants found for {{ $cycle->displayName }}.
                         </td>
@@ -369,11 +385,22 @@
                                    class="form-control form-control-sm" @disabled($isLocked)>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">Course (1st Choice)</label>
+                            <label class="form-label form-label-sm fw-semibold">1st Course Choice</label>
                             <select name="course_choice" class="form-select form-select-sm" required @disabled($isLocked)>
                                 @foreach ($courses as $code => $title)
                                     <option value="{{ $code }}" @selected($applicant->course_choice === $code)>
-                                        {{ $title }}
+                                        {{ $title }} ({{ $code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label form-label-sm fw-semibold">2nd Course Choice</label>
+                            <select name="second_course_choice" class="form-select form-select-sm" @disabled($isLocked)>
+                                <option value="">— None —</option>
+                                @foreach ($courses as $code => $title)
+                                    <option value="{{ $code }}" @selected($applicant->second_course_choice === $code)>
+                                        {{ $title }} ({{ $code }})
                                     </option>
                                 @endforeach
                             </select>
@@ -442,15 +469,49 @@
                             <input value="{{ $applicant->qualification_status ?? 'Pending' }}"
                                    class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
+
+                        {{-- ══ CERTIFICATE OF ADMISSION TEST RESULT GENERATOR ══ --}}
+                        <div class="col-12 mt-3 pt-3 border-top bg-light-subtle rounded p-3 border">
+                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                <label class="form-label form-label-sm fw-bold text-primary mb-0">
+                                    <i class="bi bi-file-earmark-text-fill me-1"></i> Certificate of Admission Test Result
+                                </label>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                    Dynamic Remarks: {{ $applicant->certificate_remarks }}
+                                </span>
+                            </div>
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-8">
+                                    <label class="form-label form-label-sm text-muted mb-1" for="cert_purpose_{{ $applicant->id }}">Certificate Purpose / Scholarship:</label>
+                                    <input type="text" class="form-control form-control-sm" id="cert_purpose_{{ $applicant->id }}"
+                                           value="SCHOLARSHIP purposes only"
+                                           placeholder="e.g. SCHOLARSHIP purposes only">
+                                </div>
+                                <div class="col-md-4 pt-md-3">
+                                    <button type="button" class="btn btn-outline-success btn-sm w-100 fw-semibold"
+                                            onclick="openApplicantCert({{ $applicant->id }})">
+                                        <i class="bi bi-download me-1"></i> Download Certificate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    @if(!$isLocked)
-                        <button class="btn btn-primary btn-sm">
-                            <i class="bi bi-save me-1"></i> Save Changes
+                <div class="modal-footer d-flex justify-content-between flex-wrap gap-2">
+                    <div>
+                        <button type="button" class="btn btn-outline-success btn-sm"
+                                onclick="openApplicantCert({{ $applicant->id }})">
+                            <i class="bi bi-file-earmark-text me-1"></i> Download Certificate
                         </button>
-                    @endif
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    </div>
+                    <div class="d-flex gap-2">
+                        @if(!$isLocked)
+                            <button class="btn btn-primary btn-sm">
+                                <i class="bi bi-save me-1"></i> Save Changes
+                            </button>
+                        @endif
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -524,6 +585,14 @@
         container.prepend(toast);
         setTimeout(() => { try { toast.remove(); } catch (e) {} }, 4000);
     }
+
+
+    window.openApplicantCert = function(id) {
+        const input = document.getElementById('cert_purpose_' + id);
+        const purpose = input ? input.value : 'SCHOLARSHIP purposes only';
+        const url = '{{ url("admin/admission/applicants") }}/' + id + '/certificate?purpose=' + encodeURIComponent(purpose) + '&format=print';
+        window.open(url, '_blank');
+    };
 
     btn.addEventListener('click', () => refresh(false));
 

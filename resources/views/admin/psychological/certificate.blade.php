@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Certificate of Psychological Assessment</title>
+    <title>{{ $title }}</title>
     <style>
         @page { size: letter portrait; margin: 15mm; }
         * { box-sizing: border-box; }
@@ -31,11 +31,11 @@
             <div>Guidance and Counseling Office</div>
         </header>
 
-        <h1>Certificate of Psychological Assessment</h1>
+        <h1>{{ $title }}</h1>
 
         <p class="statement">This certifies that <strong>{{ $studentName }}</strong>, student number
             <strong>{{ $studentNumber }}</strong>, enrolled in <strong>{{ $courseName }}</strong>,
-            has been issued a certificate of psychological assessment completion.</p>
+            has been issued a certificate of {{ $assessment }} completion.</p>
 
         <div class="details">
             <p><strong>Purpose:</strong> {{ $purpose }}</p>

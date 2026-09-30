@@ -82,7 +82,8 @@ class GuidanceReportTest extends TestCase
                 ->assertSee($subtitle)
                 ->assertSee($badge)
                 ->assertSee($header)
-                ->assertSee($category === 'psychological' ? 'Print Certificate' : 'Print Report')
+                ->assertSee('Print Certificate')
+                ->assertDontSee('Print Report')
                 ->assertDontSee('Print official report')
                 ->assertDontSee('Export PDF')
                 ->assertDontSee('Export DOCX')
@@ -117,6 +118,27 @@ class GuidanceReportTest extends TestCase
         $this->get($url)->assertNotFound();
         $appointment->update(['status' => 'Completed', 'test_category' => 'career', 'test_type' => 'career']);
         $this->get($url)->assertNotFound();
+    }
+
+    public function test_personality_and_career_certificates_use_their_own_titles_and_routes(): void
+    {
+        $this->login('admin');
+        foreach ([
+            ['personality', 'bfpi', 'Personality Assessment'],
+            ['career', 'career', 'Career Assessment'],
+        ] as [$category, $testType, $label]) {
+            $appointment = $this->appointment();
+            $appointment->update(['test_category' => $category, 'test_type' => $testType, 'test_types' => [$testType]]);
+            $url = route('admin.'.$category.'.certificate', $appointment);
+
+            $this->get(route('admin.guidance-appointments.show-results', $appointment))
+                ->assertOk()->assertSee($url, false)->assertSee('Print Certificate')->assertDontSee('Print Report');
+            $this->get($url)->assertOk()
+                ->assertSee('Certificate of '.$label)
+                ->assertSee('certificate of '.strtolower($label).' completion')
+                ->assertSee('window.print()', false);
+            $this->get(route('admin.psychological.certificate', $appointment))->assertNotFound();
+        }
     }
 
     public function test_all_dass_levels_use_institutional_columns_and_recommendations(): void

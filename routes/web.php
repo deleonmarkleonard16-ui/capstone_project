@@ -173,8 +173,9 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::post('/psychological/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'store'])->defaults('module', 'psychological')->name('psychological.batches.store');
     Route::get('/psychological/analytics', [\App\Http\Controllers\AnalyticsController::class, 'index'])->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.analytics');
     Route::get('/psychological/archive', [PsychologicalRequestController::class, 'index'])->defaults('mode', 'archive')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.archive');
-    Route::get('/psychological/certificate/{appointment}', \App\Http\Controllers\PsychologicalCertificateController::class)
-        ->whereNumber('appointment')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.certificate');
+    Route::get('/psychological/certificate/{appointment}', \App\Http\Controllers\AssessmentCertificateController::class)
+        ->defaults('certificate_type', 'psychological')->whereNumber('appointment')
+        ->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('psychological.certificate');
     Route::patch('/psychological/{serviceRequest}', [PsychologicalRequestController::class, 'update'])->name('psychological.update');
     Route::get('/psychological/{serviceRequest}/receipt', [PsychologicalRequestController::class, 'proof'])->name('psychological.proof');
 
@@ -201,6 +202,9 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::post('/personality/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'store'])->defaults('module', 'personality')->name('personality.batches.store');
     Route::get('/personality/analytics', [\App\Http\Controllers\AnalyticsController::class, 'index'])->defaults('module', 'personality')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('personality.analytics');
     Route::get('/personality/archive', [PsychologicalRequestController::class, 'index'])->defaults('mode', 'archive')->defaults('module', 'personality')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('personality.archive');
+    Route::get('/personality/certificate/{appointment}', \App\Http\Controllers\AssessmentCertificateController::class)
+        ->defaults('certificate_type', 'personality')->whereNumber('appointment')
+        ->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('personality.certificate');
     Route::patch('/personality/{serviceRequest}', [PsychologicalRequestController::class, 'update'])->name('personality.update');
     Route::get('/personality/{serviceRequest}/receipt', [PsychologicalRequestController::class, 'proof'])->name('personality.proof');
 
@@ -210,6 +214,9 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::post('/career/batches', [\App\Http\Controllers\GuidanceBatchController::class, 'store'])->defaults('module', 'career')->name('career.batches.store');
     Route::get('/career/analytics', [\App\Http\Controllers\AnalyticsController::class, 'index'])->defaults('module', 'career')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('career.analytics');
     Route::get('/career/archive', [PsychologicalRequestController::class, 'index'])->defaults('mode', 'archive')->defaults('module', 'career')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('career.archive');
+    Route::get('/career/certificate/{appointment}', \App\Http\Controllers\AssessmentCertificateController::class)
+        ->defaults('certificate_type', 'career')->whereNumber('appointment')
+        ->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('career.certificate');
     Route::patch('/career/{serviceRequest}', [PsychologicalRequestController::class, 'update'])->name('career.update');
     Route::get('/career/{serviceRequest}/receipt', [PsychologicalRequestController::class, 'proof'])->name('career.proof');
 

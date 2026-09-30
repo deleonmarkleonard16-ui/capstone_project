@@ -5,16 +5,19 @@
     $testType = strtolower((string) ($appointment->test_category ?: $appointment->test_type ?: $appointment->service_type ?: 'psychological'));
 
     if (str_contains($testType, 'career')) {
+        $certificateModule = 'career';
         $pageTitle = 'Career Assessment Results';
         $pageSubtitle = 'Official RIASEC trait scoring summary and career interest interpretation.';
         $badgeLabel = 'Career assessment report / PDF';
         $docHeader = 'CONFIDENTIAL CAREER ASSESSMENT REPORT';
     } elseif (str_contains($testType, 'personality') || $testType === 'bfpi') {
+        $certificateModule = 'personality';
         $pageTitle = 'Personality Assessment Results';
         $pageSubtitle = 'Official Big Five Personality Inventory scoring summary and trait evaluation.';
         $badgeLabel = 'Personality assessment report / PDF';
         $docHeader = 'CONFIDENTIAL PERSONALITY ASSESSMENT REPORT';
     } else {
+        $certificateModule = 'psychological';
         $pageTitle = 'Psychological Assessment Results';
         $pageSubtitle = 'Official scoring summary and interpretation for Guidance Counselor review.';
         $badgeLabel = 'Official psychological assessment report';
@@ -35,8 +38,8 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route(auth()->user()->role.'.guidance-appointments.completed') }}" class="btn btn-outline-secondary">← Completed List</a>
-        @if(auth()->user()->role === 'admin' && ($appointment->test_category === 'psychological' || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7'], true)))
-            <a href="{{ route('admin.psychological.certificate', $appointment) }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+        @if(auth()->user()->role === 'admin')
+            <a href="{{ route('admin.'.$certificateModule.'.certificate', $appointment) }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                 <i class="bi bi-file-earmark-check me-1" aria-hidden="true"></i> Print Certificate
             </a>
         @else

@@ -369,8 +369,9 @@ class AdmissionPipelineController extends Controller
         $inputRows = $request->input('rows', []);
         $batchGroup = trim((string) $request->input('batch_group', ''));
         $savedCount = 0;
+        $savedIds   = [];
 
-        DB::transaction(function () use ($inputRows, $cycle, $batchGroup, &$savedCount) {
+        DB::transaction(function () use ($inputRows, $cycle, $batchGroup, &$savedCount, &$savedIds) {
             foreach ($inputRows as $row) {
                 $lastName = trim((string) ($row['last_name'] ?? ''));
                 $firstName = trim((string) ($row['first_name'] ?? ''));
@@ -379,12 +380,17 @@ class AdmissionPipelineController extends Controller
                     continue;
                 }
 
-                $middleName = trim((string) ($row['middle_name'] ?? '')) ?: null;
-                $courseChoice = trim((string) ($row['course_choice'] ?? ''));
-                $sex = trim((string) ($row['sex'] ?? '')) ?: null;
-                $specialGroup = trim((string) ($row['special_group'] ?? '')) ?: null;
-                $cmfl = trim((string) ($row['cmfl'] ?? '')) ?: null;
-                $gwa = isset($row['gwa']) && is_numeric($row['gwa']) ? (float) $row['gwa'] : null;
+                $middleName    = trim((string) ($row['middle_name'] ?? '')) ?: null;
+                $courseChoice1 = trim((string) ($row['course_choice_1'] ?? ($row['course_choice'] ?? '')));
+                $courseChoice2 = trim((string) ($row['course_choice_2'] ?? ($row['second_course_choice'] ?? '')));
+                if ($courseChoice2 === '' || strcasecmp($courseChoice2, 'N/A') === 0 || strcasecmp($courseChoice2, 'None') === 0) {
+                    $courseChoice2 = null;
+                }
+
+                $sex          = trim((string) ($row['sex'] ?? '')) ?: null;
+                $specialGroup = trim((string) ($row['special_group'] ?? ($row['4ps_osy_ip_pwd_sp'] ?? ''))) ?: null;
+                $cmfl         = trim((string) ($row['cmfl'] ?? '')) ?: null;
+                $gwa          = isset($row['gwa']) && is_numeric($row['gwa']) ? (float) $row['gwa'] : null;
 
                 $id = $row['id'] ?? null;
                 if ($id) {
@@ -407,16 +413,19 @@ class AdmissionPipelineController extends Controller
                     ]);
                 }
 
-                $applicant->last_name = $lastName;
-                $applicant->first_name = $firstName;
-                $applicant->middle_name = $middleName;
-                if ($courseChoice !== '') {
-                    $applicant->course_choice = $courseChoice;
+                $applicant->last_name            = $lastName;
+                $applicant->first_name           = $firstName;
+                $applicant->middle_name          = $middleName;
+                if ($courseChoice1 !== '') {
+                    $applicant->course_choice_1  = $courseChoice1;
+                    $applicant->course_choice    = $courseChoice1;
                 }
-                $applicant->sex = $sex;
-                $applicant->special_group = $specialGroup;
-                $applicant->cmfl = $cmfl;
-                $applicant->gwa = $gwa;
+                $applicant->course_choice_2      = $courseChoice2;
+                $applicant->second_course_choice = $courseChoice2;
+                $applicant->sex                  = $sex;
+                $applicant->special_group        = $specialGroup;
+                $applicant->cmfl                 = $cmfl;
+                $applicant->gwa                  = $gwa;
 
                 if ($batchGroup !== '' && $batchGroup !== '__all__') {
                     $applicant->batch_group = $batchGroup;
@@ -424,13 +433,27 @@ class AdmissionPipelineController extends Controller
 
                 $applicant->save();
                 $savedCount++;
+                $savedIds[] = $applicant->id;
             }
         });
 
-        $scoring->evaluate($cycle);
+        if ($savedCount > 0) {
+            $scoring->evaluate($cycle);
+        }
+
+        $message = "Successfully saved {$savedCount} row(s) to the Masterlist Encoding Sheet.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'     => true,
+                'message'     => $message,
+                'saved_count' => $savedCount,
+                'saved_ids'   => $savedIds,
+            ]);
+        }
 
         return redirect()->route('admin.admission.encoding-sheet', ['batch_group' => $batchGroup, 'cycle_id' => $cycle->id])
-            ->with('success', "Successfully saved {$savedCount} row(s) to the Masterlist Encoding Sheet.");
+            ->with('success', $message);
     }
 
     public function saveApplicant(Request $request, ?AdmissionApplicant $applicant = null, AdmissionScoringService $scoring)
@@ -452,8 +475,10 @@ class AdmissionPipelineController extends Controller
             'first_name' => 'required|string|max:120',
             'middle_name' => 'nullable|string|max:120',
             'last_name' => 'required|string|max:120',
-            'course_choice' => CourseCatalog::rule(),
+            'course_choice' => ['nullable', CourseCatalog::rule()],
+            'course_choice_1' => ['nullable', CourseCatalog::rule()],
             'second_course_choice' => ['nullable', CourseCatalog::rule()],
+            'course_choice_2' => ['nullable', CourseCatalog::rule()],
             'sex' => 'nullable|string|max:20',
             'special_group' => ['nullable', 'string', Rule::in(['N/A', '4Ps', 'OSY', 'IP', 'PWD', 'SP'])],
             'cmfl' => ['nullable', 'string', Rule::in(['N/A', '10,000 below', '10,001 to 20,000', '20,001 to 30,000', '30,001 to 50,000', '50,001 and above'])],
@@ -461,6 +486,17 @@ class AdmissionPipelineController extends Controller
             'interview_score' => 'nullable|numeric|between:0,100',
         ]);
 
+        if (empty($data['course_choice']) && !empty($data['course_choice_1'])) {
+            $data['course_choice'] = $data['course_choice_1'];
+        } elseif (!empty($data['course_choice'])) {
+            $data['course_choice_1'] = $data['course_choice'];
+        }
+
+        if (empty($data['second_course_choice']) && !empty($data['course_choice_2'])) {
+            $data['second_course_choice'] = $data['course_choice_2'];
+        } elseif (!empty($data['second_course_choice'])) {
+            $data['course_choice_2'] = $data['second_course_choice'];
+        }
 
         $record = $applicant ?? new AdmissionApplicant();
         $record->fill($data);
@@ -485,84 +521,15 @@ class AdmissionPipelineController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt,xlsx|max:5120']);
         $batchGroup = trim((string) $request->input('batch_group', ''));
 
-        $path = $request->file('file')->getRealPath();
-        $ext = strtolower($request->file('file')->getClientOriginalExtension());
         try {
-            $rows = $reader->rows($path, $ext);
-        } catch (\RuntimeException $e) {
+            $importer = new \App\Imports\AdmissionApplicantImport($reader, $scoring);
+            $result   = $importer->import($request->file('file'), $cycle, $batchGroup);
+        } catch (\Throwable $e) {
             return back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        $header = array_map(fn ($v) => strtolower(trim(ltrim((string) $v, "\xEF\xBB\xBF"))), array_shift($rows) ?: []);
-        if (count($header) !== count(array_unique($header))) {
-            return back()->withErrors(['file' => 'Duplicate column headings are not allowed.']);
-        }
-
-        $required = ['application_number', 'first_name', 'middle_name', 'last_name', 'course', 'sex', '4ps_osy_ip_pwd_sp', 'cmfl', 'gwa'];
-        if (array_diff($required, $header)) {
-            return back()->withErrors(['file' => 'Missing required columns: ' . implode(', ', array_diff($required, $header))]);
-        }
-
-        $count = 0;
-        $errors = [];
-        $courses = CourseCatalog::activeOptions();
-
-        foreach ($rows as $rowIndex => $values) {
-            if (!array_filter($values, fn ($v) => trim((string) $v) !== '')) continue;
-            $row = array_combine($header, array_slice(array_pad($values, count($header), ''), 0, count($header)));
-            $validator = validator($row, [
-                'application_number' => 'required|string|max:80',
-                'first_name' => 'required|string|max:120',
-                'last_name' => 'required|string|max:120',
-                'middle_name' => 'nullable|string|max:120',
-                'sex' => 'nullable|string|max:20',
-                '4ps_osy_ip_pwd_sp' => 'nullable|string|max:120',
-                'cmfl' => 'nullable|string|max:120',
-            ]);
-            if ($validator->fails()) {
-                $errors[] = 'Row ' . ($rowIndex + 2) . ': ' . $validator->errors()->first();
-                continue;
-            }
-
-            $course = CourseCatalog::normalizeLegacy($row['course']) ?? trim($row['course']);
-            if (!isset($courses[$course])) {
-                $errors[] = "Row " . ($rowIndex + 2) . ": invalid course ({$row['course']})";
-                continue;
-            }
-            if (!is_numeric($row['gwa']) || $row['gwa'] < 75 || $row['gwa'] > 100) {
-                $errors[] = "Row " . ($rowIndex + 2) . ": invalid GWA";
-                continue;
-            }
-
-            $studentId = trim($row['application_number']);
-            if ($studentId === '') {
-                $errors[] = "Row " . ($rowIndex + 2) . ": missing application number";
-                continue;
-            }
-
-            if (AdmissionApplicant::where('application_number', $studentId)->where('admission_cycle_id', '!=', $cycle->id)->exists()) {
-                $errors[] = "Row " . ($rowIndex + 2) . ": application number belongs to another cycle";
-                continue;
-            }
-
-            AdmissionApplicant::updateOrCreate(['application_number' => $studentId], [
-                'admission_cycle_id' => $cycle->id,
-                'batch_group' => $batchGroup ?: null,
-                'student_id' => null,
-                'first_name' => trim($row['first_name']),
-                'middle_name' => trim($row['middle_name']) ?: null,
-                'last_name' => trim($row['last_name']),
-                'course_choice' => $course,
-                'sex' => trim($row['sex']),
-                'special_group' => trim($row['4ps_osy_ip_pwd_sp']),
-                'cmfl' => trim($row['cmfl']),
-                'gwa' => $row['gwa'],
-            ]);
-            $count++;
-        }
-
-        $scoring->evaluate($cycle);
-        return back()->with('success', "Imported {$count} applicants.")->with('import_errors', $errors);
+        $msg = "Imported {$result['imported']} applicant(s).";
+        return back()->with('success', $msg)->with('import_errors', $result['errors']);
     }
 
     public function issueToken(AdmissionApplicant $applicant)

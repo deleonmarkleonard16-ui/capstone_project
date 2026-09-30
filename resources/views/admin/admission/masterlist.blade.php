@@ -258,17 +258,20 @@
                         {{-- 1ST COURSE CHOICE with Qualification Highlighting --}}
                         <td @if($eval['c1_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c1_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
                             <span class="badge {{ $eval['c1_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c1_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
-                                  title="{{ \App\Support\CourseCatalog::label($applicant->course_choice) }}">
-                                {{ $applicant->course_choice }}
+                                  title="{{ \App\Support\CourseCatalog::label($applicant->course_choice_1 ?: $applicant->course_choice) }}">
+                                {{ $applicant->course_choice_1 ?: $applicant->course_choice }}
                             </span>
                         </td>
 
                         {{-- 2ND COURSE CHOICE with Qualification Highlighting --}}
                         <td @if($eval['c2_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c2_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
-                            @if($applicant->second_course_choice)
+                            @php
+                                $c2Display = $applicant->course_choice_2 ?: $applicant->second_course_choice;
+                            @endphp
+                            @if($c2Display && $c2Display !== 'N/A' && $c2Display !== 'None')
                                 <span class="badge {{ $eval['c2_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c2_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
-                                      title="{{ \App\Support\CourseCatalog::label($applicant->second_course_choice) }}">
-                                    {{ $applicant->second_course_choice }}
+                                      title="{{ \App\Support\CourseCatalog::label($c2Display) }}">
+                                    {{ $c2Display }}
                                 </span>
                             @else
                                 <span class="text-muted">–</span>

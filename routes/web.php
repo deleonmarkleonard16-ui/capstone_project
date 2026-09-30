@@ -254,6 +254,7 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::post('/sessions/assign-range', [$c, 'assignSessionRange'])->name('sessions.assign-range');
         Route::get('/encoding-sheet', [$c, 'encodingSheet'])->name('encoding-sheet');
         Route::post('/encoding-sheet', [$c, 'saveEncodingSheet'])->name('encoding-sheet.save');
+        Route::post('/applicants/store-batch-encoded', [\App\Http\Controllers\AdmissionApplicantController::class, 'storeBatchEncoded'])->name('applicants.store-batch-encoded');
         Route::post('/applicants/import', [$c, 'import'])->name('applicants.import');
         Route::post('/applicants/{applicant?}', [$c, 'saveApplicant'])->name('applicants.save');
         Route::post('/applicants/{applicant}/token', [$c, 'issueToken'])->name('applicants.token');

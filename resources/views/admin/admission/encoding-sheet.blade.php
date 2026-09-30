@@ -4,7 +4,7 @@
 {{-- ══════════════════════════════════════════════════════════════
      MASTERLIST ENCODING SHEET
      Excel-like editable spreadsheet for direct applicant data entry.
-     Cycle selector & quick draft addition.
+     Cycle selector, CSV Importer, and 2-Choice Academic Program Routing.
      ══════════════════════════════════════════════════════════════ --}}
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
@@ -77,9 +77,9 @@
     <div class="col-md-7">
         <div class="card page-card shadow-sm h-100">
             <div class="card-body p-4">
-                <h2 class="h5 section-title mb-1">Import Applicants From Excel CSV</h2>
+                <h2 class="h5 section-title mb-1">Import Applicants From Excel / CSV</h2>
                 <p class="text-muted small mb-2">
-                    Upload a CSV using the same format as the Masterlist Encoding Sheet. Imported applicants will be added to the selected batch group and will appear in the encoding sheet for that batch right away.
+                    Upload a CSV/XLSX using the 2-Choice degree program format. Imported applicants will be assigned to the selected batch group and evaluated immediately.
                 </p>
                 @if($isLocked)
                     <div class="alert alert-secondary py-2 small mb-0">
@@ -93,7 +93,7 @@
                         @csrf
                         <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
                         <code class="d-block p-2 bg-light rounded border small">
-                            Last Name, Given Name, Middle Name, Course (1st choice), Sex, 4PS/OSY/IP/PWD/SP, CMFL, GWA
+                            last_name, first_name, middle_name, course_choice_1, course_choice_2, sex, 4ps_osy_ip_pwd_sp, cmfl, gwa
                         </code>
                         <div class="d-flex gap-2">
                             <select class="form-select" name="batch_group" style="flex:1">
@@ -102,7 +102,7 @@
                                     <option value="{{ $bg }}">{{ $bg }}</option>
                                 @endforeach
                             </select>
-                            <input type="file" name="file" accept=".csv,.xlsx" class="form-control" style="flex:1" required>
+                            <input type="file" name="file" accept=".csv,.xlsx,.txt" class="form-control" style="flex:1" required>
                         </div>
                         <button class="btn btn-primary btn-sm">
                             <i class="bi bi-upload me-1"></i> Import Applicants
@@ -110,7 +110,7 @@
                     </form>
                 @endif
                 <p class="text-muted small mt-2 mb-0">
-                    Batch group names are managed in Settings so the same options stay available across the current admission cycle.
+                    <i class="bi bi-info-circle me-1"></i> Course choice 2 is optional. Values can be blank, <code>N/A</code>, or <code>None</code>.
                 </p>
             </div>
         </div>
@@ -124,19 +124,19 @@
             <div>
                 <h2 class="h5 section-title mb-0">Masterlist Encoding Sheet</h2>
                 <p class="text-muted small mb-0">
-                    Choose a batch group first so the sheet can load the applicants already encoded for that batch in {{ $cycle->displayName }}.
+                    Dual-choice applicant encoding grid for <strong>{{ $cycle->displayName }}</strong>.
                 </p>
             </div>
-            <div class="d-flex gap-2">
-                <form method="get" action="{{ route('admin.admission.encoding-sheet') }}" class="d-flex gap-2 align-items-center">
+            <div class="d-flex gap-2 align-items-center">
+                <form method="get" action="{{ route('admin.admission.encoding-sheet') }}" class="d-flex gap-2 align-items-center mb-0">
                     <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
                     <input type="hidden" name="batch_group" value="{{ request('batch_group') }}">
-                    <button class="btn btn-outline-secondary btn-sm" name="sort" value="course_gwa">
+                    <button class="btn btn-outline-secondary btn-sm" name="sort" value="course_gwa" title="Sort by Course and Highest GWA">
                         <i class="bi bi-sort-down me-1"></i> Sort Course / Highest GWA
                     </button>
                 </form>
                 @unless($isLocked)
-                    <button class="btn btn-primary btn-sm" form="encoding-form" type="submit">
+                    <button class="btn btn-primary btn-sm" id="btn-save-grid" type="button">
                         <i class="bi bi-save me-1"></i> Save Encoded Rows
                     </button>
                 @endunless
@@ -158,7 +158,7 @@
                 Open Batch
             </button>
             <span class="text-muted small">
-                Click 'Open Batch' after choosing a batch group, or choose 'All batch groups' to load the full cycle list sorted across all batches.
+                Click 'Open Batch' after choosing a batch group, or choose 'All batch groups' to load the full cycle list.
             </span>
         </div>
 
@@ -168,19 +168,20 @@
             <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
             <input type="hidden" name="batch_group" value="{{ request('batch_group') }}">
 
-            <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
-                <table class="table table-sm table-bordered mb-0" id="encoding-grid" style="min-width: 980px;">
+            <div class="table-responsive" style="max-height: 62vh; overflow-y: auto;">
+                <table class="table table-sm table-bordered mb-0" id="encoding-grid" style="min-width: 1100px;">
                     <thead class="table-dark sticky-top" style="top:0;z-index:10">
                         <tr>
-                            <th style="width:42px" class="text-center">#</th>
-                            <th>LAST NAME</th>
-                            <th>GIVEN NAME</th>
-                            <th>MIDDLE NAME</th>
-                            <th>COURSE (1ST CHOICE)</th>
-                            <th style="width:90px">SEX</th>
+                            <th style="width:45px" class="text-center">#</th>
+                            <th style="min-width:140px">LAST NAME</th>
+                            <th style="min-width:140px">GIVEN NAME</th>
+                            <th style="min-width:120px">MIDDLE NAME</th>
+                            <th style="min-width:190px">COURSE (1ST CHOICE)</th>
+                            <th style="min-width:190px">COURSE (2ND CHOICE)</th>
+                            <th style="width:95px">SEX</th>
                             <th style="width:160px">4PS/OSY/IP/PWD/SP</th>
-                            <th style="width:160px">CMFL</th>
-                            <th style="width:90px">GWA</th>
+                            <th style="width:165px">CMFL</th>
+                            <th style="width:95px">GWA</th>
                         </tr>
                     </thead>
                     <tbody id="grid-body">
@@ -190,40 +191,60 @@
                     @endphp
                     @if(count($rows) > 0)
                         @foreach($rows as $i => $row)
+                        @php
+                            $c1Val = $row->course_choice_1 ?? $row->course_choice ?? '';
+                            $c2Val = $row->course_choice_2 ?? $row->second_course_choice ?? '';
+                        @endphp
                         <tr data-row="{{ $i + 1 }}">
-                            <td class="text-center text-muted small align-middle">{{ $i + 1 }}</td>
+                            <td class="text-center text-muted small align-middle row-number">{{ $i + 1 }}</td>
                             <td>
-                                <input type="hidden" name="rows[{{ $i }}][id]" value="{{ $row->id ?? '' }}">
-                                <input class="form-control form-control-sm border-0 px-1"
+                                <input type="hidden" name="rows[{{ $i }}][id]" value="{{ $row->id ?? '' }}" class="cell-id">
+                                <input class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $i }}][last_name]"
                                        value="{{ $row->last_name ?? '' }}"
                                        placeholder="Last name" autocomplete="off" @disabled($isLocked)>
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
+                                <input class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $i }}][first_name]"
                                        value="{{ $row->first_name ?? '' }}"
                                        placeholder="Given name" autocomplete="off" @disabled($isLocked)>
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
+                                <input class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $i }}][middle_name]"
                                        value="{{ $row->middle_name ?? '' }}"
                                        placeholder="Middle name" autocomplete="off" @disabled($isLocked)>
                             </td>
+
+                            {{-- COURSE 1ST CHOICE DROPDOWN --}}
                             <td>
-                                <select class="form-select form-select-sm border-0"
-                                        name="rows[{{ $i }}][course_choice]" @disabled($isLocked)>
+                                <select class="form-select form-select-sm border-0 cell-select"
+                                        name="rows[{{ $i }}][course_choice_1]" @disabled($isLocked)>
                                     <option value="">— Select —</option>
                                     @foreach($courses as $code => $title)
-                                        <option value="{{ $code }}" @selected(($row->course_choice ?? '') === $code)>
+                                        <option value="{{ $code }}" @selected($c1Val === $code)>
                                             {{ $title }} ({{ $code }})
                                         </option>
                                     @endforeach
                                 </select>
                             </td>
+
+                            {{-- COURSE 2ND CHOICE DROPDOWN (Optional / N/A / None) --}}
                             <td>
-                                <select class="form-select form-select-sm border-0"
+                                <select class="form-select form-select-sm border-0 cell-select"
+                                        name="rows[{{ $i }}][course_choice_2]" @disabled($isLocked)>
+                                    <option value="">— N/A (None) —</option>
+                                    @foreach($courses as $code => $title)
+                                        <option value="{{ $code }}" @selected($c2Val === $code)>
+                                            {{ $title }} ({{ $code }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </td>
+
+                            <td>
+                                <select class="form-select form-select-sm border-0 cell-select"
                                         name="rows[{{ $i }}][sex]" @disabled($isLocked)>
                                     <option value="">—</option>
                                     <option value="Male" @selected(($row->sex ?? '') === 'Male')>Male</option>
@@ -231,7 +252,7 @@
                                 </select>
                             </td>
                             <td>
-                                <select class="form-select form-select-sm border-0"
+                                <select class="form-select form-select-sm border-0 cell-select"
                                         name="rows[{{ $i }}][special_group]" @disabled($isLocked)>
                                     @foreach($specialGroupOptions as $opt)
                                         <option value="{{ $opt }}" @selected(($row->special_group ?? 'N/A') === $opt || (!($row->special_group ?? '') && $opt === 'N/A'))>
@@ -241,7 +262,7 @@
                                 </select>
                             </td>
                             <td>
-                                <select class="form-select form-select-sm border-0"
+                                <select class="form-select form-select-sm border-0 cell-select"
                                         name="rows[{{ $i }}][cmfl]" @disabled($isLocked)>
                                     @foreach($cmflOptions as $opt)
                                         <option value="{{ $opt }}" @selected(($row->cmfl ?? 'N/A') === $opt || (!($row->cmfl ?? '') && $opt === 'N/A'))>
@@ -252,7 +273,7 @@
                             </td>
                             <td>
                                 <input type="number" step="0.01" min="75" max="100"
-                                       class="form-control form-control-sm border-0 px-1"
+                                       class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $i }}][gwa]"
                                        value="{{ $row->gwa ?? '' }}"
                                        placeholder="e.g. 92" autocomplete="off" @disabled($isLocked)>
@@ -267,33 +288,48 @@
                         @for ($j = 0; $j < 20; $j++)
                         @php $idx = $offset + $j; @endphp
                         <tr data-row="{{ $idx + 1 }}" class="empty-row">
-                            <td class="text-center text-muted small align-middle">{{ $idx + 1 }}</td>
+                            <td class="text-center text-muted small align-middle row-number">{{ $idx + 1 }}</td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
+                                <input type="hidden" name="rows[{{ $idx }}][id]" value="" class="cell-id">
+                                <input class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $idx }}][last_name]"
                                        placeholder="Last name" autocomplete="off">
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
+                                <input class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $idx }}][first_name]"
                                        placeholder="Given name" autocomplete="off">
                             </td>
                             <td>
-                                <input class="form-control form-control-sm border-0 px-1"
+                                <input class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $idx }}][middle_name]"
                                        placeholder="Middle name" autocomplete="off">
                             </td>
+
+                            {{-- COURSE 1ST CHOICE DROPDOWN --}}
                             <td>
-                                <select class="form-select form-select-sm border-0"
-                                        name="rows[{{ $idx }}][course_choice]">
+                                <select class="form-select form-select-sm border-0 cell-select"
+                                        name="rows[{{ $idx }}][course_choice_1]">
                                     <option value="">— Select —</option>
                                     @foreach($courses as $code => $title)
                                         <option value="{{ $code }}">{{ $title }} ({{ $code }})</option>
                                     @endforeach
                                 </select>
                             </td>
+
+                            {{-- COURSE 2ND CHOICE DROPDOWN --}}
                             <td>
-                                <select class="form-select form-select-sm border-0"
+                                <select class="form-select form-select-sm border-0 cell-select"
+                                        name="rows[{{ $idx }}][course_choice_2]">
+                                    <option value="">— N/A (None) —</option>
+                                    @foreach($courses as $code => $title)
+                                        <option value="{{ $code }}">{{ $title }} ({{ $code }})</option>
+                                    @endforeach
+                                </select>
+                            </td>
+
+                            <td>
+                                <select class="form-select form-select-sm border-0 cell-select"
                                         name="rows[{{ $idx }}][sex]">
                                     <option value="">—</option>
                                     <option value="Male">Male</option>
@@ -301,7 +337,7 @@
                                 </select>
                             </td>
                             <td>
-                                <select class="form-select form-select-sm border-0"
+                                <select class="form-select form-select-sm border-0 cell-select"
                                         name="rows[{{ $idx }}][special_group]">
                                     @foreach($specialGroupOptions as $opt)
                                         <option value="{{ $opt }}" @selected($opt === 'N/A')>{{ $opt }}</option>
@@ -309,7 +345,7 @@
                                 </select>
                             </td>
                             <td>
-                                <select class="form-select form-select-sm border-0"
+                                <select class="form-select form-select-sm border-0 cell-select"
                                         name="rows[{{ $idx }}][cmfl]">
                                     @foreach($cmflOptions as $opt)
                                         <option value="{{ $opt }}" @selected($opt === 'N/A')>{{ $opt }}</option>
@@ -318,7 +354,7 @@
                             </td>
                             <td>
                                 <input type="number" step="0.01" min="75" max="100"
-                                       class="form-control form-control-sm border-0 px-1"
+                                       class="form-control form-control-sm border-0 px-1 cell-input"
                                        name="rows[{{ $idx }}][gwa]"
                                        placeholder="" autocomplete="off">
                             </td>
@@ -329,24 +365,35 @@
                 </table>
             </div>
 
-            <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center">
-                <span class="text-muted small">
-                    @if($isLocked)
-                        <i class="bi bi-lock-fill me-1"></i> Cycle is completed / archived. Encoding new rows is disabled.
-                    @else
-                        <i class="bi bi-info-circle me-1"></i> Empty rows are ignored. Tab through cells to navigate.
-                    @endif
-                </span>
+            <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small">
+                        @if($isLocked)
+                            <i class="bi bi-lock-fill me-1"></i> Cycle is completed / archived. Encoding new rows is disabled.
+                        @else
+                            <i class="bi bi-info-circle me-1"></i> Empty rows are ignored. Tab through cells to navigate.
+                        @endif
+                    </span>
+                    @unless($isLocked)
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-rows">
+                            <i class="bi bi-plus-lg me-1"></i> Add 10 More Rows
+                        </button>
+                    @endunless
+                </div>
                 @unless($isLocked)
-                    <button class="btn btn-primary btn-sm">
-                        <i class="bi bi-save me-1"></i> Save Encoded Rows
-                    </button>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span id="save-status-indicator" class="small text-muted d-none"></span>
+                        <button class="btn btn-primary btn-sm" id="btn-save-grid-bottom" type="button">
+                            <i class="bi bi-save me-1"></i> Save Encoded Rows
+                        </button>
+                    </div>
                 @endunless
             </div>
         </form>
     </div>
 </div>
 
+{{-- ── JAVASCRIPT GRID CONTROLLER ── --}}
 @push('scripts')
 <script>
 function loadBatchGroup(value) {
@@ -356,19 +403,226 @@ function loadBatchGroup(value) {
     window.location.href = url.toString();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+(function () {
     const grid = document.getElementById('encoding-grid');
-    if (!grid) return;
+    const form = document.getElementById('encoding-form');
+    const saveBtnTop = document.getElementById('btn-save-grid');
+    const saveBtnBottom = document.getElementById('btn-save-grid-bottom');
+    const addRowsBtn = document.getElementById('btn-add-rows');
+    const statusIndicator = document.getElementById('save-status-indicator');
 
-    grid.querySelectorAll('input, select').forEach(function (el) {
-        el.addEventListener('focus', function () {
-            this.closest('tr')?.classList.add('table-primary');
+    if (!grid || !form) return;
+
+    // Course options cache for dynamic row creation
+    const courses = @json($courses);
+    const specialGroupOpts = ['N/A', '4Ps', 'OSY', 'IP', 'PWD', 'SP'];
+    const cmflOpts = ['N/A', '10,000 below', '10,001 to 20,000', '20,001 to 30,000', '30,001 to 50,000', '50,001 and above'];
+
+    // ── Row Focus Highlighting & Keyboard Navigation ──
+    function bindRowEvents(row) {
+        row.querySelectorAll('input, select').forEach(function (el) {
+            el.addEventListener('focus', function () {
+                row.classList.add('table-primary');
+            });
+            el.addEventListener('blur', function () {
+                row.classList.remove('table-primary');
+            });
+            el.addEventListener('keydown', function (e) {
+                // Enter key moves down to same column next row
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const currentCellIndex = Array.from(row.children).indexOf(this.closest('td'));
+                    const nextRow = row.nextElementSibling;
+                    if (nextRow) {
+                        const targetCell = nextRow.children[currentCellIndex];
+                        const targetInput = targetCell ? targetCell.querySelector('input, select') : null;
+                        if (targetInput) targetInput.focus();
+                    }
+                }
+            });
         });
-        el.addEventListener('blur', function () {
-            this.closest('tr')?.classList.remove('table-primary');
+    }
+
+    grid.querySelectorAll('#grid-body tr').forEach(bindRowEvents);
+
+    // ── Add Dynamic Rows ──
+    if (addRowsBtn) {
+        addRowsBtn.addEventListener('click', function () {
+            const tbody = document.getElementById('grid-body');
+            const currentTotal = tbody.querySelectorAll('tr').length;
+            const fragment = document.createDocumentFragment();
+
+            for (let k = 0; k < 10; k++) {
+                const idx = currentTotal + k;
+                const rowNum = idx + 1;
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-row', rowNum);
+                tr.className = 'empty-row';
+
+                let c1OptionsHtml = '<option value="">— Select —</option>';
+                let c2OptionsHtml = '<option value="">— N/A (None) —</option>';
+                for (const [code, title] of Object.entries(courses)) {
+                    c1OptionsHtml += `<option value="${code}">${title} (${code})</option>`;
+                    c2OptionsHtml += `<option value="${code}">${title} (${code})</option>`;
+                }
+
+                let spOptionsHtml = '';
+                specialGroupOpts.forEach(opt => {
+                    spOptionsHtml += `<option value="${opt}" ${opt === 'N/A' ? 'selected' : ''}>${opt}</option>`;
+                });
+
+                let cmflOptionsHtml = '';
+                cmflOpts.forEach(opt => {
+                    cmflOptionsHtml += `<option value="${opt}" ${opt === 'N/A' ? 'selected' : ''}>${opt}</option>`;
+                });
+
+                tr.innerHTML = `
+                    <td class="text-center text-muted small align-middle row-number">${rowNum}</td>
+                    <td>
+                        <input type="hidden" name="rows[${idx}][id]" value="" class="cell-id">
+                        <input class="form-control form-control-sm border-0 px-1 cell-input"
+                               name="rows[${idx}][last_name]" placeholder="Last name" autocomplete="off">
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm border-0 px-1 cell-input"
+                               name="rows[${idx}][first_name]" placeholder="Given name" autocomplete="off">
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm border-0 px-1 cell-input"
+                               name="rows[${idx}][middle_name]" placeholder="Middle name" autocomplete="off">
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm border-0 cell-select"
+                                name="rows[${idx}][course_choice_1]">
+                            ${c1OptionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm border-0 cell-select"
+                                name="rows[${idx}][course_choice_2]">
+                            ${c2OptionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm border-0 cell-select"
+                                name="rows[${idx}][sex]">
+                            <option value="">—</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm border-0 cell-select"
+                                name="rows[${idx}][special_group]">
+                            ${spOptionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm border-0 cell-select"
+                                name="rows[${idx}][cmfl]">
+                            ${cmflOptionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" min="75" max="100"
+                               class="form-control form-control-sm border-0 px-1 cell-input"
+                               name="rows[${idx}][gwa]" placeholder="" autocomplete="off">
+                    </td>
+                `;
+
+                bindRowEvents(tr);
+                fragment.appendChild(tr);
+            }
+
+            tbody.appendChild(fragment);
+            showToast('Added 10 more rows to the encoding sheet.', 'info');
         });
-    });
-});
+    }
+
+    // ── AJAX Batch Save Controller ──
+    async function executeBatchSave() {
+        const buttons = [saveBtnTop, saveBtnBottom].filter(Boolean);
+        buttons.forEach(b => {
+            b.disabled = true;
+            b.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Saving…';
+        });
+
+        if (statusIndicator) {
+            statusIndicator.className = 'small text-muted';
+            statusIndicator.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i> Saving changes…';
+        }
+
+        try {
+            const formData = new FormData(form);
+            const saveUrl = "{{ route('admin.admission.applicants.store-batch-encoded') }}";
+
+            const response = await fetch(saveUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                                    form.querySelector('input[name="_token"]')?.value || ''
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                // If endpoint returns error or redirect, fallback to form submit
+                if (response.status === 419 || response.status === 404) {
+                    form.submit();
+                    return;
+                }
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.message || 'Server error ' + response.status);
+            }
+
+            const data = await response.json();
+            showToast(data.message || 'Rows successfully saved.', 'success');
+
+            if (statusIndicator) {
+                statusIndicator.className = 'small text-success fw-semibold';
+                statusIndicator.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' + (data.message || 'Saved successfully');
+                setTimeout(() => { statusIndicator.classList.add('d-none'); }, 4000);
+            }
+        } catch (error) {
+            console.error('Batch save error:', error);
+            showToast('Save failed: ' + error.message + '. Submitting standard form…', 'warning');
+            // Graceful fallback to full HTTP POST form submit
+            setTimeout(() => { form.submit(); }, 600);
+        } finally {
+            buttons.forEach(b => {
+                b.disabled = false;
+                b.innerHTML = '<i class="bi bi-save me-1"></i> Save Encoded Rows';
+            });
+        }
+    }
+
+    if (saveBtnTop) saveBtnTop.addEventListener('click', executeBatchSave);
+    if (saveBtnBottom) saveBtnBottom.addEventListener('click', executeBatchSave);
+
+    function showToast(msg, type) {
+        const container = document.getElementById('toast-container') || (() => {
+            const c = document.createElement('div');
+            c.id = 'toast-container';
+            c.className = 'toast-container position-fixed top-0 end-0 p-3';
+            c.style.zIndex = '9999';
+            document.body.appendChild(c);
+            return c;
+        })();
+
+        const toast = document.createElement('div');
+        toast.className = `toast show text-bg-${type} border-0 shadow-sm mb-2`;
+        toast.innerHTML = `
+            <div class="toast-body d-flex justify-content-between align-items-center">
+                <span>${msg}</span>
+                <button class="btn-close btn-close-white ms-2" onclick="this.closest('.toast').remove()"></button>
+            </div>
+        `;
+        container.prepend(toast);
+        setTimeout(() => { try { toast.remove(); } catch (e) {} }, 4500);
+    }
+})();
 </script>
 @endpush
 

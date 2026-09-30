@@ -14,6 +14,32 @@ class AdmissionApplicant extends Model
     public const STATUS_NOT_QUALIFIED = 'Not Qualified';
 
     /**
+     * The attributes that are mass assignable.
+     */
+    protected $fillable = [
+        'admission_cycle_id',
+        'admission_session_id',
+        'batch_group',
+        'session_label',
+        'application_number',
+        'student_id',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'course_choice_1',
+        'course_choice_2',
+        'course_choice',
+        'second_course_choice',
+        'sex',
+        '4ps_osy_ip_pwd_sp',
+        'special_group',
+        'cmfl',
+        'gwa',
+        'interview_score',
+        'attendance_status',
+    ];
+
+    /**
      * Computed / integrity-protected columns that must never be mass-assignable.
      * exam_score, stanine_score, total_score, qualification_status, strike_count,
      * and submitted_at are written only through AdmissionScoringService.
@@ -101,14 +127,50 @@ class AdmissionApplicant extends Model
         $this->attributes['4ps_osy_ip_pwd_sp'] = $value;
     }
 
+    public function getCourseChoice1Attribute($value): ?string
+    {
+        return $value ?: ($this->attributes['course_choice'] ?? null);
+    }
+
+    public function setCourseChoice1Attribute($value): void
+    {
+        $this->attributes['course_choice_1'] = $value;
+        $this->attributes['course_choice']   = $value;
+    }
+
+    public function getCourseChoice2Attribute($value): ?string
+    {
+        return $value ?: ($this->attributes['second_course_choice'] ?? null);
+    }
+
+    public function setCourseChoice2Attribute($value): void
+    {
+        $clean = ($value === 'N/A' || $value === 'None') ? null : $value;
+        $this->attributes['course_choice_2']      = $clean;
+        $this->attributes['second_course_choice'] = $clean;
+    }
+
     public function getFirstCourseChoiceAttribute(): ?string
     {
-        return $this->attributes['course_choice'] ?? null;
+        return $this->course_choice_1;
     }
 
     public function setFirstCourseChoiceAttribute($value): void
     {
-        $this->attributes['course_choice'] = $value;
+        $this->course_choice_1 = $value;
+    }
+
+    public function setCourseChoiceAttribute($value): void
+    {
+        $this->attributes['course_choice']   = $value;
+        $this->attributes['course_choice_1'] = $value;
+    }
+
+    public function setSecondCourseChoiceAttribute($value): void
+    {
+        $clean = ($value === 'N/A' || $value === 'None') ? null : $value;
+        $this->attributes['second_course_choice'] = $clean;
+        $this->attributes['course_choice_2']      = $clean;
     }
 
     /**
@@ -172,8 +234,11 @@ class AdmissionApplicant extends Model
         $boardCutoff = $cycle ? $cycle->getBoardCutoff() : 4;
         $nonBoardCutoff = $cycle ? $cycle->getNonBoardCutoff() : 3;
 
-        $c1 = $this->course_choice;
-        $c2 = $this->second_course_choice;
+        $c1 = $this->course_choice_1 ?: $this->course_choice;
+        $c2 = $this->course_choice_2 ?: $this->second_course_choice;
+        if ($c2 === 'N/A' || $c2 === 'None' || $c2 === '') {
+            $c2 = null;
+        }
 
         $isC1Board = CourseCatalog::isBoardProgram($c1);
         $isC2Board = CourseCatalog::isBoardProgram($c2);
@@ -237,9 +302,10 @@ class AdmissionApplicant extends Model
             // 1st choice is Board (Not Qualified for 1st choice at Stanine 3)
             if ($c2 && !$isC2Board) {
                 // Dual Choice Conflict Handling: 1st choice Board (soft red), 2nd choice Non-Board (soft green)
+                $c2Title = CourseCatalog::OPTIONS[$c2] ?? (CourseCatalog::label($c2) ?: $c2);
                 return [
                     'status'           => 'Passed',
-                    'remarks'          => 'Passed (2nd Choice)',
+                    'remarks'          => "Passed (2nd Choice - {$c2Title})",
                     'c1_status'        => 'not_qualified', // Soft light red
                     'c2_status'        => 'qualified',     // Soft green highlight
                     'qualified_choice' => 2,

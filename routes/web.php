@@ -242,6 +242,11 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
         Route::get('/sessions/{session}/print-masterlist', [\App\Http\Controllers\AdmissionSessionController::class, 'printMasterlist'])->name('sessions.print-masterlist');
+        Route::get('/sessions/{session}/poll', [\App\Http\Controllers\AdmissionSessionController::class, 'monitorPoll'])->name('sessions.poll');
+        Route::post('/sessions/{session}/reassign/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'reassignApplicant'])->name('sessions.reassign-applicant');
+        Route::post('/sessions/{session}/reassign-absent-bulk', [\App\Http\Controllers\AdmissionSessionController::class, 'reassignAbsentBulk'])->name('sessions.reassign-absent-bulk');
+        Route::post('/sessions/{session}/checkin/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'checkinApplicant'])->name('sessions.checkin-applicant');
+        Route::post('/sessions/{session}/mark-absent/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'markAbsentApplicant'])->name('sessions.mark-absent-applicant');
         Route::resource('sessions', \App\Http\Controllers\AdmissionSessionController::class);
         Route::post('/sessions/scan-omr', [\App\Http\Controllers\AdmissionSessionController::class, 'scanOmr'])->name('sessions.scan-omr');
         Route::post('/sessions/{session}/status', [\App\Http\Controllers\AdmissionSessionController::class, 'updateStatus'])->name('sessions.status');

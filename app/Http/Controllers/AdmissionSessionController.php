@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AdmissionApplicant;
 use App\Models\AdmissionCycle;
 use App\Models\AdmissionSession;
+use App\Models\GuidanceTestSecurityLog;
 use App\Services\AdmissionScoringService;
 use App\Support\CourseCatalog;
 use Carbon\Carbon;
@@ -131,7 +132,7 @@ class AdmissionSessionController extends Controller
             ->with('success', "Session '{$session->session_name}' created successfully. {$targets->count()} applicant(s) assigned (Masterlist Range: #{$start}–#{$end}).");
     }
 
-    // ── Show / Roster ─────────────────────────────────────────────────────────
+    // ── Show / Roster Monitor ──────────────────────────────────────────────────
 
     public function show(AdmissionSession $session)
     {
@@ -140,12 +141,51 @@ class AdmissionSessionController extends Controller
             return $this->gatekeeperRedirect();
         }
 
+        $session->loadMissing('cycle');
+
         $applicants = $session->applicants()
+            ->with(['securityLogs' => fn ($q) => $q->latest('created_at')])
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
 
-        return view('admin.admission.sessions.show', compact('session', 'cycle', 'applicants'));
+        // Other available sessions in this cycle for reassignment (not completed, not current session)
+        $otherSessions = $cycle->sessions()
+            ->where('id', '!=', $session->id)
+            ->where('status', '!=', AdmissionSession::STATUS_COMPLETED)
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        // Calculate KPI summary
+        $totalAssigned   = $applicants->count();
+        $submittedCount  = $applicants->whereNotNull('submitted_at')->count();
+        $inProgressCount = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'In-Progress')->count();
+        $readyCount      = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Ready')->count();
+        $absentCount     = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Absent')->count();
+        $violationsCount = (int) $applicants->sum('strike_count');
+        $avgScore        = $submittedCount > 0 ? round((float) $applicants->whereNotNull('exam_score')->avg('exam_score'), 2) : 0;
+
+        // Recent prohibited rules / security logs for this session
+        $recentIncidents = GuidanceTestSecurityLog::whereIn('applicant_id', $applicants->pluck('id'))
+            ->with('admissionApplicant')
+            ->latest('created_at')
+            ->take(30)
+            ->get();
+
+        return view('admin.admission.sessions.show', compact(
+            'session',
+            'cycle',
+            'applicants',
+            'otherSessions',
+            'totalAssigned',
+            'submittedCount',
+            'inProgressCount',
+            'readyCount',
+            'absentCount',
+            'violationsCount',
+            'avgScore',
+            'recentIncidents'
+        ));
     }
 
     public function printMasterlist(AdmissionSession $session)
@@ -294,6 +334,17 @@ class AdmissionSessionController extends Controller
 
         $session->update(['status' => $data['status']]);
 
+        // When launching session (In-Progress), transition all Ready examinees into In-Progress
+        if ($data['status'] === AdmissionSession::STATUS_IN_PROGRESS) {
+            $session->applicants()
+                ->whereNull('submitted_at')
+                ->where(function ($q) {
+                    $q->where('attendance_status', 'Ready')
+                      ->orWhereNotNull('checked_in_at');
+                })
+                ->update(['attendance_status' => 'In-Progress']);
+        }
+
         if ($session->status === AdmissionSession::STATUS_COMPLETED) {
             Cache::flush();
         }
@@ -310,6 +361,207 @@ class AdmissionSessionController extends Controller
         Cache::flush();
 
         return back()->with('success', "Session '{$session->session_name}' has been marked as Completed.");
+    }
+
+    // ── Live Monitor Polling ───────────────────────────────────────────────────
+
+    public function monitorPoll(AdmissionSession $session)
+    {
+        $session->refresh();
+        $cycle = $session->cycle;
+
+        $applicants = $session->applicants()
+            ->with(['securityLogs' => fn ($q) => $q->latest('created_at')])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        $totalAssigned   = $applicants->count();
+        $submittedCount  = $applicants->whereNotNull('submitted_at')->count();
+        $inProgressCount = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'In-Progress')->count();
+        $readyCount      = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Ready')->count();
+        $absentCount     = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Absent')->count();
+        $violationsCount = (int) $applicants->sum('strike_count');
+        $avgScore        = $submittedCount > 0 ? round((float) $applicants->whereNotNull('exam_score')->avg('exam_score'), 2) : 0;
+
+        $recentIncidents = GuidanceTestSecurityLog::whereIn('applicant_id', $applicants->pluck('id'))
+            ->with('admissionApplicant')
+            ->latest('created_at')
+            ->take(20)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'log_id' => $log->log_id,
+                    'applicant_name' => $log->admissionApplicant?->full_name ?? 'Unknown',
+                    'application_number' => $log->admissionApplicant?->application_number ?? '—',
+                    'incident_type' => str_replace('_', ' ', ucwords($log->incident_type ?? '', '_')),
+                    'strike_number' => $log->strike_number,
+                    'time' => $log->created_at?->format('h:i:s A') ?? '—',
+                ];
+            });
+
+        $applicantRows = $applicants->map(function ($a) use ($cycle) {
+            $status = $a->computed_attendance_status;
+            return [
+                'id' => $a->id,
+                'application_number' => $a->application_number,
+                'full_name' => $a->full_name,
+                'course_choice' => $a->course_choice,
+                'attendance_status' => $status,
+                'checked_in_at' => $a->checked_in_at?->format('h:i A'),
+                'submitted_at' => $a->submitted_at?->format('h:i A'),
+                'exam_score' => $a->exam_score !== null ? number_format($a->exam_score, 2) : null,
+                'stanine_score' => $a->stanine_score,
+                'total_items' => (int) ($cycle?->total_items ?: 80),
+                'strike_count' => (int) $a->strike_count,
+                'security_incidents' => $a->securityLogs->take(5)->map(fn ($l) => [
+                    'type' => str_replace('_', ' ', ucwords($l->incident_type ?? '', '_')),
+                    'strike' => $l->strike_number,
+                    'time' => $l->created_at?->format('h:i A'),
+                ]),
+            ];
+        });
+
+        return response()->json([
+            'session' => [
+                'id' => $session->id,
+                'name' => $session->session_name,
+                'status' => $session->status,
+                'is_open' => $session->isOpen(),
+                'is_scheduled' => $session->isScheduled(),
+                'is_in_progress' => $session->isInProgress(),
+                'is_completed' => $session->isCompleted(),
+            ],
+            'kpis' => [
+                'total' => $totalAssigned,
+                'ready' => $readyCount,
+                'in_progress' => $inProgressCount,
+                'submitted' => $submittedCount,
+                'absent' => $absentCount,
+                'violations' => $violationsCount,
+                'average_score' => $avgScore,
+                'percentage' => $totalAssigned > 0 ? round(($submittedCount / $totalAssigned) * 100) : 0,
+            ],
+            'applicants' => $applicantRows,
+            'recent_incidents' => $recentIncidents,
+        ]);
+    }
+
+    // ── Reassign Absent Applicants ─────────────────────────────────────────────
+
+    public function reassignApplicant(Request $request, AdmissionSession $session, AdmissionApplicant $applicant)
+    {
+        $cycle = $session->cycle;
+        abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot reassign applicants in an archived cycle.');
+
+        $data = $request->validate([
+            'target_session_id' => [
+                'required',
+                'integer',
+                Rule::exists('admission_sessions', 'id')->where(function ($q) use ($cycle, $session) {
+                    $q->where('admission_cycle_id', $cycle->id)
+                      ->where('id', '!=', $session->id);
+                }),
+            ],
+        ]);
+
+        $targetSession = AdmissionSession::findOrFail($data['target_session_id']);
+        abort_if($targetSession->isCompleted(), 422, 'Cannot transfer examinee to a completed session.');
+        abort_if($applicant->submitted_at, 422, 'Cannot transfer an examinee who has already submitted their exam.');
+
+        $applicant->update([
+            'admission_session_id' => $targetSession->id,
+            'session_label'        => $targetSession->session_name,
+            'batch_group'          => $targetSession->session_name,
+            'checked_in_at'        => null,
+            'attendance_status'    => 'Absent',
+            'exam_token'           => null,
+        ]);
+
+        return back()->with('success', "Examinee {$applicant->full_name} has been transferred to '{$targetSession->session_name}'.");
+    }
+
+    public function reassignAbsentBulk(Request $request, AdmissionSession $session)
+    {
+        $cycle = $session->cycle;
+        abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot reassign applicants in an archived cycle.');
+
+        $data = $request->validate([
+            'target_session_id' => [
+                'required',
+                'integer',
+                Rule::exists('admission_sessions', 'id')->where(function ($q) use ($cycle, $session) {
+                    $q->where('admission_cycle_id', $cycle->id)
+                      ->where('id', '!=', $session->id);
+                }),
+            ],
+            'applicant_ids' => 'nullable|array',
+            'applicant_ids.*' => 'integer|exists:admission_applicants,id',
+            'transfer_all_absent' => 'nullable|boolean',
+        ]);
+
+        $targetSession = AdmissionSession::findOrFail($data['target_session_id']);
+        abort_if($targetSession->isCompleted(), 422, 'Cannot transfer examinees to a completed session.');
+
+        $query = $session->applicants()->whereNull('submitted_at');
+
+        if (empty($data['transfer_all_absent']) && !empty($data['applicant_ids'])) {
+            $query->whereIn('id', $data['applicant_ids']);
+        } else {
+            $query->where(function ($q) {
+                $q->where('attendance_status', 'Absent')
+                  ->orWhereNull('checked_in_at');
+            });
+        }
+
+        $targets = $query->get();
+        if ($targets->isEmpty()) {
+            return back()->with('warning', 'No eligible absent examinees selected for transfer.');
+        }
+
+        foreach ($targets as $applicant) {
+            $applicant->update([
+                'admission_session_id' => $targetSession->id,
+                'session_label'        => $targetSession->session_name,
+                'batch_group'          => $targetSession->session_name,
+                'checked_in_at'        => null,
+                'attendance_status'    => 'Absent',
+                'exam_token'           => null,
+            ]);
+        }
+
+        return back()->with('success', "{$targets->count()} absent examinee(s) successfully transferred to '{$targetSession->session_name}'.");
+    }
+
+    // ── Manual Check-In / Mark Absent ──────────────────────────────────────────
+
+    public function checkinApplicant(AdmissionSession $session, AdmissionApplicant $applicant)
+    {
+        abort_if($applicant->submitted_at, 422, 'Examinee has already submitted.');
+        abort_if($applicant->admission_session_id !== $session->id, 422, 'Applicant does not belong to this session.');
+
+        $status = $session->isInProgress() ? 'In-Progress' : 'Ready';
+
+        $applicant->forceFill([
+            'checked_in_at'     => now(),
+            'attendance_status' => $status,
+            'exam_token'        => $applicant->exam_token ?: Str::random(64),
+        ])->save();
+
+        return back()->with('success', "Examinee {$applicant->full_name} is now marked as {$status}.");
+    }
+
+    public function markAbsentApplicant(AdmissionSession $session, AdmissionApplicant $applicant)
+    {
+        abort_if($applicant->submitted_at, 422, 'Cannot mark as absent an examinee who has already submitted.');
+        abort_if($applicant->admission_session_id !== $session->id, 422, 'Applicant does not belong to this session.');
+
+        $applicant->forceFill([
+            'checked_in_at'     => null,
+            'attendance_status' => 'Absent',
+        ])->save();
+
+        return back()->with('success', "Examinee {$applicant->full_name} is marked as Absent.");
     }
 
     // ── Destroy ───────────────────────────────────────────────────────────────

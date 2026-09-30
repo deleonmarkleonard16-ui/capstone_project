@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AdmissionApplicant extends Model
 {
@@ -31,6 +32,7 @@ class AdmissionApplicant extends Model
         return [
             'answers'          => 'array',
             'submitted_at'     => 'datetime',
+            'checked_in_at'    => 'datetime',
             'exam_score'       => 'decimal:2',
             'gwa'              => 'decimal:2',
             'interview_score'  => 'decimal:2',
@@ -50,6 +52,30 @@ class AdmissionApplicant extends Model
     public function admissionSession(): BelongsTo
     {
         return $this->belongsTo(AdmissionSession::class, 'admission_session_id');
+    }
+
+    public function securityLogs(): HasMany
+    {
+        return $this->hasMany(GuidanceTestSecurityLog::class, 'applicant_id');
+    }
+
+    // ── Attendance & Monitor Helpers ──────────────────────────────────────────
+
+    public function getComputedAttendanceStatusAttribute(): string
+    {
+        if ($this->submitted_at) {
+            return 'Submitted';
+        }
+        $session = $this->admissionSession;
+        if ($session && $session->status === AdmissionSession::STATUS_IN_PROGRESS) {
+            if ($this->attendance_status === 'In-Progress' || $this->checked_in_at) {
+                return 'In-Progress';
+            }
+        }
+        if ($this->attendance_status === 'Ready' || $this->checked_in_at) {
+            return 'Ready';
+        }
+        return 'Absent';
     }
 
     // ── Accessors ─────────────────────────────────────────────────────────────

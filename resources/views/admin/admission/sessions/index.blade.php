@@ -189,28 +189,19 @@
                             </td>
                             <td class="pe-3 text-end">
                                 <div class="btn-group btn-group-sm">
-                                    {{-- Quick status transitions --}}
-                                    @if($session->status === 'Scheduled' && !$cycle->isCompleted())
-                                        <form method="POST" action="{{ route('admin.admission.sessions.status', $session) }}" class="d-inline">
-                                            @csrf
-                                            <input type="hidden" name="status" value="In-Progress">
-                                            <button type="submit" class="btn btn-outline-success btn-sm" title="Launch Session">
-                                                <i class="bi bi-play-fill"></i> Start Test / Launch Session
-                                            </button>
-                                        </form>
-                                    @elseif($session->status === 'In-Progress' && !$cycle->isCompleted())
-                                        <form method="POST" action="{{ route('admin.admission.sessions.complete', $session) }}"
-                                              onsubmit="return confirm('Mark session \'{{ $session->session_name }}\' as Completed?');"
-                                              class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-outline-warning btn-sm" title="Mark Completed">
-                                                <i class="bi bi-check-all"></i> Complete
-                                            </button>
-                                        </form>
-                                    @endif
-
-                                    <a href="{{ route('admin.admission.sessions.show', $session) }}" class="btn btn-outline-primary btn-sm" title="View Session Roster">
-                                        <i class="bi bi-people"></i> Roster
+                                    {{-- Start Test / End Session are now inside the Roster Monitor --}}
+                                    <a href="{{ route('admin.admission.sessions.show', $session) }}"
+                                       class="btn btn-primary btn-sm fw-semibold"
+                                       title="Open Roster Monitor — Start, monitor, and end this session from inside">
+                                        <i class="bi bi-speedometer2 me-1"></i>
+                                        @if($session->status === 'Scheduled')
+                                            Roster Monitor / Launch
+                                        @elseif($session->status === 'In-Progress')
+                                            <span class="spinner-grow spinner-grow-sm me-1 text-white" role="status" style="width:0.6rem;height:0.6rem;"></span>
+                                            Roster Monitor (Live)
+                                        @else
+                                            View Roster
+                                        @endif
                                     </a>
 
                                     <button type="button"

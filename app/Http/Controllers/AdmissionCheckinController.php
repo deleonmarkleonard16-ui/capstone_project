@@ -131,9 +131,14 @@ class AdmissionCheckinController extends Controller
         }
 
         // Generate examination token if not already created
+        $fillData = [
+            'checked_in_at' => now(),
+            'attendance_status' => $session->isInProgress() ? 'In-Progress' : 'Ready',
+        ];
         if (empty($applicant->exam_token)) {
-            $applicant->forceFill(['exam_token' => Str::random(64)])->save();
+            $fillData['exam_token'] = Str::random(64);
         }
+        $applicant->forceFill($fillData)->save();
 
         // Store verification details in session
         session([
@@ -141,7 +146,13 @@ class AdmissionCheckinController extends Controller
             'admission_checkin_session_id'   => $session->id,
         ]);
 
-        // Every verified examinee passes through the synchronized waiting room.
+        // If session is already In-Progress (late examinee), proceed directly to test
+        if ($session->isInProgress()) {
+            return redirect()->route('admission.take', $applicant->exam_token)
+                ->with('success', 'Attendance verified! You may now begin your exam.');
+        }
+
+        // Otherwise examinee waits in the synchronized waiting room until admin launches session
         return redirect()->route('admission.waiting', ['session_token' => $session_token])
             ->with('success', 'Attendance verified! Please wait for the admin to start the exam.');
     }

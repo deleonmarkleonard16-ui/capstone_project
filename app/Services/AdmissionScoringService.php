@@ -70,6 +70,7 @@ class AdmissionScoringService
                 'exam_score' => $correct,
                 'stanine_score' => $stanine,
                 'submitted_at' => now(),
+                'attendance_status' => 'Submitted',
                 'exam_token' => null,
             ])->save();
 

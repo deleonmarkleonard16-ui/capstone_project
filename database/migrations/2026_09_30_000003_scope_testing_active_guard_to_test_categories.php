@@ -20,8 +20,10 @@ return new class extends Migration {
         if (Schema::hasIndex('service_requests', 'idx_active_request_per_student')) {
             DB::statement('DROP INDEX idx_active_request_per_student ON service_requests');
         }
+        $hasExempt = Schema::hasColumn('service_requests', 'active_guard_exempt');
+        $exemptClause = $hasExempt ? 'AND active_guard_exempt = 0' : '';
         DB::statement("ALTER TABLE service_requests MODIFY COLUMN active_guard CHAR(1) AS
-            (CASE WHEN service <> 'testing' AND active_guard_exempt = 0
+            (CASE WHEN service <> 'testing' {$exemptClause}
                 AND NULLIF(TRIM(student_number), '') IS NOT NULL
                 AND archived_at IS NULL AND status IN
                 ('pending','receipt-uploaded','proof_review','approved','processing','in-progress','ready','scheduled')

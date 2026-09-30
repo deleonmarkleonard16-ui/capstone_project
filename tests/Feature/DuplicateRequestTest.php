@@ -133,6 +133,17 @@ class DuplicateRequestTest extends TestCase
         $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-5555')->count());
     }
 
+    public function test_distinct_testing_categories_do_not_block_each_other(): void
+    {
+        $this->post('/portal/requests', $this->testingPayload('psychological', '23-SC-5566'))
+            ->assertSessionHasNoErrors();
+
+        $this->post('/portal/requests', $this->testingPayload('personality', '23-SC-5566'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-5566')->count());
+    }
+
     public function test_completed_request_allows_new_request(): void
     {
         $payload = $this->documentPayload('good-moral', '23-SC-6666');

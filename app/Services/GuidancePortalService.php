@@ -39,8 +39,23 @@ class GuidancePortalService
                     }
                 }
 
-                // Also guard the service_requests row (testing service) for the same student
-                if (\App\Models\ServiceRequest::hasActiveRequest($studentNumber, 'testing')) {
+                // A testing request may contain more than one category.  Only an
+                // overlapping category is a duplicate; a personality request, for
+                // example, must not prevent a later career request from the same
+                // student.
+                $hasOverlappingTestingRequest = \App\Models\ServiceRequest::where('student_number', $studentNumber)
+                    ->where('service', 'testing')
+                    ->whereIn('status', \App\Models\ServiceRequest::ACTIVE_STATUSES)
+                    ->whereNull('archived_at')
+                    ->where(function ($query) use ($categories) {
+                        foreach ($categories as $category) {
+                            $query->orWhereJsonContains('tests', $category);
+                        }
+                    })
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($hasOverlappingTestingRequest) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'service' => 'You already have an active request for this item. Please track your existing request using your Tracking Reference code.',
                     ]);

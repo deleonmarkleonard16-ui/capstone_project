@@ -12,8 +12,9 @@
 
 @if(session('portal_notice'))
 @php($__pn = session('portal_notice'))
-<div class="notice{{ str_contains($__pn, 'expired') ? ' notice-warn' : '' }}" role="status" style="{{ str_contains($__pn, 'expired') ? 'background:#fff8e1;border-left:4px solid #f0a500;' : '' }}">
-    @if(str_contains($__pn, 'expired'))⚠️ @endif{{ $__pn }}
+@php($__pnWarn = str_contains($__pn, 'expired') || str_contains($__pn, 'today'))
+<div class="notice{{ $__pnWarn ? ' notice-warn' : '' }}" role="alert" style="{{ $__pnWarn ? 'background:#fff8e1;border-left:4px solid #f0a500;' : '' }}">
+    @if($__pnWarn)⚠️ @endif{{ $__pn }}
 </div>
 @endif
 

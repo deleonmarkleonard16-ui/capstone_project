@@ -5,13 +5,14 @@ namespace Tests\Feature;
 use App\Models\GuidanceAppointment;
 use App\Models\ServiceRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DuplicateRequestTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const DUPLICATE_MESSAGE = 'You already have an active request for this item. Please track your existing request using your Tracking Reference code.';
+    private const DUPLICATE_MESSAGE = 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.';
 
     private function testingPayload(string $testCategory = 'psychological', string $studentNumber = '23-SC-4143'): array
     {
@@ -157,7 +158,7 @@ class DuplicateRequestTest extends TestCase
             'archived_at' => now(),
         ]);
 
-        // A new request should now be accepted
+        // A new request should now be accepted (final state allows re-request)
         $this->post('/portal/requests', $payload)->assertSessionHasNoErrors();
         $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-6666')->count());
     }
@@ -175,7 +176,7 @@ class DuplicateRequestTest extends TestCase
             'archived_at' => now(),
         ]);
 
-        // A new request should now be accepted
+        // A new request should now be accepted (void = final state)
         $this->post('/portal/requests', $payload)->assertSessionHasNoErrors();
         $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-7777')->count());
     }
@@ -190,6 +191,44 @@ class DuplicateRequestTest extends TestCase
 
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-8888')->count());
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-9999')->count());
+    }
+
+    /**
+     * A student with an ACTIVE request from a PREVIOUS day must be allowed to
+     * submit a new request for the same service — only same-day active
+     * duplicates are blocked.
+     */
+    public function test_active_request_from_previous_day_does_not_block_new_request(): void
+    {
+        $payload = $this->documentPayload('good-moral', '23-SC-1010');
+
+        $this->post('/portal/requests', $payload)->assertSessionHasNoErrors();
+
+        // Back-date the existing request to simulate a prior day
+        ServiceRequest::where('student_number', '23-SC-1010')
+            ->update(['created_at' => now()->subDay()]);
+
+        // New same-service request today must succeed
+        $this->post('/portal/requests', $payload)->assertSessionHasNoErrors();
+        $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-1010')->count());
+    }
+
+    /**
+     * An active request submitted TODAY must still block a same-day duplicate
+     * even if the prior request has not been archived.
+     */
+    public function test_same_day_active_request_blocks_duplicate_regardless_of_archived_state(): void
+    {
+        $payload = $this->documentPayload('good-moral', '23-SC-2020');
+
+        // First submission today — succeeds
+        $this->post('/portal/requests', $payload)->assertSessionHasNoErrors();
+        $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-2020')->count());
+
+        // Second submission TODAY — must be blocked
+        $res = $this->post('/portal/requests', $payload);
+        $res->assertSessionHas('portal_notice', self::DUPLICATE_MESSAGE);
+        $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-2020')->count());
     }
 
     public function test_migration_up_and_down_are_safe_and_idempotent(): void
@@ -213,3 +252,5 @@ class DuplicateRequestTest extends TestCase
         $this->assertTrue(true);
     }
 }
+
+

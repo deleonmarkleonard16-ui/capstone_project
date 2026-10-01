@@ -71,27 +71,32 @@ class GuidanceRequestController extends Controller
             }
         }
 
-        // Check for duplicate active request if student ID is present
+        // Check for same-day duplicate active request if student ID is present.
+        // Re-requests on a later date are allowed once the prior request has
+        // reached a final state (completed, claimed, void, or archived).
         if (! empty($data['student_number']) && $data['student_number'] !== 'ALUMNI') {
             $hasActive = false;
+            $today = now()->toDateString();
+
             if ($data['service'] === 'testing') {
                 $categories = $data['tests'] ?? ['psychological'];
-                $activeGaStatuses = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'];
+                $sameDayGaStatuses = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'];
 
                 $hasActive = \App\Models\GuidanceAppointment::where(function ($q) use ($data) {
                         $q->where('student_id_number', $data['student_number'])
                           ->orWhereHas('serviceRequest', fn ($sr) => $sr->where('student_number', $data['student_number']));
                     })
                     ->whereIn('test_category', $categories)
-                    ->whereIn('status', $activeGaStatuses)
+                    ->whereIn('status', $sameDayGaStatuses)
                     ->whereNull('batch_id')
+                    ->whereDate('created_at', $today)
                     ->exists();
 
                 if (! $hasActive) {
                     $hasActive = ServiceRequest::where('student_number', $data['student_number'])
                         ->where('service', 'testing')
-                        ->whereIn('status', ServiceRequest::ACTIVE_STATUSES)
-                        ->whereNull('archived_at')
+                        ->whereIn('status', ServiceRequest::SAME_DAY_BLOCK_STATUSES)
+                        ->whereDate('created_at', $today)
                         ->where(function ($q) use ($categories) {
                             foreach ($categories as $cat) {
                                 $q->orWhereJsonContains('tests', $cat);
@@ -104,7 +109,7 @@ class GuidanceRequestController extends Controller
             }
 
             if ($hasActive) {
-                $message = 'You already have an active request for this item. Please track your existing request using your Tracking Reference code.';
+                $message = 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.';
                 if ($request->expectsJson()) {
                     return response()->json([
                         'message' => $message,

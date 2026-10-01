@@ -30,15 +30,30 @@ class ServiceRequest extends Model
     public const STATUSES = ['pending', 'approved', 'proof_review', 'processing', 'ready', 'scheduled', 'completed', 'declined', 'cancelled', 'void'];
 
     /**
-     * Statuses that represent an in-flight / active request.
-     * A new submission from the same student for the same service is blocked
-     * while any prior request is in one of these statuses.
+     * Statuses that represent an in-flight / active request for analytics and
+     * general "is this request still open?" checks.
      */
     public const ACTIVE_STATUSES = ['pending', 'receipt-uploaded', 'proof_review', 'approved', 'processing', 'in-progress', 'ready', 'scheduled'];
 
     /**
-     * Check whether the given student already has an active request for
-     * the specified service (good-moral, exit-form, or testing).
+     * Statuses that trigger the SAME-DAY duplicate submission block.
+     *
+     * A student may re-request the same service on a later date once their
+     * previous request has reached a final state (completed, claimed, void,
+     * archived).  We only block when a request submitted TODAY is still
+     * pending processing.
+     */
+    public const SAME_DAY_BLOCK_STATUSES = ['pending', 'receipt-uploaded', 'approved', 'in-progress'];
+
+    /**
+     * Check whether the given student already has a SAME-DAY active request
+     * for the specified service (good-moral, exit-form, or testing).
+     *
+     * Rules:
+     *  - Only blocks when a matching request was created TODAY and is still in
+     *    one of the active/pending statuses (SAME_DAY_BLOCK_STATUSES).
+     *  - Re-requests on a later date are always allowed, regardless of whether
+     *    a prior request is completed, void, claimed, or archived.
      *
      * @param  string  $studentNumber  Normalised student ID (e.g. "23-SC-4143").
      * @param  string  $service        Service key from self::SERVICES.
@@ -51,8 +66,8 @@ class ServiceRequest extends Model
 
         return static::where('student_number', $studentNumber)
             ->where('service', $service)
-            ->whereIn('status', self::ACTIVE_STATUSES)
-            ->whereNull('archived_at')
+            ->whereIn('status', self::SAME_DAY_BLOCK_STATUSES)
+            ->whereDate('created_at', now()->toDateString())
             ->exists();
     }
 

@@ -15,9 +15,11 @@ class GuidancePortalService
             $studentNumber = $data['student_number'] ?? '';
             $categories    = $data['tests'] ?? ['psychological'];
 
-            // ── Duplicate guard (per test category) ─────────────────────────────
-            // Statuses that represent an in-flight guidance appointment.
-            $activeGaStatuses = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'];
+            // ── Same-day duplicate guard (per test category) ────────────────────────
+            // Statuses that represent an in-flight guidance appointment created today.
+            // Re-requests on a later date are allowed once prior requests are finalised.
+            $sameDayGaStatuses = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'];
+            $today = now()->toDateString();
 
             if ($studentNumber !== '') {
                 foreach ($categories as $category) {
@@ -26,27 +28,28 @@ class GuidancePortalService
                               ->orWhereHas('serviceRequest', fn ($sr) => $sr->where('student_number', $studentNumber));
                         })
                         ->where('test_category', $category)
-                        ->whereIn('status', $activeGaStatuses)
+                        ->whereIn('status', $sameDayGaStatuses)
                         ->whereNull('batch_id')
+                        ->whereDate('created_at', $today)
                         ->select(['guidance_appointment_id', 'request_code', 'status', 'test_category'])
                         ->lockForUpdate()
                         ->first();
 
                     if ($existing) {
                         throw \Illuminate\Validation\ValidationException::withMessages([
-                            'service' => 'You already have an active request for this item. Please track your existing request using your Tracking Reference code.',
+                            'service' => 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.',
                         ]);
                     }
                 }
 
                 // A testing request may contain more than one category.  Only an
-                // overlapping category is a duplicate; a personality request, for
-                // example, must not prevent a later career request from the same
-                // student.
+                // overlapping category submitted TODAY is a duplicate; a personality
+                // request, for example, must not prevent a later career request from
+                // the same student on a different day.
                 $hasOverlappingTestingRequest = \App\Models\ServiceRequest::where('student_number', $studentNumber)
                     ->where('service', 'testing')
-                    ->whereIn('status', \App\Models\ServiceRequest::ACTIVE_STATUSES)
-                    ->whereNull('archived_at')
+                    ->whereIn('status', \App\Models\ServiceRequest::SAME_DAY_BLOCK_STATUSES)
+                    ->whereDate('created_at', $today)
                     ->where(function ($query) use ($categories) {
                         foreach ($categories as $category) {
                             $query->orWhereJsonContains('tests', $category);
@@ -57,11 +60,11 @@ class GuidancePortalService
 
                 if ($hasOverlappingTestingRequest) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'service' => 'You already have an active request for this item. Please track your existing request using your Tracking Reference code.',
+                        'service' => 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.',
                     ]);
                 }
             }
-            // ── End duplicate guard ──────────────────────────────────────────────
+            // ── End same-day duplicate guard ─────────────────────────────────────────
 
             $entry = ServiceRequest::create($data + [
                 'reference' => app(GuidanceReferenceService::class)->reserve(),

@@ -24,10 +24,28 @@ class AdmissionSession extends Model
     protected function casts(): array
     {
         return [
-            'start_time'   => 'datetime',
             'start_number' => 'integer',
             'end_number'   => 'integer',
         ];
+    }
+
+    public function getStartTimeAttribute($value): ?Carbon
+    {
+        return $value ? Carbon::parse($value)->setTimezone('Asia/Manila') : null;
+    }
+
+    public function setStartTimeAttribute($value): void
+    {
+        if (empty($value)) {
+            $this->attributes['start_time'] = null;
+            return;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            $this->attributes['start_time'] = Carbon::instance($value)->setTimezone('UTC')->format('Y-m-d H:i:s');
+        } else {
+            $this->attributes['start_time'] = Carbon::parse($value, 'Asia/Manila')->setTimezone('UTC')->format('Y-m-d H:i:s');
+        }
     }
 
     // ── Relationships ─────────────────────────────────────────────────────────
@@ -100,7 +118,7 @@ class AdmissionSession extends Model
             return false;
         }
 
-        return now()->gte($this->start_time->subMinutes(30));
+        return now('Asia/Manila')->gte($this->start_time->copy()->subMinutes(30));
     }
 
     public function isCheckinOpen(): bool

@@ -25,7 +25,7 @@
                 </span>
             </div>
             <p class="text-muted mb-0 small">
-                Start Time: <strong>{{ optional($session->start_time)->format('M d, Y · h:i A') ?: 'Not scheduled' }}</strong> &nbsp;·&nbsp;
+                Start Time: <strong>{{ optional($session->start_time)?->setTimezone('Asia/Manila')->format('M d, Y · h:i A') ?: 'Not scheduled' }}</strong> &nbsp;·&nbsp;
                 Masterlist Range: <span class="badge bg-light text-primary border font-monospace">#{{ $session->start_number }} – #{{ $session->end_number }}</span> &nbsp;·&nbsp;
                 Venue: <strong>{{ $session->room ?: 'Main Testing Hall' }}</strong>
             </p>

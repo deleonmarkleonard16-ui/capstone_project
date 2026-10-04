@@ -86,7 +86,7 @@ class AdmissionSessionController extends Controller
 
         $data = $request->validate([
             'session_name'  => 'required|string|max:120',
-            'start_time'    => 'required|date',
+            'start_time'    => ['required', 'date_format:Y-m-d\TH:i'],
             'start_number'  => 'required|integer|min:1',
             'end_number'    => 'required|integer|gte:start_number',
             'room'          => 'nullable|string|max:120',
@@ -94,9 +94,12 @@ class AdmissionSessionController extends Controller
             'course_filter' => 'nullable|string|max:30',
         ]);
 
+        $startTime = Carbon::createFromFormat('Y-m-d\TH:i', $data['start_time'], 'Asia/Manila')
+            ->setTimezone('UTC');
+
         $session = $cycle->sessions()->create([
             'session_name' => $data['session_name'],
-            'start_time'   => Carbon::parse($data['start_time'], 'Asia/Manila'),
+            'start_time'   => $startTime,
             'start_number' => (int) $data['start_number'],
             'end_number'   => (int) $data['end_number'],
             'room'         => $data['room'] ?? null,
@@ -270,7 +273,7 @@ class AdmissionSessionController extends Controller
 
         $data = $request->validate([
             'session_name' => 'required|string|max:120',
-            'start_time'   => 'required|date',
+            'start_time'   => ['required', 'date_format:Y-m-d\TH:i'],
             'start_number' => 'required|integer|min:1',
             'end_number'   => 'required|integer|gte:start_number',
             'room'         => 'nullable|string|max:120',
@@ -280,14 +283,17 @@ class AdmissionSessionController extends Controller
         $prevStart = $session->start_number;
         $prevEnd   = $session->end_number;
 
-        $session->update([
+        $startTime = Carbon::createFromFormat('Y-m-d\TH:i', $data['start_time'], 'Asia/Manila')
+            ->setTimezone('UTC');
+
+        $session->forceFill([
             'session_name' => $data['session_name'],
-            'start_time'   => Carbon::parse($data['start_time'], 'Asia/Manila'),
+            'start_time'   => $startTime,
             'start_number' => (int) $data['start_number'],
             'end_number'   => (int) $data['end_number'],
             'room'         => $data['room'] ?? null,
             'status'       => $data['status'] ?? $session->status,
-        ]);
+        ])->save();
 
         // If applicant range changed, reallocate applicants
         $newStart = (int) $data['start_number'];

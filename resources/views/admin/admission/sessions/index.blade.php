@@ -136,12 +136,13 @@
                             </td>
                             <td>
                                 @if($session->start_time)
+                                    @php $startManila = $session->start_time->setTimezone('Asia/Manila'); @endphp
                                     <div class="fw-semibold text-dark">
                                         <i class="bi bi-clock me-1 text-primary"></i>
-                                        {{ $session->start_time->format('M d, Y') }}
+                                        {{ $startManila->format('M d, Y') }}
                                     </div>
                                     <div class="text-muted small">
-                                        {{ $session->start_time->format('h:i A') }}
+                                        {{ $startManila->format('h:i A') }}
                                     </div>
                                 @else
                                     <span class="text-muted">—</span>

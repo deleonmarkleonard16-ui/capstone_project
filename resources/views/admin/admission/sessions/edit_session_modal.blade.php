@@ -62,7 +62,7 @@
                                 <input type="datetime-local"
                                        name="start_time"
                                        class="form-control"
-                                       value="{{ old('start_time', $session->start_time ? \Carbon\Carbon::parse($session->start_time)->format('Y-m-d\TH:i') : '') }}"
+                                       value="{{ old('start_time', \Carbon\Carbon::parse($session->start_time)->format('Y-m-d\TH:i')) }}"
                                        required>
                             </div>
                             <div class="form-text small">

@@ -1,4 +1,4 @@
-﻿{{-- ═══════════════════════════════════════════════════════════
+{{-- ═══════════════════════════════════════════════════════════
      PSU-CAT ADMISSION SESSION EDIT MODAL
      Strict Requirements:
      1. Session Name
@@ -62,7 +62,7 @@
                                 <input type="datetime-local"
                                        name="start_time"
                                        class="form-control"
-                                       value="{{ old('start_time', optional($session->start_time)?->setTimezone('Asia/Manila')->format('Y-m-d\TH:i')) }}"
+                                       value="{{ old('start_time', optional($session->start_time)?->format('Y-m-d\TH:i')) }}"
                                        required>
                             </div>
                             <div class="form-text small">

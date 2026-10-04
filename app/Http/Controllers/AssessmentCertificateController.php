@@ -17,7 +17,7 @@ class AssessmentCertificateController extends Controller
 
     public function __invoke(Request $request, GuidanceAppointment $appointment): Response
     {
-        abort_unless($appointment->status === 'Completed', 404);
+        abort_unless(in_array($appointment->status, ['Completed', 'Under review']), 404);
         $category = $this->category($appointment);
         abort_unless($category === $request->route('certificate_type'), 404);
 

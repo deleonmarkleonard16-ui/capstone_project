@@ -35,6 +35,12 @@
         default                   => route("{$role}.psychological.analytics"),
     };
 
+    // Under Review route — filter the individual queue by status
+    $underReviewRoute = match($currentModule) {
+        'personality', 'career' => route("{$role}.{$currentModule}.index", ['status' => 'Under review']),
+        default                 => route("{$role}.psychological.index", ['status' => 'Under review']),
+    };
+
     // State detection
     $isAnalytics = request()->routeIs("{$role}.*.analytics")
                    || request()->routeIs("{$role}.guidance-appointments.analytics")
@@ -48,10 +54,13 @@
     $isBatch     = request()->routeIs("{$role}.*.batches", "{$role}.guidance-batches.*")
                    && !$isArchive;
 
-    $isQueue     = !$isAnalytics && !$isBatch && !$isArchive;
+    $isUnderReview = !$isAnalytics && !$isBatch && !$isArchive
+                     && request()->input('status') === 'Under review';
+
+    $isQueue     = !$isAnalytics && !$isBatch && !$isArchive && !$isUnderReview;
 @endphp
 
-{{-- ═══ 4-TAB BAR — responsive & mobile-scrollable ═══ --}}
+{{-- ═══ 5-TAB BAR — responsive & mobile-scrollable ═══ --}}
 <div class="module-tabs-wrapper mb-4">
 <ul class="nav nav-tabs module-tabs" role="tablist">
     {{-- Tab 1: Individual Request Queue --}}
@@ -64,7 +73,19 @@
         </a>
     </li>
 
-    {{-- Tab 2: Bundled / Batch Queue --}}
+    {{-- Tab 2: Under Review --}}
+    @unless($isDocumentModule)
+    <li class="nav-item flex-shrink-0" role="presentation">
+        <a class="nav-link {{ $isUnderReview ? 'active fw-bold' : '' }}"
+           href="{{ $underReviewRoute }}"
+           role="tab"
+           aria-selected="{{ $isUnderReview ? 'true' : 'false' }}">
+            <i class="bi bi-hourglass-split me-1"></i><span class="tab-label">Under Review</span>
+        </a>
+    </li>
+    @endunless
+
+    {{-- Tab 3: Bundled / Batch Queue --}}
     <li class="nav-item flex-shrink-0" role="presentation">
         <a class="nav-link {{ $isBatch ? 'active fw-bold' : '' }}"
            href="{{ $batchRoute }}"
@@ -74,7 +95,7 @@
         </a>
     </li>
 
-    {{-- Tab 3: Archives --}}
+    {{-- Tab 4: Archives --}}
     <li class="nav-item flex-shrink-0" role="presentation">
         <a class="nav-link {{ $isArchive ? 'active fw-bold' : '' }}"
            href="{{ $archiveRoute }}"
@@ -84,7 +105,7 @@
         </a>
     </li>
 
-    {{-- Tab 4: Analytics --}}
+    {{-- Tab 5: Analytics --}}
     <li class="nav-item flex-shrink-0" role="presentation">
         <a class="nav-link {{ $isAnalytics ? 'active fw-bold' : '' }}"
            href="{{ $analyticsRoute }}"

@@ -31,7 +31,20 @@
     <h2 class="h5 section-title">Archived Individual Assessments</h2>
     <div class="table-responsive"><table class="table"><thead><tr><th>Student</th><th>Reference</th><th>Assessment</th><th>Action</th></tr></thead><tbody>
     @forelse($archivedAppointments as $appointment)
-        <tr><td>{{ $appointment->applicant?->full_name }}</td><td>{{ $appointment->request_code }}</td><td>{{ $appointment->testLabel() }}</td><td><a href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}">Review results</a></td></tr>
+        <tr><td>{{ $appointment->applicant?->full_name }}</td><td>{{ $appointment->request_code }}</td><td>{{ $appointment->testLabel() }}</td>
+            <td>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Result</a>
+                    @if($appointment->test_category === 'psychological')
+                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}" target="_blank" rel="noopener"><i class="bi bi-download me-1"></i>Download Assessment</a>
+                    @elseif($appointment->test_category === 'career')
+                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.career.report', $appointment) }}" target="_blank" rel="noopener"><i class="bi bi-download me-1"></i>Download Report</a>
+                    @else
+                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.certificate', ['appointment' => $appointment->getKey(), 'certificate_type' => $appointment->test_category]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
+                    @endif
+                </div>
+            </td>
+        </tr>
     @empty <tr><td colspan="4" class="text-muted">No archived individual assessments for this test.</td></tr> @endforelse
     </tbody></table></div>{{ $archivedAppointments->links() }}
 </div></div>

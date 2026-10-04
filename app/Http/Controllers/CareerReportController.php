@@ -10,7 +10,7 @@ class CareerReportController extends Controller
 {
     public function __invoke(Request $request, GuidanceAppointment $appointment)
     {
-        abort_unless($appointment->status === 'Completed' && $appointment->test_category === 'career', 404);
+        abort_unless(in_array($appointment->status, ['Completed', 'Under review']) && $appointment->test_category === 'career', 404);
         $request->validate(['format' => 'nullable|in:html,pdf,docx,csv']);
         if (in_array($request->input('format'), ['pdf', 'docx', 'csv'], true)) {
             $request->merge(['type' => 'individual', 'appointment_id' => $appointment->getKey()]);

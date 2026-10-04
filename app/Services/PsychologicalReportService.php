@@ -60,7 +60,11 @@ class PsychologicalReportService
                 ['title' => 'II. Summary of Patient Health Questionnaire (PHQ-9)', 'columns' => $phqColumns, 'rows' => [['label' => 'PHQ-9', 'description' => '', 'selected' => $phq]]],
                 ['title' => 'III. Summary of General Anxiety Disorder (GAD-7)', 'columns' => $gadColumns, 'rows' => [['label' => 'GAD-7', 'description' => '', 'selected' => $gad]]],
             ],
-            'recommendation' => $recommendation, 'complete' => $complete,
+            // Prefer counselor-entered DB value; fall back to auto-computed
+            'recommendation' => $appointment->recommendations ?: $recommendation,
+            'complete' => $complete,
+            // Remarks: counselor-entered narrative
+            'remarks' => $appointment->remarks ?: '',
             'counselor' => GuidanceSetting::valueOf('counselor_name') ?: '',
             'orNumber' => $appointment->or_number ?: ($request?->or_number ?: $blank),
             'orDate' => ($appointment->or_date ?? $request?->or_date)?->format('F j, Y') ?? $blank,

@@ -1,4 +1,4 @@
-﻿<div class="row g-4" data-review-state="{{ $appointment->status }}">
+<div class="row g-4" data-review-state="{{ $appointment->status }}">
     <section class="col-lg-6" aria-label="Student profile and receipt">
         <span class="badge text-bg-primary fs-5 mb-3">{{ $appointment->request_code }}</span>
         <h3 class="h5">Student profile</h3>
@@ -33,12 +33,12 @@
     </section>
     <section class="col-lg-6" aria-label="Assessment pass and results">
         <h3 class="h5">Assessment QR pass</h3>
-        @if($appointment->status === 'Completed')<p class="text-muted">Used QR pass (inactive).</p>@endif
+        @if(in_array($appointment->status, ['Completed', 'Under review']))<p class="text-muted">Used QR pass (inactive).</p>@endif
         @if($testUrl)
             <img class="img-fluid d-block mb-3" width="260" height="260" src="{{ $qrImage }}" alt="{{ $appointment->testLabel() }} QR pass">
             <a href="{{ $testUrl }}" target="_blank" rel="noopener">Click here if QR scanner is unavailable</a>
             <p class="small text-muted mt-2 text-break">{{ $testUrl }}</p>
-        @elseif($appointment->status === 'Completed')<p class="text-muted">Assessment completed. The QR pass is inactive.</p>
+        @elseif(in_array($appointment->status, ['Completed', 'Under review']))<p class="text-muted">Assessment completed. The QR pass is inactive.</p>
         @else<p class="text-muted">The QR pass appears after receipt verification.</p>@endif
         @if($appointment->status === 'Receipt Uploaded' && !$appointment->is_archived && !$appointment->batch_id)
             <form method="post" action="{{ route(auth()->user()->role.'.guidance-appointments.verify', $appointment) }}" data-review-verify>@csrf
@@ -64,4 +64,93 @@
             <a class="btn btn-outline-success btn-sm" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}">Review Student Submission</a>
         @endif
     </section>
+
+    {{-- ═══ EVALUATE FORM — only shown for Under Review appointments ═══ --}}
+    @if($appointment->status === 'Under review')
+    <section class="col-12" aria-label="Counselor evaluation">
+        <hr>
+        <h3 class="h5 text-warning"><i class="bi bi-clipboard2-check me-2"></i>Counselor Evaluation</h3>
+        <p class="text-muted small">Review the student's results above, fill in your remarks and recommendation, then choose an action.</p>
+        <form method="post"
+              action="{{ route(auth()->user()->role.'.guidance-appointments.evaluate', $appointment) }}"
+              data-review-evaluate>
+            @csrf
+            <div class="mb-3">
+                <label class="form-label fw-bold" for="eval-remarks-{{ $appointment->getKey() }}">
+                    IV. Remarks <span class="text-muted fw-normal">(Counselor notes)</span>
+                </label>
+                <textarea class="form-control" id="eval-remarks-{{ $appointment->getKey() }}" name="remarks" rows="4"
+                          placeholder="Enter your clinical remarks here…">{{ old('remarks', $appointment->remarks) }}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">V. Recommendation</label>
+                @if($appointment->test_category === 'psychological')
+                    @foreach(\App\Services\PsychologicalReportService::RECOMMENDATIONS as $option)
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="recommendations"
+                                   id="rec-{{ $appointment->getKey() }}-{{ $loop->index }}"
+                                   value="{{ $option }}"
+                                   @checked(old('recommendations', $appointment->recommendations) === $option)>
+                            <label class="form-check-label" for="rec-{{ $appointment->getKey() }}-{{ $loop->index }}">{{ $option }}</label>
+                        </div>
+                    @endforeach
+                @elseif($appointment->test_category === 'personality')
+                    @foreach(['For Further Development', 'Satisfactory', 'Needs Improvement', 'For Counseling'] as $option)
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="recommendations"
+                                   id="rec-{{ $appointment->getKey() }}-{{ $loop->index }}"
+                                   value="{{ $option }}"
+                                   @checked(old('recommendations', $appointment->recommendations) === $option)>
+                            <label class="form-check-label" for="rec-{{ $appointment->getKey() }}-{{ $loop->index }}">{{ $option }}</label>
+                        </div>
+                    @endforeach
+                @else
+                    @foreach(['Highly Interested / Strong Affinity', 'Moderately Interested', 'Mildly Interested', 'For Career Counseling'] as $option)
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="recommendations"
+                                   id="rec-{{ $appointment->getKey() }}-{{ $loop->index }}"
+                                   value="{{ $option }}"
+                                   @checked(old('recommendations', $appointment->recommendations) === $option)>
+                            <label class="form-check-label" for="rec-{{ $appointment->getKey() }}-{{ $loop->index }}">{{ $option }}</label>
+                        </div>
+                    @endforeach
+                @endif
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="submit" name="action" value="save" class="btn btn-outline-primary">
+                    <i class="bi bi-floppy me-1"></i>Save Remarks Only
+                </button>
+                <button type="submit" name="action" value="complete_and_archive" class="btn btn-success">
+                    <i class="bi bi-archive me-1"></i>Save &amp; Move to Archive
+                </button>
+            </div>
+        </form>
+    </section>
+    @endif
+
+    {{-- ═══ ARCHIVED VIEW actions ═══ --}}
+    @if($appointment->is_archived && $appointment->response)
+    <section class="col-12">
+        <hr>
+        <h3 class="h5"><i class="bi bi-archive me-2"></i>Archived Assessment Actions</h3>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}">
+                <i class="bi bi-file-earmark-text me-1"></i>Review Result
+            </a>
+            @if($appointment->test_category === 'psychological')
+                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}" target="_blank" rel="noopener">
+                    <i class="bi bi-download me-1"></i>Download Assessment
+                </a>
+            @elseif($appointment->test_category === 'career')
+                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.career.report', $appointment) }}" target="_blank" rel="noopener">
+                    <i class="bi bi-download me-1"></i>Download Career Report
+                </a>
+            @else
+                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.certificate', ['appointment' => $appointment->getKey(), 'certificate_type' => $appointment->test_category]) }}" target="_blank" rel="noopener">
+                    <i class="bi bi-award me-1"></i>Print Certificate
+                </a>
+            @endif
+        </div>
+    </section>
+    @endif
 </div>

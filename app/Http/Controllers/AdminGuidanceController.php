@@ -145,10 +145,73 @@ class AdminGuidanceController extends Controller
         return view('guidance.results-index', ['appointments'=>GuidanceAppointment::with(['applicant','response','serviceRequest'])->where('status','Completed')->latest('updated_at')->paginate(25)]);
     }
 
+    public function evaluate(Request $request, GuidanceAppointment $appointment)
+    {
+        $data = $request->validate([
+            'remarks' => 'nullable|string|max:5000',
+            'recommendations' => 'nullable|string|max:500',
+            'action' => ['required', Rule::in(['save', 'archive', 'complete_and_archive'])],
+        ]);
+
+        DB::transaction(function () use ($request, $appointment, $data) {
+            $locked = GuidanceAppointment::whereKey($appointment->getKey())->lockForUpdate()->firstOrFail();
+
+            $update = [
+                'remarks' => $data['remarks'] ?? $locked->remarks,
+                'recommendations' => $data['recommendations'] ?? $locked->recommendations,
+                'reviewed_by' => $request->user()->id,
+                'reviewed_at' => now(),
+            ];
+
+            if (in_array($data['action'], ['archive', 'complete_and_archive'], true)) {
+                $update['status'] = 'Completed';
+                $update['is_archived'] = true;
+                $update['archived_at'] = now();
+                $update['attendance_status'] = 'Completed';
+
+                $locked->update($update);
+
+                if ($locked->batch_id && $locked->batch) {
+                    app(\App\Services\GuidanceBatchService::class)->completeIfDone($locked->batch);
+                }
+
+                if ($locked->service_request_id) {
+                    $serviceRequest = \App\Models\ServiceRequest::lockForUpdate()->find($locked->service_request_id);
+                    if ($serviceRequest) {
+                        $hasUnarchived = $serviceRequest->guidanceAppointments()
+                            ->where('guidance_appointment_id', '!=', $locked->guidance_appointment_id)
+                            ->where(function ($q) {
+                                $q->where('is_archived', false)->orWhere('status', '!=', 'Completed');
+                            })->exists();
+                        if (!$hasUnarchived) {
+                            $serviceRequest->update(['status' => 'completed', 'archived_at' => now()]);
+                        }
+                    }
+                }
+            } else {
+                $locked->update($update);
+            }
+        });
+
+        $isArchived = in_array($data['action'], ['archive', 'complete_and_archive'], true);
+        $message = $isArchived ? 'Evaluation finalized and record moved to Module Archives.' : 'Remarks and recommendations saved successfully.';
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'status' => $isArchived ? 'Completed' : 'Under review',
+                'is_archived' => $isArchived,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function showResults(GuidanceAppointment $appointment)
     {
-        abort_unless($appointment->status === 'Completed', 404);
-        $appointment->load(['applicant', 'response', 'serviceRequest']);
+        abort_unless($appointment->response && in_array($appointment->status, ['Under review', 'Completed'], true), 404);
+        $appointment->load(['applicant', 'response', 'serviceRequest', 'batch', 'sourceBatch']);
         return view('guidance.results', compact('appointment'));
     }
 

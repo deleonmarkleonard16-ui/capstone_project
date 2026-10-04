@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GuidanceAppointment extends Model
 {
-    public const STATUSES = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress', 'Completed'];
+    public const STATUSES = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress', 'Under review', 'Completed'];
     protected $primaryKey = 'guidance_appointment_id';
     protected $guarded = ['guidance_appointment_id'];
 
@@ -26,8 +26,9 @@ class GuidanceAppointment extends Model
     }
     protected function casts(): array
     {
-        return ['strike_count' => 'integer', 'terminated_at' => 'datetime', 'appointment_at' => 'datetime', 'verified_at' => 'datetime', 'started_at' => 'datetime', 'expires_at' => 'datetime', 'test_types' => 'array', 'draft_answers' => 'array', 'section_history' => 'array', 'section_index' => 'integer', 'is_archived' => 'boolean', 'archived_at' => 'datetime', 'or_date' => 'date'];
+        return ['strike_count' => 'integer', 'terminated_at' => 'datetime', 'appointment_at' => 'datetime', 'verified_at' => 'datetime', 'started_at' => 'datetime', 'expires_at' => 'datetime', 'test_types' => 'array', 'draft_answers' => 'array', 'section_history' => 'array', 'section_index' => 'integer', 'is_archived' => 'boolean', 'archived_at' => 'datetime', 'or_date' => 'date', 'reviewed_at' => 'datetime'];
     }
+    public function reviewer(): BelongsTo { return $this->belongsTo(User::class, 'reviewed_by'); }
     public function batch(): BelongsTo { return $this->belongsTo(GuidanceTestBatch::class, 'batch_id'); }
     public function sourceBatch(): BelongsTo { return $this->belongsTo(GuidanceTestBatch::class, 'source_batch_id'); }
     public function testTypes(): array

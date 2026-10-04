@@ -99,6 +99,7 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->group(fu
         Route::get('/{appointment}/results', [$controller, 'showResults'])->name('show-results');
         Route::get('/{appointment}/career-report', \App\Http\Controllers\CareerReportController::class)->name('career-report');
         Route::get('/{appointment}/review', [$controller, 'review'])->name('review');
+        Route::post('/{appointment}/evaluate', [$controller, 'evaluate'])->name('evaluate');
         Route::post('/{appointment}/verify', [$controller, 'verify'])->name('verify');
         Route::get('/{appointment}/receipt', [$controller, 'receipt'])->name('receipt');
     });

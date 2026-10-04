@@ -166,8 +166,8 @@
 
     document.getElementById('guidance-review-refresh').addEventListener('click', () => refresh(true));
     modal.addEventListener('submit', async event => {
-        const form = event.target.closest('[data-review-verify]');
-        if (!form) return;
+        const verifyForm = event.target.closest('[data-review-verify]');
+        if (!verifyForm) return;
         event.preventDefault();
         if (busy) return;
         busy = true;
@@ -175,11 +175,11 @@
         controller?.abort();
         loading = false;
         verificationController = new AbortController();
-        const button = form.querySelector('button');
+        const button = verifyForm.querySelector('button');
         button.disabled = true;
         message.textContent = 'Verifying receipt and generating QR...';
         try {
-            const response = await fetch(form.getAttribute('action'), { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, signal: verificationController.signal });
+            const response = await fetch(verifyForm.getAttribute('action'), { method: 'POST', body: new FormData(verifyForm), headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, signal: verificationController.signal });
             const data = await response.json();
             if (!response.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Verification failed.');
             if (version !== generation || !visible) return;
@@ -193,6 +193,52 @@
             if (button.isConnected) button.disabled = false;
         }
     });
+
+    modal.addEventListener('submit', async event => {
+        const evalForm = event.target.closest('[data-review-evaluate]');
+        if (!evalForm) return;
+        event.preventDefault();
+        if (busy) return;
+        busy = true;
+        const version = ++generation;
+        controller?.abort();
+        loading = false;
+        const submitButton = event.submitter || evalForm.querySelector('button[type="submit"]');
+        const action = submitButton?.value || 'save';
+        const allButtons = evalForm.querySelectorAll('button[type="submit"]');
+        allButtons.forEach(b => { b.disabled = true; });
+        message.textContent = action === 'complete_and_archive' ? 'Saving and archiving...' : 'Saving remarks...';
+        try {
+            const formData = new FormData(evalForm);
+            // Ensure the submitter value is included when using submitter API
+            if (submitButton && submitButton.name) {
+                formData.set(submitButton.name, submitButton.value);
+            }
+            const response = await fetch(evalForm.getAttribute('action'), {
+                method: 'POST',
+                body: formData,
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(Object.values(data.errors || {}).flat().join(' ') || data.message || 'Save failed.');
+            if (version !== generation || !visible) return;
+            message.textContent = data.message || 'Saved.';
+            busy = false;
+            if (data.is_archived) {
+                // Archived — close modal and reload page
+                bootstrap.Modal.getOrCreateInstance(modal).hide();
+                setTimeout(() => window.location.reload(), 400);
+            } else {
+                await refresh(true);
+            }
+        } catch (error) {
+            if (error.name !== 'AbortError' && version === generation) message.textContent = error.message;
+        } finally {
+            if (version === generation) busy = false;
+            allButtons.forEach(b => { if (b.isConnected) b.disabled = false; });
+        }
+    });
+
     setInterval(() => refresh(), 5000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
 })();

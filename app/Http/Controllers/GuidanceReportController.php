@@ -30,7 +30,7 @@ class GuidanceReportController extends Controller
         $fallback = route($request->user()->role.'.exports.index');
         try {
             $document = app(PsychologicalReportService::class)->build($appointment);
-            if ($appointment->status !== 'Completed' || ! collect($document['matrices'])->pluck('rows')->flatten(1)->contains(fn ($row) => $row['selected'] !== null)) {
+            if (! in_array($appointment->status, ['Completed', 'Under review']) || ! collect($document['matrices'])->pluck('rows')->flatten(1)->contains(fn ($row) => $row['selected'] !== null)) {
                 return redirect($fallback)->with('error', 'A completed psychological assessment with scored results is required.');
             }
             $document['format'] = $format;

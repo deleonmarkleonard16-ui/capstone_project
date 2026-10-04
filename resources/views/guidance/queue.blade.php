@@ -14,7 +14,7 @@
 <tbody>
 @forelse($appointments as $appointment)
 <tr data-appointment="{{ $appointment->getKey() }}">
-    <td>@if($appointment->status === 'Completed')<input class="form-check-input" type="checkbox" name="ids[]" value="{{ $appointment->getKey() }}" form="archive-selection" aria-label="Select {{ $appointment->applicant->full_name }}">@endif</td>
+    <td>@if(in_array($appointment->status, ['Completed', 'Under review']))<input class="form-check-input" type="checkbox" name="ids[]" value="{{ $appointment->getKey() }}" form="archive-selection" aria-label="Select {{ $appointment->applicant->full_name }}">@endif</td>
     <td><span class="badge text-bg-primary mb-2">{{ $appointment->request_code }}</span><br><strong>{{ mb_strtoupper($appointment->applicant->full_name) }}</strong><div>{{ $appointment->testLabel() }}</div>
         @if($appointment->serviceRequest)<div class="small mt-2">Student ID: {{ mb_strtoupper($appointment->serviceRequest->student_number ?: 'Not provided') }} / {{ mb_strtoupper($appointment->serviceRequest->course) }}<br>Purpose: {{ $appointment->serviceRequest->purpose }}</div>@endif
     </td>
@@ -36,7 +36,26 @@
         @endif
         @if($appointment->archived_at)<p class="small text-muted">Archived {{ $appointment->archived_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</p>@endif
     </td>
-    <td><button type="button" class="btn btn-outline-primary btn-sm mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-eye me-1"></i>Review Details</button><br>@if($appointment->response)<a class="btn btn-sm btn-success" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Student Submission</a>@else<span class="text-muted">Awaiting submission</span>@endif</td>
+    <td>
+        <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-eye me-1"></i>Review Details</button><br>
+        @if($appointment->status === 'Under review' && $appointment->response)
+            <button type="button" class="btn btn-sm btn-warning mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-pencil-square me-1"></i>Review &amp; Evaluate</button><br>
+        @endif
+        @if($appointment->is_archived && $appointment->response)
+            <a class="btn btn-sm btn-success mb-2" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Result</a><br>
+            @if($appointment->test_category === 'psychological')
+                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}" target="_blank" rel="noopener"><i class="bi bi-download me-1"></i>Download Assessment</a>
+            @elseif($appointment->test_category === 'career')
+                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.career.report', $appointment) }}" target="_blank" rel="noopener"><i class="bi bi-download me-1"></i>Download Report</a>
+            @else
+                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.certificate', ['appointment' => $appointment->getKey(), 'certificate_type' => $appointment->test_category]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
+            @endif
+        @elseif($appointment->response)
+            <a class="btn btn-sm btn-success" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Student Submission</a>
+        @else
+            <span class="text-muted">Awaiting submission</span>
+        @endif
+    </td>
 </tr>
 @empty<tr><td colspan="5" class="text-muted text-center py-4">No requests match these filters.</td></tr>@endforelse
 </tbody></table></div>

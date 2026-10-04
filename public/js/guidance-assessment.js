@@ -47,7 +47,7 @@
         if (form.dataset.complete) exit.finally(() => location.replace(form.dataset.complete));
     }
     function applyState(data, sentAt) {
-        if (data.status === 'Completed') { complete(); return; }
+        if (data.status === 'Completed' || data.status === 'Under review') { complete(); return; }
         if (Number.isInteger(data.section_index)) {
             if (data.section_index !== currentStep) {
                 form.querySelectorAll('input[type="radio"]').forEach(input => {

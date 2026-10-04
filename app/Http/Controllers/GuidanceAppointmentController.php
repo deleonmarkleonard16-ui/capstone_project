@@ -114,7 +114,7 @@ class GuidanceAppointmentController extends Controller
         abort_unless(preg_match('/^[a-f0-9]{64}$/D', $token), 404);
         abort_unless($request->session()->get('guidance_started.'.hash('sha256', $token)), 403);
         $qr = GuidanceTestQrCode::with('appointment')->where('token', $token)->firstOrFail();
-        abort_unless($qr->appointment->status === 'Completed', 409, 'This assessment is still active.');
+        abort_unless(in_array($qr->appointment->status, ['Under review', 'Completed'], true), 409, 'This assessment is still active.');
         return view('guidance.complete', ['terminated' => (bool) $qr->appointment->terminated_at]);
     }
 

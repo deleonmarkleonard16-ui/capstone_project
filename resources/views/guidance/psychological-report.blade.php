@@ -37,13 +37,27 @@
                 </table>
             </section>
         @endforeach
+
+        {{-- IV. Remarks --}}
+        <section class="remarks">
+            <h3>IV. Remarks:</h3>
+            @if($remarks)
+                <p>{{ $remarks }}</p>
+            @else
+                <p class="field-blank">____________________________________________________________________________________</p>
+                <p class="field-blank">____________________________________________________________________________________</p>
+            @endif
+        </section>
+
+        {{-- V. Recommendation --}}
         <section class="recommendations">
-            <h3>IV. Recommendation:</h3>
+            <h3>V. Recommendation:</h3>
             @foreach(\App\Services\PsychologicalReportService::RECOMMENDATIONS as $option)
                 <p>{{ $recommendation === $option ? '[X]' : '[ ]' }} {{ $option }}</p>
             @endforeach
             @unless($complete)<p class="incomplete">Incomplete assessment: blank cells indicate unavailable results. Counselor review required.</p>@endunless
         </section>
+
         <p class="note">{{ \App\Services\PsychologicalReportService::NOTE }}</p>
         <table class="signatures"><tr>
             <td>Administered and interpreted by:<div class="signature-line">&nbsp;</div><div class="signature-line">(Position)</div></td>

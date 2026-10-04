@@ -167,16 +167,52 @@ class GuidanceAssessmentSessionService
             $storedAnswers = $answers[$test] ?? [];
         }
         $appointment->response()->create(['applicant_id' => $appointment->applicant_id, 'answers' => $storedAnswers, 'score_summary' => $summary]);
-        $appointment->update(['status' => 'Completed', 'attendance_status' => 'Completed', 'draft_answers' => null, 'is_archived' => true, 'archived_at' => now()]);
-        if ($appointment->batch_id) app(GuidanceBatchService::class)->completeIfDone($appointment->batch);
+
+        $defaultRemarks = match ($appointment->test_category ?? $appointment->test_type) {
+            'personality', 'bfpi' => 'No significant manifestation of personality disorder or gross mental disturbance at the time of examination.',
+            'career' => 'Interest ratings, not clinical severity. Equal scores are listed in RIASEC order; review all tied traits.',
+            default => 'No significant manifestation of psychological disorder or gross mental disturbance at the time of examination.',
+        };
+
+        $defaultRec = 'Fit for deployment';
+        if (($appointment->test_category ?? $appointment->test_type) === 'career') {
+            $topTraits = $summaries['career']['interpretation']['top_traits'] ?? 'RIASEC';
+            $defaultRec = 'Recommended for tracks aligned with ' . $topTraits;
+        } elseif (in_array(($appointment->test_category ?? $appointment->test_type), ['personality', 'bfpi'], true)) {
+            $defaultRec = 'Normal Personality Profile';
+        } else {
+            $levels = [];
+            foreach (['depression', 'anxiety', 'stress'] as $s) {
+                if (isset($summaries['dass21']['interpretation'][$s])) $levels[] = $summaries['dass21']['interpretation'][$s];
+            }
+            if (isset($summaries['phq9']['interpretation']['severity'])) $levels[] = $summaries['phq9']['interpretation']['severity'];
+            if (isset($summaries['gad7']['interpretation']['severity'])) $levels[] = $summaries['gad7']['interpretation']['severity'];
+
+            if (count(array_intersect($levels, ['Severe', 'Extremely Severe', 'Moderately Severe'])) > 0) {
+                $defaultRec = 'For Counseling';
+            } elseif (count(array_diff($levels, ['Normal', 'Minimal'])) > 0) {
+                $defaultRec = 'Fit for deployment with Reservation';
+            } else {
+                $defaultRec = 'Fit for deployment';
+            }
+        }
+
+        $appointment->update([
+            'status' => 'Under review',
+            'attendance_status' => 'Completed',
+            'draft_answers' => null,
+            'is_archived' => false,
+            'archived_at' => null,
+            'remarks' => $appointment->remarks ?: $defaultRemarks,
+            'recommendations' => $appointment->recommendations ?: $defaultRec,
+        ]);
+
         $appointment->qrCode()->update(['is_active' => false]);
         if ($appointment->service_request_id) {
             $entry = ServiceRequest::findOrFail($appointment->service_request_id);
-            $remaining = $entry->guidanceAppointments()->where('status', '!=', 'Completed')->exists();
-            $hasUnarchived = $entry->guidanceAppointments()->where('is_archived', false)->exists();
-            $entry->update(['status' => $remaining ? 'processing' : 'completed', 'archived_at' => $hasUnarchived ? null : now()]);
+            $entry->update(['status' => 'processing', 'archived_at' => null]);
         }
-        return ['status' => 'Completed', 'timed_out' => $timedOut, 'message' => 'Your saved answers have been recorded for counselor review.'];
+        return ['status' => 'Under review', 'timed_out' => $timedOut, 'message' => 'Your saved answers have been recorded for counselor review.'];
     }
 
     public function expireDue(): int

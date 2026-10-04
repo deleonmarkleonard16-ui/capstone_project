@@ -74,6 +74,9 @@
 
             cursor = data.cursor;
             status.textContent = 'Security monitoring live · Updated ' + new Date().toLocaleTimeString();
+            // Update the incident count badge
+            const countBadge = panel.querySelector('[data-security-incident-count]');
+            if (countBadge) countBadge.textContent = seen.size + ' Incident(s) Logged';
         } catch (error) {
             status.textContent = error.message;
         } finally {

@@ -42,7 +42,16 @@ class PsychologicalReportDocxWriter
                 }
             }
         }
-        $section->addText('IV. Recommendation:', ['bold' => true], ['spaceBefore' => 120, 'keepNext' => true]);
+        // IV. Remarks
+        $section->addText('IV. Remarks:', ['bold' => true], ['spaceBefore' => 120, 'keepNext' => true]);
+        if (! empty($document['remarks'])) {
+            $section->addText($document['remarks'], [], ['spaceAfter' => 60]);
+        } else {
+            $section->addText('________________________________________________________________________', ['size' => 9], ['spaceAfter' => 40]);
+            $section->addText('________________________________________________________________________', ['size' => 9], ['spaceAfter' => 60]);
+        }
+        // V. Recommendation
+        $section->addText('V. Recommendation:', ['bold' => true], ['spaceBefore' => 120, 'keepNext' => true]);
         foreach (PsychologicalReportService::RECOMMENDATIONS as $option) {
             $section->addText(($document['recommendation'] === $option ? '[X]' : '[ ]').' '.$option);
         }

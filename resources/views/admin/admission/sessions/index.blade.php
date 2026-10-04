@@ -138,10 +138,7 @@
                                 @if($session->start_time)
                                     <div class="fw-semibold text-dark">
                                         <i class="bi bi-clock me-1 text-primary"></i>
-                                        {{ $session->start_time->format('M d, Y') }}
-                                    </div>
-                                    <div class="text-muted small">
-                                        {{ $session->start_time->format('h:i A') }}
+                                        {{ \Carbon\Carbon::parse($session->start_time)->format('M d, Y | h:i A') }}
                                     </div>
                                 @else
                                     <span class="text-muted">—</span>

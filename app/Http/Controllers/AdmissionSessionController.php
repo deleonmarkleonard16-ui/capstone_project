@@ -96,7 +96,7 @@ class AdmissionSessionController extends Controller
             ]);
 
             $startTime = $request->filled('start_time')
-                ? Carbon::parse($request->start_time)->timezone('Asia/Manila')->format('Y-m-d H:i:s')
+                ? Carbon::parse($request->start_time, 'Asia/Manila')->format('Y-m-d H:i:s')
                 : now('Asia/Manila')->format('Y-m-d H:i:s');
 
             $startNumber = (int) $request->input('start_number', 1);
@@ -295,8 +295,8 @@ class AdmissionSessionController extends Controller
             $prevEnd   = $session->end_number;
 
             $startTime = $request->filled('start_time')
-                ? Carbon::parse($request->start_time)->timezone('Asia/Manila')->format('Y-m-d H:i:s')
-                : ($session->start_time ? Carbon::parse($session->start_time)->timezone('Asia/Manila')->format('Y-m-d H:i:s') : now('Asia/Manila')->format('Y-m-d H:i:s'));
+                ? Carbon::parse($request->start_time, 'Asia/Manila')->format('Y-m-d H:i:s')
+                : now('Asia/Manila')->format('Y-m-d H:i:s');
 
             $newStart = (int) $request->input('start_number', $prevStart);
             $newEnd   = (int) $request->input('end_number', $prevEnd);

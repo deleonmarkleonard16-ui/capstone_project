@@ -1,4 +1,4 @@
-﻿{{-- ═══════════════════════════════════════════════════════════
+{{-- ═══════════════════════════════════════════════════════════
      PSU-CAT ADMISSION SESSION CREATION MODAL
      Strict Requirements:
      1. Session Name (e.g. "Session A - Batch 1")
@@ -63,24 +63,40 @@
                         </div>
 
                         {{-- 2. Start Date & Start Time --}}
-                        <div class="col-12">
-                            <label class="form-label form-label-sm fw-bold text-dark">
-                                2. Start Date &amp; Start Time <span class="text-danger">*</span>
+                        <div class="col-md-6">
+                            <label class="form-label form-label-sm fw-bold text-dark" for="create_start_date">
+                                2. Exam Date <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light text-primary">
                                     <i class="bi bi-calendar-event"></i>
                                 </span>
-                                <input type="datetime-local"
-                                       name="start_time"
-                                       id="start_time"
+                                <input type="date"
+                                       name="start_date"
+                                       id="create_start_date"
                                        class="form-control"
-                                       value="{{ old('start_time', now('Asia/Manila')->addHour()->format('Y-m-d\TH:i')) }}"
+                                       value="{{ old('start_date', now('Asia/Manila')->format('Y-m-d')) }}"
                                        required>
                             </div>
-                            <div class="form-text small">
-                                The exact date and time the testing session will open for examinee check-in and proctoring.
+                            <div class="form-text small">The scheduled date for this testing batch.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label form-label-sm fw-bold text-dark" for="create_start_time">
+                                Start Time <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-primary">
+                                    <i class="bi bi-clock"></i>
+                                </span>
+                                <input type="time"
+                                       name="start_time"
+                                       id="create_start_time"
+                                       class="form-control"
+                                       value="{{ old('start_time', now('Asia/Manila')->addHour()->format('H:i')) }}"
+                                       required>
                             </div>
+                            <div class="form-text small">Exact time examinee check-in and proctoring opens.</div>
                         </div>
 
                         {{-- 3. Masterlist Range Assignment --}}

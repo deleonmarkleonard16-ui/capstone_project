@@ -423,6 +423,63 @@ class AdmissionCheckinTest extends TestCase
         $this->assertNotNull($applicant->submitted_at);
         $this->assertEquals(80, $applicant->exam_score);
     }
+
+    public function test_session_creation_stores_inputted_date_and_does_not_default_to_today(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name'          => '2026-2027 Schedule Test',
+            'academic_year' => '2026-2027',
+            'is_active'     => true,
+            'status'        => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+
+        // Case 1: Separate start_date and start_time (e.g., Nov 20, 2026 at 09:30 AM)
+        $response = $this->post(route('admin.admission.sessions.store'), [
+            'session_name' => 'Session November Batch',
+            'start_date'   => '2026-11-20',
+            'start_time'   => '09:30',
+            'start_number' => 1,
+            'end_number'   => 25,
+            'room'         => 'Rm 301',
+        ]);
+
+        $response->assertRedirect(route('admin.admission.sessions.index'));
+        $session = AdmissionSession::where('session_name', 'Session November Batch')->first();
+        $this->assertNotNull($session);
+        $this->assertEquals('2026-11-20', $session->start_time->format('Y-m-d'));
+        $this->assertEquals('09:30', $session->start_time->format('H:i'));
+
+        // Case 2: Datetime-local string (e.g. Dec 15, 2026 at 13:00)
+        $response2 = $this->post(route('admin.admission.sessions.store'), [
+            'session_name' => 'Session December Batch',
+            'start_time'   => '2026-12-15T13:00',
+            'start_number' => 26,
+            'end_number'   => 50,
+            'room'         => 'Rm 302',
+        ]);
+
+        $response2->assertRedirect(route('admin.admission.sessions.index'));
+        $session2 = AdmissionSession::where('session_name', 'Session December Batch')->first();
+        $this->assertNotNull($session2);
+        $this->assertEquals('2026-12-15', $session2->start_time->format('Y-m-d'));
+        $this->assertEquals('13:00', $session2->start_time->format('H:i'));
+
+        // Case 3: Update session date
+        $updateResponse = $this->put(route('admin.admission.sessions.update', $session), [
+            'session_name' => 'Session November Batch - Rescheduled',
+            'start_date'   => '2026-11-25',
+            'start_time'   => '10:00',
+            'start_number' => 1,
+            'end_number'   => 25,
+            'status'       => 'Scheduled',
+        ]);
+
+        $updateResponse->assertRedirect(route('admin.admission.sessions.index'));
+        $session->refresh();
+        $this->assertEquals('2026-11-25', $session->start_time->format('Y-m-d'));
+        $this->assertEquals('10:00', $session->start_time->format('H:i'));
+    }
 }
 
 

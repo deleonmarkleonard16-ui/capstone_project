@@ -51,23 +51,38 @@
                         </div>
 
                         {{-- 2. Start Date & Start Time --}}
-                        <div class="col-md-7">
+                        <div class="col-md-6">
                             <label class="form-label form-label-sm fw-bold text-dark">
-                                Start Date &amp; Start Time <span class="text-danger">*</span>
+                                Exam Date <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light text-primary">
                                     <i class="bi bi-calendar-event"></i>
                                 </span>
-                                <input type="datetime-local"
-                                       name="start_time"
+                                <input type="date"
+                                       name="start_date"
                                        class="form-control"
-                                       value="{{ old('start_time', \Carbon\Carbon::parse($session->start_time)->format('Y-m-d\TH:i')) }}"
+                                       value="{{ old('start_date', optional($session->start_time)->format('Y-m-d')) }}"
                                        required>
                             </div>
-                            <div class="form-text small">
-                                Execution starts at Start Time and remains open until marked Completed.
+                            <div class="form-text small">Scheduled test date.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label form-label-sm fw-bold text-dark">
+                                Start Time <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-primary">
+                                    <i class="bi bi-clock"></i>
+                                </span>
+                                <input type="time"
+                                       name="start_time"
+                                       class="form-control"
+                                       value="{{ old('start_time', optional($session->start_time)->format('H:i')) }}"
+                                       required>
                             </div>
+                            <div class="form-text small">Execution opens at Start Time.</div>
                         </div>
 
                         {{-- Room / Venue --}}

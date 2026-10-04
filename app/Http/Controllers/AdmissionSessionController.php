@@ -87,7 +87,8 @@ class AdmissionSessionController extends Controller
         try {
             $data = $request->validate([
                 'session_name'  => 'required|string|max:120',
-                'start_time'    => 'required|date',
+                'start_date'    => 'nullable|date',
+                'start_time'    => 'required|string|max:60',
                 'start_number'  => 'required|integer|min:1',
                 'end_number'    => 'required|integer|gte:start_number',
                 'room'          => 'nullable|string|max:120',
@@ -95,9 +96,7 @@ class AdmissionSessionController extends Controller
                 'course_filter' => 'nullable|string|max:30',
             ]);
 
-            $startTime = $request->filled('start_time')
-                ? Carbon::parse($request->start_time, 'Asia/Manila')->format('Y-m-d H:i:s')
-                : now('Asia/Manila')->format('Y-m-d H:i:s');
+            $startTime = $this->parseSessionStartTime($request);
 
             $startNumber = (int) $request->input('start_number', 1);
             $endNumber   = (int) $request->input('end_number', $startNumber);
@@ -284,7 +283,8 @@ class AdmissionSessionController extends Controller
         try {
             $data = $request->validate([
                 'session_name' => 'required|string|max:120',
-                'start_time'   => 'required|date',
+                'start_date'   => 'nullable|date',
+                'start_time'   => 'required|string|max:60',
                 'start_number' => 'required|integer|min:1',
                 'end_number'   => 'required|integer|gte:start_number',
                 'room'         => 'nullable|string|max:120',
@@ -294,9 +294,7 @@ class AdmissionSessionController extends Controller
             $prevStart = $session->start_number;
             $prevEnd   = $session->end_number;
 
-            $startTime = $request->filled('start_time')
-                ? Carbon::parse($request->start_time, 'Asia/Manila')->format('Y-m-d H:i:s')
-                : now('Asia/Manila')->format('Y-m-d H:i:s');
+            $startTime = $this->parseSessionStartTime($request, $session->start_time);
 
             $newStart = (int) $request->input('start_number', $prevStart);
             $newEnd   = (int) $request->input('end_number', $prevEnd);
@@ -604,5 +602,48 @@ class AdmissionSessionController extends Controller
 
         return redirect()->route('admin.admission.sessions.index')
             ->with('success', "Session '{$name}' deleted. Assigned applicants have been unlinked.");
+    }
+
+    /**
+     * Accurately resolve and format session start datetime from request inputs.
+     * Supports separate start_date/exam_date and start_time, combined datetime-local strings,
+     * or single time/date submissions without accidentally overwriting the selected date with today.
+     */
+    private function parseSessionStartTime(Request $request, ?Carbon $fallback = null): string
+    {
+        $rawDate = $request->input('start_date') ?: $request->input('exam_date') ?: $request->input('date');
+        $rawTime = $request->input('start_time') ?: $request->input('time');
+
+        // 1. If start_time contains a full ISO/datetime string (e.g. "2026-10-25T08:30" or "2026-10-25 08:30:00")
+        if ($rawTime && preg_match('/^\d{4}-\d{2}-\d{2}[T\s]\d{1,2}:\d{2}/', $rawTime)) {
+            return Carbon::parse($rawTime, 'Asia/Manila')->format('Y-m-d H:i:s');
+        }
+
+        // 2. If separate date is provided
+        if ($rawDate) {
+            $dateString = Carbon::parse($rawDate, 'Asia/Manila')->format('Y-m-d');
+            $timeString = $rawTime ? trim($rawTime) : '08:00:00';
+
+            // Extract time component if extra datetime prefix was present
+            if (preg_match('/(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)/', $timeString, $matches)) {
+                $timeString = $matches[1];
+            }
+            return Carbon::parse("{$dateString} {$timeString}", 'Asia/Manila')->format('Y-m-d H:i:s');
+        }
+
+        // 3. If rawTime is provided without separate date
+        if ($rawTime) {
+            // Full date only (e.g., "2026-10-25")
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($rawTime))) {
+                return Carbon::parse($rawTime, 'Asia/Manila')->format('Y-m-d 08:00:00');
+            }
+
+            // Time only (e.g. "08:30") -> use fallback session date if editing, else today
+            $baseDate = $fallback ? $fallback->format('Y-m-d') : now('Asia/Manila')->format('Y-m-d');
+            return Carbon::parse("{$baseDate} {$rawTime}", 'Asia/Manila')->format('Y-m-d H:i:s');
+        }
+
+        // 4. Default fallback
+        return ($fallback ?: now('Asia/Manila'))->format('Y-m-d H:i:s');
     }
 }

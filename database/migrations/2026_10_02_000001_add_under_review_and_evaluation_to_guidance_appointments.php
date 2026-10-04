@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasColumn('guidance_appointments', 'status')) {
+        if (Schema::hasColumn('guidance_appointments', 'status') && DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE guidance_appointments MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Pending Payment'");
         }
 

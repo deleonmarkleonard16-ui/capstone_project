@@ -1,4 +1,4 @@
-{{-- ═══════════════════════════════════════════════════════════
+﻿{{-- ═══════════════════════════════════════════════════════════
      PSU-CAT ADMISSION SESSION CREATION MODAL
      Strict Requirements:
      1. Session Name (e.g. "Session A - Batch 1")
@@ -75,7 +75,7 @@
                                        name="start_time"
                                        id="start_time"
                                        class="form-control"
-                                       value="{{ old('start_time', now()->addHour()->format('Y-m-d\TH:i')) }}"
+                                       value="{{ old('start_time', now('Asia/Manila')->addHour()->format('Y-m-d\TH:i')) }}"
                                        required>
                             </div>
                             <div class="form-text small">

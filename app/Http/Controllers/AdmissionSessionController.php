@@ -96,7 +96,7 @@ class AdmissionSessionController extends Controller
 
         $session = $cycle->sessions()->create([
             'session_name' => $data['session_name'],
-            'start_time'   => Carbon::parse($data['start_time']),
+            'start_time'   => Carbon::parse($data['start_time'], 'Asia/Manila'),
             'start_number' => (int) $data['start_number'],
             'end_number'   => (int) $data['end_number'],
             'room'         => $data['room'] ?? null,
@@ -282,7 +282,7 @@ class AdmissionSessionController extends Controller
 
         $session->update([
             'session_name' => $data['session_name'],
-            'start_time'   => Carbon::parse($data['start_time']),
+            'start_time'   => Carbon::parse($data['start_time'], 'Asia/Manila'),
             'start_number' => (int) $data['start_number'],
             'end_number'   => (int) $data['end_number'],
             'room'         => $data['room'] ?? null,

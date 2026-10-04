@@ -19,6 +19,19 @@ class AdmissionSession extends Model
         self::STATUS_COMPLETED,
     ];
 
+    protected $guarded = ['id'];
+
+    protected $fillable = [
+        'admission_cycle_id',
+        'session_name',
+        'start_time',
+        'start_number',
+        'end_number',
+        'room',
+        'qr_token',
+        'status',
+    ];
+
     protected $casts = [
         'start_time'   => 'datetime',
         'start_number' => 'integer',

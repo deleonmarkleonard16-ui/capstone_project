@@ -273,7 +273,11 @@ class AdmissionPipelineController extends Controller
             $query->whereNull('interview_score');
         }
 
-        if ($stanine !== null && $stanine !== '') {
+        if ($stanine === 'below_3') {
+            $query->where('stanine_score', '<', 3);
+        } elseif ($stanine === 'at_least_3') {
+            $query->where('stanine_score', '>=', 3);
+        } elseif ($stanine !== null && $stanine !== '') {
             $query->where('stanine_score', (int) $stanine);
         }
 

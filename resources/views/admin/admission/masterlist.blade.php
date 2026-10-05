@@ -201,9 +201,8 @@
                 <div class="col-md-3">
                     <select class="form-select form-select-sm" name="stanine">
                         <option value="">All stanines</option>
-                        @for($s = 1; $s <= 9; $s++)
-                            <option value="{{ $s }}" @selected(request('stanine') == $s)>Stanine {{ $s }}</option>
-                        @endfor
+                        <option value="below_3" @selected(request('stanine') === 'below_3')>Below 3</option>
+                        <option value="at_least_3" @selected(request('stanine') === 'at_least_3')>3 and above</option>
                     </select>
                 </div>
                 <div class="col-md-4">
@@ -603,6 +602,63 @@
 
 
 {{-- ── REFRESH DATA: AJAX re-fetch without full page reload ── --}}
+<div class="modal fade" id="rangeAllocationModal" tabindex="-1" aria-labelledby="rangeAllocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{{ route('admin.admission.sessions.assign-range') }}">
+                @csrf
+                <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title fs-5" id="rangeAllocationModalLabel">Range Session Allocation</h2>
+                        <p class="text-muted small mb-0">Assign a numbered group of applicants to a session label.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="range-session-label">Session label <span class="text-danger">*</span></label>
+                        <input class="form-control" id="range-session-label" name="session_label" value="{{ old('session_label') }}" maxlength="120" placeholder="e.g. Morning Session A" required>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label" for="range-start-number">Start # <span class="text-danger">*</span></label>
+                            <input class="form-control" type="number" id="range-start-number" name="start_number" value="{{ old('start_number', 1) }}" min="1" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="range-end-number">End # <span class="text-danger">*</span></label>
+                            <input class="form-control" type="number" id="range-end-number" name="end_number" value="{{ old('end_number') }}" min="1" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="range-batch-group">Batch group <span class="text-muted">(optional)</span></label>
+                            <select class="form-select" id="range-batch-group" name="batch_group">
+                                <option value="">All batch groups</option>
+                                @foreach($batchGroups as $bg)
+                                    <option value="{{ $bg }}" @selected(old('batch_group') === $bg)>{{ $bg }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="range-course">Course <span class="text-muted">(optional)</span></label>
+                            <select class="form-select" id="range-course" name="course">
+                                <option value="">All courses</option>
+                                @foreach($courses as $code => $title)
+                                    <option value="{{ $code }}" @selected(old('course') === $code)>{{ $title }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <p class="form-text mb-0 mt-3">The selected range is counted after applying any optional batch group or course filter.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-person-check me-1"></i>Assign Range</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 (function () {

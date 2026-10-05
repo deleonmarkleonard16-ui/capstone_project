@@ -558,14 +558,16 @@ class AdmissionCheckinTest extends TestCase
         $this->delete(route('admin.admission.sessions.destroy', $sessionB))->assertRedirect();
         $this->assertSame(5, AdmissionApplicant::whereNull('admission_session_id')->count());
 
-        $this->put(route('admin.admission.sessions.update', $sessionA), [
+        $response = $this->put(route('admin.admission.sessions.update', $sessionA), [
             'session_name' => 'Session A',
             'start_date' => '2026-10-08',
             'start_time' => '08:00',
             'start_number' => 1,
             'end_number' => 10,
             'status' => AdmissionSession::STATUS_SCHEDULED,
-        ])->assertRedirect(route('admin.admission.sessions.index'));
+        ]);
+
+        $response->assertRedirect(route('admin.admission.sessions.index'));
 
         $this->assertSame(10, AdmissionApplicant::where('admission_session_id', $sessionA->id)->count());
         $this->assertSame(0, AdmissionApplicant::whereNull('admission_session_id')->count());

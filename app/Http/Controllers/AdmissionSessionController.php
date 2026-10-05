@@ -471,7 +471,12 @@ class AdmissionSessionController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            abort_unless($updated === 1, 500, 'The session schedule could not be updated.');
+            // MySQL returns 0 affected rows when the submitted date/time is
+            // unchanged. That is valid when the admin is only extending the
+            // masterlist range, so fail only if the session was actually lost.
+            if ($updated === 0 && !DB::table('admission_sessions')->where('id', $session->id)->exists()) {
+                abort(500, 'The session schedule could not be updated.');
+            }
             $session->refresh();
 
             // If applicant range changed, reallocate applicants

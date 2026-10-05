@@ -17,6 +17,9 @@
         h1 { margin: 0; font-size: 18px; text-transform: uppercase; }
         h2 { margin: 2px 0 7px; font-size: 13px; }
         .identity { font-size: 12px; line-height: 1.55; flex: 1; }
+        .qr-box { width: 96px; text-align: center; flex: 0 0 96px; }
+        .qr-box img { display: block; width: 82px; height: 82px; margin: 0 auto; border: 1px solid #222; padding: 2px; background: #fff; }
+        .qr-box small { display: block; margin-top: 3px; font-size: 8px; font-weight: 700; word-break: break-all; }
         .notice { margin: 8px 0; padding: 5px 8px; font-size: 10px; line-height: 1.3; background: #f4f4f4; border-left: 3px solid #0f3f97; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 12px; border: 1px solid #b8c1cd; padding: 8px 10px; }
         .column { min-width: 0; }
@@ -48,6 +51,10 @@
                     <div><strong>Full Name:</strong> {{ mb_strtoupper($applicant->full_name) }}</div>
                     <div><strong>Application No.:</strong> {{ $applicant->application_number }}</div>
                     <div><strong>Session:</strong> {{ $session->session_name }} &nbsp; <strong>Program:</strong> {{ \App\Support\CourseCatalog::label($applicant->course_choice) }}</div>
+                </div>
+                <div class="qr-box">
+                    <img src="{{ app(\App\Services\GuidanceQrService::class)->dataUri($applicant->application_number) }}" alt="Applicant QR code for {{ $applicant->application_number }}">
+                    <small>{{ $applicant->application_number }}</small>
                 </div>
             </header>
             <div class="notice"><strong>NOTICE TO PROCTOR:</strong> Verify the examinee's identity before issuing this sheet. Use a dark pencil or pen and shade one answer only for each item.</div>

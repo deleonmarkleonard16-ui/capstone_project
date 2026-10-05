@@ -84,6 +84,8 @@ class AdmissionCheckinTest extends TestCase
             ->assertOk()
             ->assertSee('Print all 2 paper answer sheet(s)')
             ->assertSeeInOrder(['CAT-001', 'CAT-002'])
+            ->assertSee('Applicant QR code for CAT-001')
+            ->assertSee('Applicant QR code for CAT-002')
             ->assertSee('window.print()');
     }
 

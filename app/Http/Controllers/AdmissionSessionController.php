@@ -11,6 +11,7 @@ use App\Support\CourseCatalog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -324,19 +325,38 @@ class AdmissionSessionController extends Controller
             $prevStart = $session->start_number;
             $prevEnd   = $session->end_number;
 
-            $startTime = $this->parseSessionStartTime($request, $session->start_time);
+            // Use the validated date/time values, not a fallback from the
+            // existing model value. This guarantees a changed Exam Date is
+            // written even when the application/database timezones differ.
+            $startTime = $this->parseSessionStartTimeValues(
+                $data['start_date'] ?? null,
+                $data['start_time'],
+                $session->getRawOriginal('start_time')
+            );
 
             $newStart = (int) $request->input('start_number', $prevStart);
             $newEnd   = (int) $request->input('end_number', $prevEnd);
 
             $session->update([
                 'session_name' => $request->input('session_name', $session->session_name),
-                'start_time'   => $startTime,
                 'start_number' => $newStart,
                 'end_number'   => $newEnd,
                 'room'         => $request->input('room', $session->room ?? 'N/A') ?: 'N/A',
                 'status'       => $request->input('status', $session->status ?? AdmissionSession::STATUS_SCHEDULED),
             ]);
+
+            // DATETIME is a wall-clock schedule, not an instant in UTC. Write
+            // the validated Philippine date/time directly so Eloquent casting
+            // or a database connection timezone cannot retain the old date.
+            $updated = DB::table('admission_sessions')
+                ->where('id', $session->id)
+                ->update([
+                    'start_time' => $startTime,
+                    'updated_at' => now(),
+                ]);
+
+            abort_unless($updated === 1, 500, 'The session schedule could not be updated.');
+            $session->refresh();
 
             // If applicant range changed, reallocate applicants
             if ($prevStart !== $newStart || $prevEnd !== $newEnd) {
@@ -700,6 +720,13 @@ class AdmissionSessionController extends Controller
         $rawDate = $request->input('start_date') ?: $request->input('exam_date') ?: $request->input('date');
         $rawTime = $request->input('start_time') ?: $request->input('time');
 
+        return $this->parseSessionStartTimeValues($rawDate, $rawTime, $fallback?->format('Y-m-d H:i:s'));
+    }
+
+    /** Resolve a local Philippine session schedule without substituting today's date. */
+    private function parseSessionStartTimeValues(?string $rawDate, ?string $rawTime, ?string $fallback = null): string
+    {
+
         // Browser date/time controls submit separate values. Parse those exact
         // values together so Carbon never supplies today's date as a fallback.
         if ($rawDate && $rawTime && preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate)) {
@@ -747,11 +774,11 @@ class AdmissionSessionController extends Controller
             }
 
             // Time only (e.g. "08:30") -> use fallback session date if editing, else today
-            $baseDate = $fallback ? $fallback->format('Y-m-d') : now('Asia/Manila')->format('Y-m-d');
+            $baseDate = $fallback ? Carbon::parse($fallback)->format('Y-m-d') : now('Asia/Manila')->format('Y-m-d');
             return Carbon::parse("{$baseDate} {$rawTime}", 'Asia/Manila')->format('Y-m-d H:i:s');
         }
 
         // 4. Default fallback
-        return ($fallback ?: now('Asia/Manila'))->format('Y-m-d H:i:s');
+        return $fallback ?: now('Asia/Manila')->format('Y-m-d H:i:s');
     }
 }

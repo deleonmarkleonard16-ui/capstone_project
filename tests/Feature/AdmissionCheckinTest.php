@@ -489,6 +489,10 @@ class AdmissionCheckinTest extends TestCase
         $session->refresh();
         $this->assertEquals('2026-11-25', $session->start_time->format('Y-m-d'));
         $this->assertEquals('10:00', $session->start_time->format('H:i'));
+        $this->assertSame(
+            '2026-11-25 10:00:00',
+            DB::table('admission_sessions')->where('id', $session->id)->value('start_time')
+        );
     }
 }
 

@@ -221,6 +221,7 @@ let sending        = false;
 let strikes        = INITIAL_STRIKES;
 let pendingIncident = false;
 let lastIncident   = 0;
+let securityLockActive = false;
 let totalSecs      = 3600; // 60-minute default
 let timerInterval  = null;
 
@@ -263,7 +264,11 @@ function startTimer() {
 
 // ── BLACKOUT ───────────────────────────────────────────────
 function showBlackout() { blackout.classList.add('active'); }
-function hideBlackout() { blackout.classList.remove('active'); }
+function hideBlackout() {
+    // A detected violation must be acknowledged through the warning dialog;
+    // returning window focus alone must never reveal the exam again.
+    if (!securityLockActive) blackout.classList.remove('active');
+}
 
 // ── PROGRESSIVE STRIKE MODAL ───────────────────────────────
 function showStrikeModal(strikeNum, type) {
@@ -296,6 +301,7 @@ function showStrikeModal(strikeNum, type) {
 
 document.getElementById('strike-continue').addEventListener('click', () => {
     strikeModal.classList.remove('active');
+    securityLockActive = false;
     hideBlackout();
     if (strikes >= 3) {
         location.replace(TERMINATED_URL);
@@ -313,6 +319,7 @@ async function reportIncident(type) {
     if (Date.now() - lastIncident < 800) return;
 
     pendingIncident = true;
+    securityLockActive = true;
     showBlackout();
     lastIncident = Date.now();
 
@@ -426,7 +433,8 @@ window.addEventListener('blur', () => {
     }
 });
 window.addEventListener('focus', () => {
-    if (!strikeModal.classList.contains('active')) hideBlackout();
+    // The blackout remains visible until the examinee acknowledges the
+    // recorded violation in the security warning dialog.
 });
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && started && !sending) {

@@ -25,6 +25,11 @@ class AnalyticsNavigationTest extends TestCase
     public function test_admission_analytics_and_archive_require_an_active_cycle(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'admin']));
+        $this->get(route('admin.admission.index'))
+            ->assertOk()
+            ->assertSee('Sessions')
+            ->assertSee('aria-disabled="true"', false)
+            ->assertSee('Activate an admission cycle first');
         $this->get(route('admin.admission.analytics'))->assertRedirect(route('admin.admission.index'));
         $this->get(route('admin.admission.archive'))->assertRedirect(route('admin.admission.index'));
         $this->actingAs(User::factory()->create(['role' => 'staff']));

@@ -144,6 +144,8 @@ class AdmissionCheckinTest extends TestCase
             'name'          => '2026-2027 Summer',
             'academic_year' => '2026-2027',
             'is_active'     => true,
+            'is_archived'   => false,
+            'status'        => AdmissionCycle::STATUS_ACTIVE,
         ]);
 
         $session = AdmissionSession::create([
@@ -162,7 +164,18 @@ class AdmissionCheckinTest extends TestCase
         $response->assertSee('Session QR');
         $response->assertSee('sessionQrModal' . $session->id);
         $response->assertSee('Display Fullscreen / Project');
+        $response->assertSee(route('admin.admission.sessions.project-qr', $session), false);
+        $response->assertSee(route('admin.admission.sessions.print-qr', $session), false);
         $response->assertSee('/admission/checkin/' . $session->qr_token);
+
+        $this->get(route('admin.admission.sessions.project-qr', $session))
+            ->assertOk()
+            ->assertSee('Enter Fullscreen')
+            ->assertSee('Venue check-in QR code');
+        $this->get(route('admin.admission.sessions.print-qr', $session))
+            ->assertOk()
+            ->assertSee('Print QR Code')
+            ->assertSee('Venue check-in QR code');
     }
 
     public function test_checkin_page_displays_applicant_verification_form(): void

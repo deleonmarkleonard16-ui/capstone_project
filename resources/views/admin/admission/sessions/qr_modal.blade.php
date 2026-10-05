@@ -95,16 +95,16 @@
 
                         {{-- Action Buttons --}}
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button"
-                                    class="btn btn-warning fw-bold text-dark btn-sm px-3 shadow-sm"
-                                    onclick="launchProjectorMode('{{ $session->id }}')">
+                            <a href="{{ route('admin.admission.sessions.project-qr', $session) }}"
+                               target="_blank" rel="noopener"
+                               class="btn btn-warning fw-bold text-dark btn-sm px-3 shadow-sm">
                                 <i class="bi bi-projector-fill me-1"></i> Display Fullscreen / Project
-                            </button>
-                            <button type="button"
-                                    class="btn btn-outline-secondary btn-sm"
-                                    onclick="printSessionQr('{{ $session->id }}')">
+                            </a>
+                            <a href="{{ route('admin.admission.sessions.print-qr', $session) }}"
+                               target="_blank" rel="noopener"
+                               class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-printer me-1"></i> Print QR
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>

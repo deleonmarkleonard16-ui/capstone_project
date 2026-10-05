@@ -248,6 +248,8 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
         Route::get('/sessions/{session}/print-masterlist', [\App\Http\Controllers\AdmissionSessionController::class, 'printMasterlist'])->name('sessions.print-masterlist');
         Route::get('/sessions/{session}/print-paper-answer-sheets', [\App\Http\Controllers\AdmissionSessionController::class, 'printPaperAnswerSheets'])->name('sessions.print-paper-answer-sheets');
+        Route::get('/sessions/{session}/project-qr', [\App\Http\Controllers\AdmissionSessionController::class, 'projectQr'])->name('sessions.project-qr');
+        Route::get('/sessions/{session}/print-qr', [\App\Http\Controllers\AdmissionSessionController::class, 'printQr'])->name('sessions.print-qr');
         Route::get('/sessions/{session}/poll', [\App\Http\Controllers\AdmissionSessionController::class, 'monitorPoll'])->name('sessions.poll');
         Route::post('/sessions/{session}/reassign/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'reassignApplicant'])->name('sessions.reassign-applicant');
         Route::post('/sessions/{session}/reassign-absent-bulk', [\App\Http\Controllers\AdmissionSessionController::class, 'reassignAbsentBulk'])->name('sessions.reassign-absent-bulk');

@@ -238,6 +238,18 @@ class AdmissionSessionController extends Controller
         ));
     }
 
+    /** Display the venue check-in QR on a standalone projector-friendly page. */
+    public function projectQr(AdmissionSession $session)
+    {
+        return view('admin.admission.sessions.qr_projector', compact('session'));
+    }
+
+    /** Open a standalone print-ready venue check-in QR sheet. */
+    public function printQr(AdmissionSession $session)
+    {
+        return view('admin.admission.sessions.qr_print', compact('session'));
+    }
+
     /**
      * Record answers recognized by the session OMR web scanner.
      */

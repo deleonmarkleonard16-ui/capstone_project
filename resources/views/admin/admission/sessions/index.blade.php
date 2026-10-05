@@ -160,7 +160,6 @@
                                     <div class="btn-group btn-group-sm">
                                         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" data-batch-id="{{ $batch->id }}" data-batch-name="{{ $batch->batch_name }}"><i class="bi bi-plus-circle me-1"></i>Add Session</button>
                                         <a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-masterlist', $batch) }}"><i class="bi bi-printer"></i> Masterlist</a>
-                                        <a class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-paper-answer-sheets', $batch) }}"><i class="bi bi-file-earmark-text"></i> Print Papers</a>
                                         @unless($cycle->isCompleted())
                                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editBatchModal{{ $batch->id }}"><i class="bi bi-pencil"></i></button>
                                             <form method="POST" action="{{ route('admin.admission.batches.destroy', $batch) }}" onsubmit="return confirm('Delete batch {{ $batch->batch_name }} and all {{ $batch->sessions_count }} session(s) inside it? Assigned applicants will be returned to the masterlist.')">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm" title="Delete batch and all sessions inside"><i class="bi bi-trash"></i></button></form>
@@ -258,6 +257,14 @@
                                             title="Session Venue Check-In QR Code">
                                         <i class="bi bi-qr-code"></i> Session QR
                                     </button>
+
+                                    <a class="btn btn-outline-dark btn-sm"
+                                       target="_blank"
+                                       rel="noopener"
+                                       href="{{ route('admin.admission.sessions.print-paper-answer-sheets', $session) }}"
+                                       title="Print paper answer sheets for this session only">
+                                        <i class="bi bi-file-earmark-text"></i> Print Papers
+                                    </a>
 
                                     @unless($cycle->isCompleted())
                                         <button type="button"

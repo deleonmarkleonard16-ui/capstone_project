@@ -42,6 +42,9 @@
     // Detect active analytics page
     $guidanceAnalyticsActive = request()->routeIs("{$role}.analytics", 'admin.analytics', 'staff.analytics');
     $admissionAnalyticsActive = $isAdmin && request()->routeIs('admin.admission.analytics');
+    $activeAdmissionCycle = $isAdmin ? \App\Models\AdmissionCycle::active() : null;
+    $hasActiveAdmissionCycle = $activeAdmissionCycle !== null
+        && $activeAdmissionCycle->status === \App\Models\AdmissionCycle::STATUS_ACTIVE;
 @endphp
 
 @if ($user)
@@ -86,32 +89,39 @@
                            href="{{ route('admin.admission.index') }}">
                             <i class="bi bi-arrow-repeat"></i> Admission Cycle
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.admission.sessions.*', 'admin.sessions.*') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.sessions.index') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ request()->routeIs('admin.admission.sessions.*', 'admin.sessions.*') ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.sessions.index') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-calendar3"></i> Sessions
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.admission.masterlist') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.masterlist') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ request()->routeIs('admin.admission.masterlist') ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.masterlist') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-table"></i> Masterlist
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.admission.encoding-sheet') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.encoding-sheet') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ request()->routeIs('admin.admission.encoding-sheet') ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.encoding-sheet') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-grid-3x3"></i> Encoding Sheet
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.admission.answer-key.*') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.answer-key.index') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ request()->routeIs('admin.admission.answer-key.*') ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.answer-key.index') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-key-fill"></i> Answer Key
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.admission.scan-paper*') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.scan-paper') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ request()->routeIs('admin.admission.scan-paper*') ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.scan-paper') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-qr-code-scan"></i> OMR Scanner
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.admission.analytics', 'admin.admission.report') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.analytics') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ request()->routeIs('admin.admission.analytics', 'admin.admission.report') ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.analytics') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-bar-chart-line-fill"></i> Analytics
                         </a>
-                        <a class="sidebar-link {{ request()->routeIs('admin.admission.archive') ? 'active' : '' }}"
-                           href="{{ route('admin.admission.archive') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ request()->routeIs('admin.admission.archive') ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.archive') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-archive-fill"></i> Archive
                         </a>
                     </div>
@@ -174,8 +184,9 @@
                            href="{{ route('admin.analytics') }}">
                             <i class="bi bi-clipboard-data"></i> Guidance Analytics
                         </a>
-                        <a class="sidebar-link {{ $admissionAnalyticsActive ? 'active' : '' }}"
-                           href="{{ route('admin.admission.analytics') }}">
+                        <a class="sidebar-link {{ !$hasActiveAdmissionCycle ? 'disabled opacity-50 pe-none' : '' }} {{ $admissionAnalyticsActive ? 'active' : '' }}"
+                           href="{{ $hasActiveAdmissionCycle ? route('admin.admission.analytics') : 'javascript:void(0)' }}"
+                           @if(!$hasActiveAdmissionCycle) tabindex="-1" aria-disabled="true" title="Activate an admission cycle first" @endif>
                             <i class="bi bi-mortarboard"></i> Admission Analytics
                         </a>
                     </div>

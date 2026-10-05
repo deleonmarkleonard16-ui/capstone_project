@@ -22,11 +22,11 @@ class AnalyticsNavigationTest extends TestCase
         }
     }
 
-    public function test_admission_analytics_renders_for_both_roles_while_admission_archive_remains_admin_only(): void
+    public function test_admission_analytics_and_archive_require_an_active_cycle(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'admin']));
-        $this->get(route('admin.admission.analytics'))->assertOk()->assertSee('No admission cycles available.');
-        $this->get(route('admin.admission.archive'))->assertOk()->assertSee('No archived admission cycles.');
+        $this->get(route('admin.admission.analytics'))->assertRedirect(route('admin.admission.index'));
+        $this->get(route('admin.admission.archive'))->assertRedirect(route('admin.admission.index'));
         $this->actingAs(User::factory()->create(['role' => 'staff']));
         $this->get(route('admin.admission.analytics'))->assertForbidden();
         $this->get(route('admin.admission.archive'))->assertForbidden();

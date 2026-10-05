@@ -25,32 +25,20 @@ class AdmissionCycleGatekeeper
         $activeCycle = AdmissionCycle::active();
 
         // 1. Active cycle that is NOT in maintenance → allow all routes
-        if ($activeCycle && $activeCycle->status !== AdmissionCycle::STATUS_MAINTENANCE) {
+        if ($activeCycle?->isActive()) {
             return $next($request);
         }
 
         // 2. These routes are always accessible (cycle management + overview)
         if ($request->routeIs(
             'admin.admission.index',
-            'admin.admission.cycles.*',
-            'admin.admission.answer-key.index',
-            'admin.admission.analytics',
-            'admin.admission.archive',
-            'admin.sessions.*'
+            'admin.admission.cycles.*'
         )) {
             return $next($request);
         }
 
-        // 3. Allow read-only access to archived records when cycle_id is provided
-        if (
-            $request->routeIs('admin.admission.masterlist', 'admin.admission.report')
-            && $request->filled('cycle_id')
-            && AdmissionCycle::whereKey($request->integer('cycle_id'))->exists()
-        ) {
-            return $next($request);
-        }
-
-        // 4. Build the block message
+        // All remaining Admission routes require an active cycle. This prevents
+        // manually entered URLs from bypassing the disabled sidebar links.
         $message = $activeCycle
             ? 'The Admission Cycle is currently in Maintenance Mode. Access is suspended until the Guidance Admin exits maintenance.'
             : 'Active Admission Cycle Required: Please initialize or activate an Admission Cycle before accessing Masterlist, Encoding Sheet, or Test Sessions.';

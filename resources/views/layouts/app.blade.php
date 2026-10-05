@@ -79,6 +79,7 @@
             transition: background .15s;
         }
         .sidebar-link:hover, .sb-group summary:hover { background: rgba(255,255,255,.14); color: #fff; }
+        .sidebar-link[aria-disabled="true"] { cursor: not-allowed; pointer-events: none; }
         .sidebar-link.active { background: rgba(255,255,255,.2); color: #fff; border-left: 3px solid var(--psu-gold); }
         /* badge label (e.g. "Dashboard", "Records", "Admin") */
         .sb-badge {

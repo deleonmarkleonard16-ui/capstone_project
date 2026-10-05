@@ -123,7 +123,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-light d-none" id="sessionRosterHeaders">
                     <tr>
                         <th class="ps-3">Session Name</th>
                         <th>Start Date &amp; Time</th>
@@ -320,6 +320,9 @@
         rows.forEach(row => row.classList.toggle('d-none', !opening));
         icon?.classList.toggle('bi-chevron-right', !opening);
         icon?.classList.toggle('bi-chevron-down', opening);
+        const hasVisibleSessions = Array.from(document.querySelectorAll('.batch-session'))
+            .some(row => !row.classList.contains('d-none'));
+        document.getElementById('sessionRosterHeaders')?.classList.toggle('d-none', !hasVisibleSessions);
     }
 
     document.getElementById('createSessionModal')?.addEventListener('show.bs.modal', event => {

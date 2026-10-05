@@ -149,16 +149,15 @@
                             $batchSubmitted = $batch->sessions->sum('submitted_count');
                         @endphp
                         <tr class="table-primary batch-row" style="cursor:pointer" onclick="toggleBatchSessions({{ $batch->id }})">
-                            <td colspan="7" class="ps-3">
-                                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                                    <div>
+                            <td colspan="2" class="ps-3">
                                         <i id="batchIcon{{ $batch->id }}" class="bi bi-chevron-right me-2"></i>
                                         <i class="bi bi-collection-fill me-2"></i><strong>{{ $batch->batch_name }}</strong>
                                         <span class="ms-2 small text-muted">{{ $batch->sessions_count }} session(s) · {{ $batchAssigned }} examinee(s) · {{ $batchSubmitted }} submitted</span>
-                                        @if($batch->batch_date)<span class="ms-2 badge bg-light text-dark border">{{ $batch->batch_date->format('M d, Y') }}</span>@endif
-                                        @if($batch->room)<span class="ms-1 badge bg-light text-dark border">{{ $batch->room }}</span>@endif
-                                    </div>
-                                    <div class="d-flex gap-1" onclick="event.stopPropagation()">
+                            </td>
+                            <td colspan="2">@if($batch->batch_date)<span class="badge bg-light text-dark border">{{ $batch->batch_date->format('M d, Y') }}</span>@else<span class="text-muted">—</span>@endif</td>
+                            <td colspan="2">{{ $batch->room ?: '—' }}</td>
+                            <td class="pe-3 text-end" onclick="event.stopPropagation()">
+                                    <div class="btn-group btn-group-sm">
                                         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" data-batch-id="{{ $batch->id }}" data-batch-name="{{ $batch->batch_name }}"><i class="bi bi-plus-circle me-1"></i>Add Session</button>
                                         <a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-masterlist', $batch) }}"><i class="bi bi-printer"></i> Masterlist</a>
                                         <a class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-paper-answer-sheets', $batch) }}"><i class="bi bi-file-earmark-text"></i> Print Papers</a>
@@ -167,7 +166,6 @@
                                             <form method="POST" action="{{ route('admin.admission.batches.destroy', $batch) }}" onsubmit="return confirm('Delete batch {{ $batch->batch_name }} and all {{ $batch->sessions_count }} session(s) inside it? Assigned applicants will be returned to the masterlist.')">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm" title="Delete batch and all sessions inside"><i class="bi bi-trash"></i></button></form>
                                         @endunless
                                     </div>
-                                </div>
                             </td>
                         </tr>
                         @forelse ($batch->sessions as $session)

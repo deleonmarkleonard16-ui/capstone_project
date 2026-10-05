@@ -23,6 +23,7 @@ class AdmissionSession extends Model
 
     protected $fillable = [
         'admission_cycle_id',
+        'admission_batch_id',
         'session_name',
         'start_time',
         'start_number',
@@ -52,6 +53,11 @@ class AdmissionSession extends Model
     public function cycle(): BelongsTo
     {
         return $this->belongsTo(AdmissionCycle::class, 'admission_cycle_id');
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(AdmissionBatch::class, 'admission_batch_id');
     }
 
     public function applicants(): HasMany

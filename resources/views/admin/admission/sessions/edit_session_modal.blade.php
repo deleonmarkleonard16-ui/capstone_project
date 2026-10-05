@@ -26,6 +26,15 @@
                 @method('PUT')
                 <div class="modal-body p-4">
                     <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label form-label-sm fw-bold text-dark">Batch <span class="text-danger">*</span></label>
+                            <select class="form-select" name="admission_batch_id" required>
+                                @foreach($batches as $batch)
+                                    <option value="{{ $batch->id }}" @selected((string) old('admission_batch_id', $session->admission_batch_id) === (string) $batch->id)>{{ $batch->batch_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         {{-- 1. Session Name --}}
                         <div class="col-md-7">
                             <label class="form-label form-label-sm fw-bold text-dark">

@@ -33,6 +33,17 @@
                     </div>
 
                     <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label form-label-sm fw-bold text-dark">Batch <span class="text-danger">*</span></label>
+                            <select name="admission_batch_id" class="form-select" required>
+                                <option value="">Select a batch</option>
+                                @foreach($batches as $batch)
+                                    <option value="{{ $batch->id }}" @selected((string) old('admission_batch_id') === (string) $batch->id)>{{ $batch->batch_name }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text small">Sessions are organized under a batch.</div>
+                        </div>
+
                         {{-- 1. Session Name --}}
                         <div class="col-md-7">
                             <label class="form-label form-label-sm fw-bold text-dark">
@@ -42,7 +53,7 @@
                                    name="session_name"
                                    id="session_name"
                                    class="form-control"
-                                   placeholder="e.g., Session A - Batch 1"
+                                   placeholder="e.g., Session A"
                                    value="{{ old('session_name') }}"
                                    required>
                             <div class="form-text small">Descriptive batch or session identifier for examinees and proctors.</div>

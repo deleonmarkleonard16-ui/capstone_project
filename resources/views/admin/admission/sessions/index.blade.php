@@ -14,6 +14,9 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createBatchModal" @disabled($cycle->isCompleted())>
+            <i class="bi bi-collection me-1"></i> Add Batch
+        </button>
         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" @disabled($cycle->isCompleted())>
             <i class="bi bi-plus-circle me-1"></i> Create Test Session
         </button>
@@ -101,7 +104,7 @@
             <i class="bi bi-calendar3 text-primary fs-5"></i>
             <h2 class="h6 mb-0 fw-bold">Admission Test Sessions Roster</h2>
         </div>
-        <span class="badge bg-light text-dark border">{{ $sessions->count() }} Session(s) Registered</span>
+        <span class="badge bg-light text-dark border">{{ $batches->count() }} Batch(es) · {{ $sessions->count() }} Session(s)</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -118,14 +121,41 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($sessions as $session)
+                    @foreach ($batches as $batch)
+                        @php
+                            $batchAssigned = $batch->sessions->sum('applicants_count');
+                            $batchSubmitted = $batch->sessions->sum('submitted_count');
+                        @endphp
+                        <tr class="table-primary batch-row" style="cursor:pointer" onclick="toggleBatchSessions({{ $batch->id }})">
+                            <td colspan="7" class="ps-3">
+                                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                    <div>
+                                        <i id="batchIcon{{ $batch->id }}" class="bi bi-chevron-right me-2"></i>
+                                        <i class="bi bi-collection-fill me-2"></i><strong>{{ $batch->batch_name }}</strong>
+                                        <span class="ms-2 small text-muted">{{ $batch->sessions_count }} session(s) · {{ $batchAssigned }} examinee(s) · {{ $batchSubmitted }} submitted</span>
+                                        @if($batch->batch_date)<span class="ms-2 badge bg-light text-dark border">{{ $batch->batch_date->format('M d, Y') }}</span>@endif
+                                        @if($batch->room)<span class="ms-1 badge bg-light text-dark border">{{ $batch->room }}</span>@endif
+                                    </div>
+                                    <div class="d-flex gap-1" onclick="event.stopPropagation()">
+                                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" data-batch-id="{{ $batch->id }}"><i class="bi bi-plus-circle me-1"></i>Add Session</button>
+                                        <a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-masterlist', $batch) }}"><i class="bi bi-printer"></i> Masterlist</a>
+                                        <a class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-paper-answer-sheets', $batch) }}"><i class="bi bi-file-earmark-text"></i> Print Papers</a>
+                                        @unless($cycle->isCompleted())
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editBatchModal{{ $batch->id }}"><i class="bi bi-pencil"></i></button>
+                                            @if($batch->sessions_count === 0)<form method="POST" action="{{ route('admin.admission.batches.destroy', $batch) }}" onsubmit="return confirm('Delete empty batch {{ $batch->batch_name }}?')">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button></form>@endif
+                                        @endunless
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @forelse ($batch->sessions as $session)
                         @php
                             $assignedCount  = $session->applicants_count;
                             $submittedCount = $session->submitted_count;
                             $pct            = $assignedCount > 0 ? round(($submittedCount / $assignedCount) * 100) : 0;
                             $isDone         = $session->status === 'Completed';
                         @endphp
-                        <tr class="{{ $session->status === 'In-Progress' ? 'table-warning bg-opacity-25' : ($isDone ? 'table-light opacity-75' : '') }}">
+                        <tr class="batch-session batch-session-{{ $batch->id }} d-none {{ $session->status === 'In-Progress' ? 'table-warning bg-opacity-25' : ($isDone ? 'table-light opacity-75' : '') }}">
                             <td class="ps-3">
                                 <div class="fw-bold text-dark">{{ $session->session_name }}</div>
                                 @if($session->qr_token)
@@ -236,8 +266,8 @@
                         <tr>
                             <td colspan="7" class="text-center text-muted py-5">
                                 <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                                <h6 class="fw-bold mb-1">No Admission Sessions Configured</h6>
-                                <p class="small text-muted mb-3">Click "Create Test Session" to schedule examinee batches by numerical range.</p>
+                                <h6 class="fw-bold mb-1">No sessions in this batch</h6>
+                                <p class="small text-muted mb-3">Add Session A, Session B, and more inside this batch.</p>
                                 @unless($cycle->isCompleted())
                                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal">
                                         <i class="bi bi-plus-circle me-1"></i> Create Test Session
@@ -246,6 +276,10 @@
                             </td>
                         </tr>
                     @endforelse
+                    @endforeach
+                    @if($batches->isEmpty())
+                        <tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-collection fs-1 d-block mb-2 text-primary opacity-50"></i><h6 class="fw-bold mb-1">No Batches Configured</h6><p class="small mb-3">Create a batch first, then add sessions inside it.</p>@unless($cycle->isCompleted())<button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createBatchModal"><i class="bi bi-plus-circle me-1"></i>Add Batch</button>@endunless</td></tr>
+                    @endif
                 </tbody>
             </table>
         </div>
@@ -255,12 +289,29 @@
 {{-- ── MODALS ── --}}
 @include('admin.admission.sessions.create_session_modal')
 
+@include('admin.admission.batches.create_modal')
+@foreach($batches as $batch)
+    @include('admin.admission.batches.edit_modal', ['batch' => $batch])
+@endforeach
 @foreach($sessions as $session)
     @include('admin.admission.sessions.edit_session_modal', ['session' => $session])
     @include('admin.admission.sessions.qr_modal', ['session' => $session])
 @endforeach
 
 <script>
+    function toggleBatchSessions(batchId) {
+        const rows = document.querySelectorAll('.batch-session-' + batchId);
+        const icon = document.getElementById('batchIcon' + batchId);
+        const opening = Array.from(rows).some(row => row.classList.contains('d-none'));
+        rows.forEach(row => row.classList.toggle('d-none', !opening));
+        icon?.classList.toggle('bi-chevron-right', !opening);
+        icon?.classList.toggle('bi-chevron-down', opening);
+    }
+
+    document.getElementById('createSessionModal')?.addEventListener('show.bs.modal', event => {
+        const batchId = event.relatedTarget?.dataset?.batchId;
+        if (batchId) event.currentTarget.querySelector('[name="admission_batch_id"]').value = batchId;
+    });
     function updateProjectorClocks() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });

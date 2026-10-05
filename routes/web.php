@@ -246,6 +246,11 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::get('/answer-key', [$c, 'answerKey'])->name('answer-key.index');
         Route::post('/answer-key', [$c, 'key'])->name('answer-key.save');
         Route::get('/masterlist', [$c, 'masterlist'])->name('masterlist');
+        Route::post('/batches', [\App\Http\Controllers\AdmissionSessionController::class, 'storeBatch'])->name('batches.store');
+        Route::put('/batches/{batch}', [\App\Http\Controllers\AdmissionSessionController::class, 'updateBatch'])->name('batches.update');
+        Route::delete('/batches/{batch}', [\App\Http\Controllers\AdmissionSessionController::class, 'destroyBatch'])->name('batches.destroy');
+        Route::get('/batches/{batch}/print-masterlist', [\App\Http\Controllers\AdmissionSessionController::class, 'printBatchMasterlist'])->name('batches.print-masterlist');
+        Route::get('/batches/{batch}/print-paper-answer-sheets', [\App\Http\Controllers\AdmissionSessionController::class, 'printBatchPaperAnswerSheets'])->name('batches.print-paper-answer-sheets');
         Route::get('/sessions/{session}/print-masterlist', [\App\Http\Controllers\AdmissionSessionController::class, 'printMasterlist'])->name('sessions.print-masterlist');
         Route::get('/sessions/{session}/print-paper-answer-sheets', [\App\Http\Controllers\AdmissionSessionController::class, 'printPaperAnswerSheets'])->name('sessions.print-paper-answer-sheets');
         Route::get('/sessions/{session}/print-qr', [\App\Http\Controllers\AdmissionSessionController::class, 'printQr'])->name('sessions.print-qr');

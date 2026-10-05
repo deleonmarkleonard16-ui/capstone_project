@@ -36,6 +36,11 @@ class AdmissionCycle extends Model
         return $this->hasMany(AdmissionSession::class, 'admission_cycle_id');
     }
 
+    public function batches()
+    {
+        return $this->hasMany(AdmissionBatch::class, 'admission_cycle_id');
+    }
+
     // ── Casts ─────────────────────────────────────────────────────────────────
 
     protected function casts(): array

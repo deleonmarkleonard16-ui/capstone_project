@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdmissionApplicant;
+use App\Models\AdmissionBatch;
 use App\Models\AdmissionCycle;
 use App\Models\AdmissionSession;
 use App\Models\GuidanceTestSecurityLog;
@@ -49,18 +50,29 @@ class AdmissionSessionController extends Controller
             return $this->gatekeeperRedirect();
         }
 
-        $sessions = $cycle->sessions()
-            ->withCount([
-                'applicants',
-                'applicants as submitted_count' => fn ($q) => $q->whereNotNull('submitted_at'),
-            ])
-            ->orderBy('start_time', 'asc')
+        // Covers databases restored from a backup, test fixtures, or sessions
+        // created before the batch migration. No applicant/session link changes.
+        if ($cycle->sessions()->whereNull('admission_batch_id')->exists()) {
+            $legacyBatch = $cycle->batches()->firstOrCreate(['batch_name' => 'Existing Sessions']);
+            $cycle->sessions()->whereNull('admission_batch_id')->update(['admission_batch_id' => $legacyBatch->id]);
+        }
+
+        $sessionCounts = [
+            'applicants',
+            'applicants as submitted_count' => fn ($q) => $q->whereNotNull('submitted_at'),
+        ];
+        $batches = $cycle->batches()
+            ->with(['sessions' => fn ($q) => $q->withCount($sessionCounts)->orderBy('start_time')])
+            ->withCount('sessions')
+            ->orderByRaw('batch_date is null, batch_date')
+            ->orderBy('batch_name')
             ->get();
+        $sessions = $batches->flatMap->sessions->sortBy('start_time')->values();
 
         $totalApplicants = $cycle->applicants()->count();
         $courses = CourseCatalog::activeOptions();
 
-        return view('admin.admission.sessions.index', compact('cycle', 'sessions', 'totalApplicants', 'courses'));
+        return view('admin.admission.sessions.index', compact('cycle', 'batches', 'sessions', 'totalApplicants', 'courses'));
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -88,6 +100,7 @@ class AdmissionSessionController extends Controller
         try {
             $data = $request->validate([
                 'session_name'  => 'required|string|max:120',
+                'admission_batch_id' => ['required', Rule::exists('admission_batches', 'id')->where(fn ($q) => $q->where('admission_cycle_id', $cycle->id))],
                 'start_date'    => 'nullable|date',
                 'start_time'    => 'required|string|max:60',
                 'start_number'  => 'required|integer|min:1',
@@ -104,6 +117,7 @@ class AdmissionSessionController extends Controller
 
             $session = $cycle->sessions()->create([
                 'session_name' => $request->input('session_name', 'Unnamed Session'),
+                'admission_batch_id' => $data['admission_batch_id'],
                 'start_time'   => $startTime,
                 'start_number' => $startNumber,
                 'end_number'   => $endNumber,
@@ -244,6 +258,82 @@ class AdmissionSessionController extends Controller
         return view('admin.admission.sessions.qr_print', compact('session'));
     }
 
+    public function storeBatch(Request $request)
+    {
+        $cycle = $this->active();
+        if (!$cycle) {
+            return $this->gatekeeperRedirect();
+        }
+        abort_if($cycle->isCompleted(), 422, 'Cannot add batches to an archived cycle.');
+
+        $data = $request->validate([
+            'batch_name' => ['required', 'string', 'max:120', Rule::unique('admission_batches')->where(fn ($q) => $q->where('admission_cycle_id', $cycle->id))],
+            'batch_date' => ['nullable', 'date'],
+            'room' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $batch = $cycle->batches()->create($data);
+
+        return redirect()->route('admin.admission.sessions.index')
+            ->with('success', "Batch '{$batch->batch_name}' created. You can now add sessions inside it.");
+    }
+
+    public function updateBatch(Request $request, AdmissionBatch $batch)
+    {
+        $cycle = $this->active();
+        abort_if(!$cycle || $cycle->id !== $batch->admission_cycle_id || $cycle->isCompleted(), 422, 'Cannot edit this batch.');
+
+        $data = $request->validate([
+            'batch_name' => ['required', 'string', 'max:120', Rule::unique('admission_batches')->where(fn ($q) => $q->where('admission_cycle_id', $cycle->id))->ignore($batch->id)],
+            'batch_date' => ['nullable', 'date'],
+            'room' => ['nullable', 'string', 'max:120'],
+        ]);
+        $batch->update($data);
+
+        return redirect()->route('admin.admission.sessions.index')->with('success', "Batch '{$batch->batch_name}' updated successfully.");
+    }
+
+    public function destroyBatch(AdmissionBatch $batch)
+    {
+        $cycle = $this->active();
+        abort_if(!$cycle || $cycle->id !== $batch->admission_cycle_id || $cycle->isCompleted(), 422, 'Cannot delete this batch.');
+
+        if ($batch->sessions()->exists()) {
+            return back()->with('error', "Batch '{$batch->batch_name}' cannot be deleted while it still contains sessions.");
+        }
+
+        $name = $batch->batch_name;
+        $batch->delete();
+        return redirect()->route('admin.admission.sessions.index')->with('success', "Batch '{$name}' deleted.");
+    }
+
+    public function printBatchMasterlist(AdmissionBatch $batch)
+    {
+        $this->assertActiveBatch($batch);
+        $sessions = $batch->sessions()->with(['applicants' => fn ($q) => $q->orderBy('last_name')->orderBy('first_name')])->orderBy('start_time')->get();
+        return view('admin.admission.batches.print_masterlist', compact('batch', 'sessions'));
+    }
+
+    public function printBatchPaperAnswerSheets(AdmissionBatch $batch)
+    {
+        $cycle = $this->assertActiveBatch($batch);
+        $sessions = $batch->sessions()->with(['applicants' => fn ($q) => $q->orderBy('last_name')->orderBy('first_name')])->orderBy('start_time')->get();
+        if ($sessions->sum(fn ($session) => $session->applicants->count()) === 0) {
+            return back()->with('warning', 'There are no applicants assigned to this batch yet.');
+        }
+
+        $totalItems = max(1, (int) ($cycle->total_items ?: 80));
+        $psuLogoUrl = asset('images/psu-logo.png');
+        return view('admin.admission.batches.paper_answer_sheets', compact('batch', 'sessions', 'totalItems', 'psuLogoUrl'));
+    }
+
+    private function assertActiveBatch(AdmissionBatch $batch): AdmissionCycle
+    {
+        $cycle = $this->active();
+        abort_unless($cycle && $cycle->id === $batch->admission_cycle_id, 404);
+        return $cycle;
+    }
+
     /**
      * Record answers recognized by the session OMR web scanner.
      */
@@ -320,6 +410,9 @@ class AdmissionSessionController extends Controller
         try {
             $data = $request->validate([
                 'session_name' => 'required|string|max:120',
+                // Legacy/API callers that do not send a batch keep the session
+                // in its current batch; the browser form always requires one.
+                'admission_batch_id' => ['nullable', Rule::exists('admission_batches', 'id')->where(fn ($q) => $q->where('admission_cycle_id', $cycle->id))],
                 'start_date'   => 'nullable|date',
                 'start_time'   => 'required|string|max:60',
                 'start_number' => 'required|integer|min:1',
@@ -345,6 +438,7 @@ class AdmissionSessionController extends Controller
 
             $session->update([
                 'session_name' => $request->input('session_name', $session->session_name),
+                'admission_batch_id' => $data['admission_batch_id'] ?? $session->admission_batch_id,
                 'start_number' => $newStart,
                 'end_number'   => $newEnd,
                 'room'         => $request->input('room', $session->room ?? 'N/A') ?: 'N/A',

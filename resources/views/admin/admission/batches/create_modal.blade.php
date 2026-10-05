@@ -10,7 +10,7 @@
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label fw-semibold">Batch Name <span class="text-danger">*</span></label><input class="form-control" name="batch_name" placeholder="e.g., Batch 1" required></div>
                     <div class="row g-3">
-                        <div class="col-md-6"><label class="form-label fw-semibold">Batch Date <span class="text-muted fw-normal">(Optional)</span></label><input class="form-control" type="date" name="batch_date"></div>
+                        <div class="col-md-6"><label class="form-label fw-semibold">Batch Date <span class="text-danger">*</span></label><input class="form-control" type="date" name="batch_date" required></div>
                         <div class="col-md-6"><label class="form-label fw-semibold">Venue <span class="text-muted fw-normal">(Optional)</span></label><input class="form-control" name="room" placeholder="e.g., Covered Court"></div>
                     </div>
                 </div>

@@ -17,9 +17,23 @@
         <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createBatchModal" @disabled($cycle->isCompleted())>
             <i class="bi bi-collection me-1"></i> Add Batch
         </button>
-        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" @disabled($cycle->isCompleted())>
-            <i class="bi bi-plus-circle me-1"></i> Create Test Session
-        </button>
+        @if($batches->isNotEmpty())
+            <div class="dropdown">
+                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" @disabled($cycle->isCompleted())>
+                    <i class="bi bi-plus-circle me-1"></i> Create Test Session
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><h6 class="dropdown-header">Choose a batch</h6></li>
+                    @foreach($batches as $batch)
+                        <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#createSessionModal" data-batch-id="{{ $batch->id }}" data-batch-name="{{ $batch->batch_name }}">{{ $batch->batch_name }}</button></li>
+                    @endforeach
+                </ul>
+            </div>
+        @else
+            <button type="button" class="btn btn-primary btn-sm" disabled title="Create a batch first">
+                <i class="bi bi-plus-circle me-1"></i> Create Test Session
+            </button>
+        @endif
         <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}">
             <i class="bi bi-table me-1"></i> Masterlist
         </a>
@@ -137,7 +151,7 @@
                                         @if($batch->room)<span class="ms-1 badge bg-light text-dark border">{{ $batch->room }}</span>@endif
                                     </div>
                                     <div class="d-flex gap-1" onclick="event.stopPropagation()">
-                                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" data-batch-id="{{ $batch->id }}"><i class="bi bi-plus-circle me-1"></i>Add Session</button>
+                                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" data-batch-id="{{ $batch->id }}" data-batch-name="{{ $batch->batch_name }}"><i class="bi bi-plus-circle me-1"></i>Add Session</button>
                                         <a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-masterlist', $batch) }}"><i class="bi bi-printer"></i> Masterlist</a>
                                         <a class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-paper-answer-sheets', $batch) }}"><i class="bi bi-file-earmark-text"></i> Print Papers</a>
                                         @unless($cycle->isCompleted())
@@ -310,7 +324,10 @@
 
     document.getElementById('createSessionModal')?.addEventListener('show.bs.modal', event => {
         const batchId = event.relatedTarget?.dataset?.batchId;
+        const batchName = event.relatedTarget?.dataset?.batchName;
         if (batchId) event.currentTarget.querySelector('[name="admission_batch_id"]').value = batchId;
+        const label = event.currentTarget.querySelector('[data-selected-batch]');
+        if (label && batchName) label.textContent = batchName;
     });
     function updateProjectorClocks() {
         const now = new Date();

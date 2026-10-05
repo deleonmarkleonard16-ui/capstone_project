@@ -110,7 +110,16 @@ class AdmissionSessionController extends Controller
                 'course_filter' => 'nullable|string|max:30',
             ]);
 
-            $startTime = $this->parseSessionStartTime($request);
+            $batch = AdmissionBatch::where('admission_cycle_id', $cycle->id)
+                ->findOrFail($data['admission_batch_id']);
+            abort_if(!$batch->batch_date, 422, 'Set the batch date before adding a session.');
+
+            // The batch owns the shared date and venue. Sessions only provide
+            // their name, start time, and masterlist range.
+            $startTime = $this->parseSessionStartTimeValues(
+                $batch->batch_date->format('Y-m-d'),
+                $data['start_time']
+            );
 
             $startNumber = (int) $request->input('start_number', 1);
             $endNumber   = (int) $request->input('end_number', $startNumber);
@@ -121,7 +130,7 @@ class AdmissionSessionController extends Controller
                 'start_time'   => $startTime,
                 'start_number' => $startNumber,
                 'end_number'   => $endNumber,
-                'room'         => $request->input('room', 'N/A') ?: 'N/A',
+                'room'         => $batch->room ?: 'N/A',
                 'qr_token'     => Str::random(64),
                 'status'       => AdmissionSession::STATUS_SCHEDULED,
             ]);
@@ -268,7 +277,7 @@ class AdmissionSessionController extends Controller
 
         $data = $request->validate([
             'batch_name' => ['required', 'string', 'max:120', Rule::unique('admission_batches')->where(fn ($q) => $q->where('admission_cycle_id', $cycle->id))],
-            'batch_date' => ['nullable', 'date'],
+            'batch_date' => ['required', 'date'],
             'room' => ['nullable', 'string', 'max:120'],
         ]);
 
@@ -285,7 +294,7 @@ class AdmissionSessionController extends Controller
 
         $data = $request->validate([
             'batch_name' => ['required', 'string', 'max:120', Rule::unique('admission_batches')->where(fn ($q) => $q->where('admission_cycle_id', $cycle->id))->ignore($batch->id)],
-            'batch_date' => ['nullable', 'date'],
+            'batch_date' => ['required', 'date'],
             'room' => ['nullable', 'string', 'max:120'],
         ]);
         $batch->update($data);

@@ -16,7 +16,7 @@
                     </div>
                     <div>
                         <h5 class="modal-title fw-bold text-dark mb-0" id="createSessionModalLabel">Create Admission Test Session</h5>
-                        <small class="text-muted">Configure testing batch schedule and masterlist range assignment</small>
+                        <small class="text-muted">Configure a session within <strong data-selected-batch>this batch</strong>.</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -33,19 +33,10 @@
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-5">
-                            <label class="form-label form-label-sm fw-bold text-dark">Batch <span class="text-danger">*</span></label>
-                            <select name="admission_batch_id" class="form-select" required>
-                                <option value="">Select a batch</option>
-                                @foreach($batches as $batch)
-                                    <option value="{{ $batch->id }}" @selected((string) old('admission_batch_id') === (string) $batch->id)>{{ $batch->batch_name }}</option>
-                                @endforeach
-                            </select>
-                            <div class="form-text small">Sessions are organized under a batch.</div>
-                        </div>
+                        <input type="hidden" name="admission_batch_id" value="{{ old('admission_batch_id') }}">
 
                         {{-- 1. Session Name --}}
-                        <div class="col-md-7">
+                        <div class="col-12">
                             <label class="form-label form-label-sm fw-bold text-dark">
                                 1. Session Name <span class="text-danger">*</span>
                             </label>
@@ -59,42 +50,9 @@
                             <div class="form-text small">Descriptive batch or session identifier for examinees and proctors.</div>
                         </div>
 
-                        {{-- Venue / Room (Optional) --}}
-                        <div class="col-md-5">
-                            <label class="form-label form-label-sm fw-bold text-dark">
-                                Room / Testing Center <span class="text-muted fw-normal">(Optional)</span>
-                            </label>
-                            <input type="text"
-                                   name="room"
-                                   id="room"
-                                   class="form-control"
-                                   placeholder="e.g., PSU IT Building Rm 204"
-                                   value="{{ old('room') }}">
-                            <div class="form-text small">Physical classroom or laboratory venue.</div>
-                        </div>
-
-                        {{-- 2. Start Date & Start Time --}}
-                        <div class="col-md-6">
-                            <label class="form-label form-label-sm fw-bold text-dark" for="create_start_date">
-                                2. Exam Date <span class="text-danger">*</span>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light text-primary">
-                                    <i class="bi bi-calendar-event"></i>
-                                </span>
-                                <input type="date"
-                                       name="start_date"
-                                       id="create_start_date"
-                                       class="form-control"
-                                       value="{{ old('start_date', now('Asia/Manila')->format('Y-m-d')) }}"
-                                       required>
-                            </div>
-                            <div class="form-text small">The scheduled date for this testing batch.</div>
-                        </div>
-
                         <div class="col-md-6">
                             <label class="form-label form-label-sm fw-bold text-dark" for="create_start_time">
-                                Start Time <span class="text-danger">*</span>
+                                2. Start Time <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light text-primary">
@@ -107,7 +65,7 @@
                                        value="{{ old('start_time', now('Asia/Manila')->addHour()->format('H:i')) }}"
                                        required>
                             </div>
-                            <div class="form-text small">Exact time examinee check-in and proctoring opens.</div>
+                            <div class="form-text small">The batch date and venue will be used automatically.</div>
                         </div>
 
                         {{-- 3. Masterlist Range Assignment --}}

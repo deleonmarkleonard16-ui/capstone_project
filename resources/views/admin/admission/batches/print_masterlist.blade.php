@@ -11,6 +11,8 @@
         .toolbar { width: 210mm; margin: 10px auto; text-align: right; }
         .toolbar button { padding: 9px 15px; color: #fff; background: #123c85; border: 0; border-radius: 4px; font-weight: 700; cursor: pointer; }
         .paper { position: relative; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 0 13mm 22mm; background: #fff; overflow: hidden; }
+        .session-page { break-after: page; page-break-after: always; }
+        .session-page:last-of-type { break-after: auto; page-break-after: auto; }
         .header-band { margin: 0 -13mm; padding: 8mm 12mm 5mm; background: #fff900; border-top: 3px solid #101010; border-bottom: 3px solid #fff900; }
         .header-table { width: 100%; border-collapse: collapse; }
         .header-table td { border: 0; vertical-align: middle; }
@@ -52,12 +54,10 @@
     $footerPath = public_path('images/psu-template/image8.png');
     if (!is_file($footerPath)) $footerPath = public_path('images/psu-template/image8.jpg');
     $footer = is_file($footerPath) ? 'data:image/'.(str_ends_with($footerPath, '.png') ? 'png' : 'jpeg').';base64,'.base64_encode(file_get_contents($footerPath)) : '';
-    $applicants = $sessions->flatMap(fn ($session) => $session->applicants)->values();
-    $times = $sessions->pluck('start_time')->filter();
-    $timeLabel = $times->count() === 1 ? $times->first()->format('h:i A') : 'MULTIPLE SESSIONS';
 @endphp
 <div class="toolbar"><button type="button" onclick="window.print()">Print Masterlist</button></div>
-<main class="paper">
+@forelse($sessions as $session)
+<main class="paper session-page">
     <header class="header-band">
         <table class="header-table"><tr>
             <td style="width:32mm"><img class="seal" src="{{ $seal }}" alt="Pangasinan State University seal"></td>
@@ -75,17 +75,17 @@
     <div class="schedule">
         <div>Date of Test: <span class="value">{{ optional($batch->batch_date)->format('F d, Y') ?: 'Not set' }}</span></div>
         <div>Venue: <span class="value">{{ $batch->room ?: 'Not set' }}</span></div>
-        <div>Time: <span class="value">{{ $timeLabel }}</span></div>
+        <div>Time: <span class="value">{{ optional($session->start_time)->format('h:i A') ?: 'Not set' }}</span></div>
     </div>
     <section class="content">
         <table class="masterlist">
             <colgroup><col style="width:7%"><col style="width:23%"><col style="width:33%"><col style="width:24%"><col style="width:13%"></colgroup>
             <thead><tr><th>No.</th><th>Last Name</th><th>Given Name</th><th>Middle Name</th><th>Course</th></tr></thead>
             <tbody>
-                @forelse($applicants as $applicant)
+                @forelse($session->applicants as $applicant)
                     <tr><td>{{ $loop->iteration }}</td><td class="name">{{ $applicant->last_name }}</td><td class="name">{{ $applicant->first_name }}</td><td class="name">{{ $applicant->middle_name }}</td><td class="name">{{ $applicant->course_choice }}</td></tr>
                 @empty
-                    <tr><td colspan="5" class="empty">No examinees are assigned to this batch.</td></tr>
+                    <tr><td colspan="5" class="empty">No examinees are assigned to {{ $session->session_name }}.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -96,5 +96,8 @@
         <div class="footer-text">Alaminos City · Asingan · Bayambang · Binmaley · Infanta · San Carlos City · Sta. Maria · Urdaneta City &nbsp;|&nbsp; School of Advanced Studies · Open University Systems</div>
     </footer>
 </main>
+@empty
+<main class="paper"><div class="empty">No sessions are assigned to this batch.</div></main>
+@endforelse
 </body>
 </html>

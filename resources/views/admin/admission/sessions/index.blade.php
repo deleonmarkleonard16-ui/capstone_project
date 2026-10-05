@@ -142,7 +142,7 @@
                                         <a class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-paper-answer-sheets', $batch) }}"><i class="bi bi-file-earmark-text"></i> Print Papers</a>
                                         @unless($cycle->isCompleted())
                                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editBatchModal{{ $batch->id }}"><i class="bi bi-pencil"></i></button>
-                                            @if($batch->sessions_count === 0)<form method="POST" action="{{ route('admin.admission.batches.destroy', $batch) }}" onsubmit="return confirm('Delete empty batch {{ $batch->batch_name }}?')">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button></form>@endif
+                                            <form method="POST" action="{{ route('admin.admission.batches.destroy', $batch) }}" onsubmit="return confirm('Delete batch {{ $batch->batch_name }} and all {{ $batch->sessions_count }} session(s) inside it? Assigned applicants will be returned to the masterlist.')">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm" title="Delete batch and all sessions inside"><i class="bi bi-trash"></i></button></form>
                                         @endunless
                                     </div>
                                 </div>

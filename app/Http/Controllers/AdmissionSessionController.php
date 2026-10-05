@@ -298,13 +298,20 @@ class AdmissionSessionController extends Controller
         $cycle = $this->active();
         abort_if(!$cycle || $cycle->id !== $batch->admission_cycle_id || $cycle->isCompleted(), 422, 'Cannot delete this batch.');
 
-        if ($batch->sessions()->exists()) {
-            return back()->with('error', "Batch '{$batch->batch_name}' cannot be deleted while it still contains sessions.");
-        }
-
         $name = $batch->batch_name;
-        $batch->delete();
-        return redirect()->route('admin.admission.sessions.index')->with('success', "Batch '{$name}' deleted.");
+        $sessionIds = $batch->sessions()->pluck('id');
+
+        DB::transaction(function () use ($batch, $sessionIds) {
+            // Applicant records remain in the masterlist. They are only
+            // unassigned from sessions that are being removed with the batch.
+            AdmissionApplicant::whereIn('admission_session_id', $sessionIds)
+                ->update(['admission_session_id' => null, 'session_label' => null]);
+            $batch->sessions()->delete();
+            $batch->delete();
+        });
+
+        return redirect()->route('admin.admission.sessions.index')
+            ->with('success', "Batch '{$name}' and its {$sessionIds->count()} session(s) were deleted. Assigned applicants were returned to the masterlist.");
     }
 
     public function printBatchMasterlist(AdmissionBatch $batch)

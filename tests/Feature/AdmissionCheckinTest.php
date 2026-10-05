@@ -456,6 +456,9 @@ class AdmissionCheckinTest extends TestCase
         $this->assertNotNull($session);
         $this->assertEquals('2026-11-20', $session->start_time->format('Y-m-d'));
         $this->assertEquals('09:30', $session->start_time->format('H:i'));
+        $this->get(route('admin.admission.sessions.index'))
+            ->assertOk()
+            ->assertSee('Nov 20, 2026 | 09:30 AM');
 
         // Case 2: Datetime-local string (e.g. Dec 15, 2026 at 13:00)
         $response2 = $this->post(route('admin.admission.sessions.store'), [

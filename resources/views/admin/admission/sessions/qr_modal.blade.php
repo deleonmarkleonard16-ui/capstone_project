@@ -95,11 +95,11 @@
 
                         {{-- Action Buttons --}}
                         <div class="d-flex flex-wrap gap-2">
-                            <a href="{{ route('admin.admission.sessions.project-qr', $session) }}"
-                               target="_blank" rel="noopener"
-                               class="btn btn-warning fw-bold text-dark btn-sm px-3 shadow-sm">
+                            <button type="button"
+                                    class="btn btn-warning fw-bold text-dark btn-sm px-3 shadow-sm"
+                                    onclick="launchProjectorMode('{{ $session->id }}')">
                                 <i class="bi bi-projector-fill me-1"></i> Display Fullscreen / Project
-                            </a>
+                            </button>
                             <a href="{{ route('admin.admission.sessions.print-qr', $session) }}"
                                target="_blank" rel="noopener"
                                class="btn btn-outline-secondary btn-sm">
@@ -204,14 +204,45 @@
         </div>
     </div>
 
-    {{-- Bottom Bar: Direct URL --}}
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top border-light border-opacity-25 text-white-50 small">
+    <div class="d-flex justify-content-end align-items-center pt-3 border-top border-light border-opacity-25 text-white-50 small">
         <div>
-            <span>If QR scanner is unavailable, open browser and go to:</span>
-            <strong class="text-warning font-monospace ms-1">{{ $checkinUrl }}</strong>
-        </div>
-        <div class="text-end">
             Press <kbd class="bg-secondary text-white">ESC</kbd> to exit projection mode
         </div>
     </div>
 </div>
+
+@once
+<script>
+    function launchProjectorMode(sessionId) {
+        const projector = document.getElementById('projectorScreen' + sessionId);
+        if (!projector) return;
+
+        // Fullscreen is requested directly from the click handler to satisfy
+        // browser security rules; the overlay remains usable if it is denied.
+        projector.classList.remove('d-none');
+        const request = projector.requestFullscreen || projector.webkitRequestFullscreen;
+        if (request) {
+            Promise.resolve(request.call(projector)).catch(() => {});
+        }
+
+        const modalElement = document.getElementById('sessionQrModal' + sessionId);
+        const modal = modalElement && window.bootstrap ? bootstrap.Modal.getInstance(modalElement) : null;
+        modal?.hide();
+    }
+
+    function exitProjectorMode(sessionId) {
+        const projector = document.getElementById('projectorScreen' + sessionId);
+        projector?.classList.add('d-none');
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+        }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) document.querySelectorAll('.projector-overlay').forEach((element) => element.classList.add('d-none'));
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+        if (!document.webkitFullscreenElement) document.querySelectorAll('.projector-overlay').forEach((element) => element.classList.add('d-none'));
+    });
+</script>
+@endonce

@@ -164,14 +164,9 @@ class AdmissionCheckinTest extends TestCase
         $response->assertSee('Session QR');
         $response->assertSee('sessionQrModal' . $session->id);
         $response->assertSee('Display Fullscreen / Project');
-        $response->assertSee(route('admin.admission.sessions.project-qr', $session), false);
         $response->assertSee(route('admin.admission.sessions.print-qr', $session), false);
         $response->assertSee('/admission/checkin/' . $session->qr_token);
 
-        $this->get(route('admin.admission.sessions.project-qr', $session))
-            ->assertOk()
-            ->assertSee('Enter Fullscreen')
-            ->assertSee('Venue check-in QR code');
         $this->get(route('admin.admission.sessions.print-qr', $session))
             ->assertOk()
             ->assertSee('Print QR Code')

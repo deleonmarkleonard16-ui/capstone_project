@@ -271,46 +271,6 @@
     setInterval(updateProjectorClocks, 1000);
     updateProjectorClocks();
 
-    function launchProjectorMode(sessionId) {
-        const modalEl = document.getElementById('sessionQrModal' + sessionId);
-        if (modalEl) {
-            const bsModal = bootstrap.Modal.getInstance(modalEl);
-            if (bsModal) bsModal.hide();
-        }
-
-        const projectorEl = document.getElementById('projectorScreen' + sessionId);
-        if (projectorEl) {
-            projectorEl.classList.remove('d-none');
-            if (projectorEl.requestFullscreen) {
-                projectorEl.requestFullscreen().catch(() => {});
-            } else if (projectorEl.webkitRequestFullscreen) {
-                projectorEl.webkitRequestFullscreen();
-            }
-        }
-    }
-
-    function exitProjectorMode(sessionId) {
-        if (document.fullscreenElement || document.webkitFullscreenElement) {
-            if (document.exitFullscreen) {
-                document.exitFullscreen().catch(() => {});
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            }
-        }
-        const projectorEl = document.getElementById('projectorScreen' + sessionId);
-        if (projectorEl) {
-            projectorEl.classList.add('d-none');
-        }
-    }
-
-    document.addEventListener('fullscreenchange', function() {
-        if (!document.fullscreenElement) {
-            document.querySelectorAll('.projector-overlay').forEach(el => {
-                el.classList.add('d-none');
-            });
-        }
-    });
-
     function printSessionQr(sessionId) {
         const modal = document.getElementById('sessionQrModal' + sessionId);
         if (!modal) return;

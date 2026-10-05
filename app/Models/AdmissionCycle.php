@@ -141,8 +141,9 @@ class AdmissionCycle extends Model
 
     /**
      * Return the single active cycle, or null if none exists.
-     * Uses is_active as the single source of truth; activate() still sets
-     * status='Active' for display, but gating does not require it.
+     * Uses is_active + is_archived as the source of truth for gating.
+     * status='Active' is the display label but not required for the gating query
+     * since the migration normalizes any stale data.
      */
     public static function active(): ?self
     {

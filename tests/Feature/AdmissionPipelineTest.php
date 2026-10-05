@@ -28,7 +28,10 @@ class AdmissionPipelineTest extends TestCase
         $this->login('admin');
         $this->get('/admin/admission')->assertOk();
         $this->get('/admin/admission/answer-key')->assertOk()->assertSee('Answer Key Locked');
-        $this->get('/admin/admission/masterlist')->assertStatus(409);
+        // Browser request → graceful redirect to admission index with error flash
+        $this->get('/admin/admission/masterlist')->assertRedirect(route('admin.admission.index'));
+        // AJAX / JSON request → still returns 409 so JS callers can detect it
+        $this->getJson('/admin/admission/masterlist')->assertStatus(409);
     }
 
     public function test_exam_score_is_computed_and_cannot_be_overwritten_by_edit(): void

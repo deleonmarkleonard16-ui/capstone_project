@@ -13,8 +13,8 @@ class AdmissionCycleGatekeeper
      * Enforces that an active (non-maintenance) Admission Cycle exists before
      * granting access to Masterlist, Encoding Sheet, Test Sessions, Scanners.
      *
-     * HTTP 409 is returned for all blocked requests so feature tests can
-     * assertStatus(409) on both browser and API requests.
+     * Browser requests → redirect to Admission Cycle setup page with error banner.
+     * AJAX / JSON requests → return 409 JSON so tests and JS callers can detect it.
      *
      * Maintenance Mode: if the active cycle has status='Maintenance', encoding
      * operations are blocked (same as no cycle) — only Setup/Cycle management,
@@ -24,33 +24,45 @@ class AdmissionCycleGatekeeper
     {
         $activeCycle = AdmissionCycle::active();
 
-        // 1. Active cycle that is NOT in maintenance → allow
+        // 1. Active cycle that is NOT in maintenance → allow all routes
         if ($activeCycle && $activeCycle->status !== AdmissionCycle::STATUS_MAINTENANCE) {
             return $next($request);
         }
 
-        // 2. Setup, cycle lifecycle, analytics overview, archive, answer-key inspection, and session listing remain accessible
-        if ($request->routeIs('admin.admission.index', 'admin.admission.cycles.*', 'admin.admission.answer-key.index', 'admin.admission.analytics', 'admin.admission.archive', 'admin.sessions.*')) {
+        // 2. These routes are always accessible (cycle management + overview)
+        if ($request->routeIs(
+            'admin.admission.index',
+            'admin.admission.cycles.*',
+            'admin.admission.answer-key.index',
+            'admin.admission.analytics',
+            'admin.admission.archive',
+            'admin.sessions.*'
+        )) {
             return $next($request);
         }
 
         // 3. Allow read-only access to archived records when cycle_id is provided
         if (
-            $request->routeIs(
-                'admin.admission.masterlist',
-                'admin.admission.report'
-            )
+            $request->routeIs('admin.admission.masterlist', 'admin.admission.report')
             && $request->filled('cycle_id')
             && AdmissionCycle::whereKey($request->integer('cycle_id'))->exists()
         ) {
             return $next($request);
         }
 
-        // 4. Maintenance mode message
+        // 4. Build the block message
         $message = $activeCycle
             ? 'The Admission Cycle is currently in Maintenance Mode. Access is suspended until the Guidance Admin exits maintenance.'
             : 'Active Admission Cycle Required: Please initialize or activate an Admission Cycle before accessing Masterlist, Encoding Sheet, or Test Sessions.';
 
-        abort(409, $message);
+        // 5a. AJAX / JSON / API requests → 409 JSON so tests & JS callers can detect it
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['message' => $message], 409);
+        }
+
+        // 5b. Browser requests → redirect to Admission Cycle setup with a clear error banner
+        return redirect()
+            ->route('admin.admission.index')
+            ->with('error', $message);
     }
 }

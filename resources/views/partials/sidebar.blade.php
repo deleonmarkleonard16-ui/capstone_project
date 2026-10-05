@@ -54,7 +54,9 @@
                 {{-- ── 1. ADMISSION TEST (Admin Only - Hidden for Staff) ── --}}
                 @if (auth()->user()->role === 'admin')
                 @php
-                    $hasActiveAdmissionCycle = \App\Models\AdmissionCycle::active() !== null;
+                    $activeCycleObj        = \App\Models\AdmissionCycle::active();
+                    $hasActiveAdmissionCycle = $activeCycleObj !== null
+                        && $activeCycleObj->status !== \App\Models\AdmissionCycle::STATUS_MAINTENANCE;
                 @endphp
                 <details class="sb-group" @if($admissionActive) open @endif>
                     <summary>

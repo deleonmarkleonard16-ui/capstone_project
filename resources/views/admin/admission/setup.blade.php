@@ -32,6 +32,22 @@
     }
 </style>
 
+{{-- Gatekeeper redirect flash messages --}}
+@if (session('error'))
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-start gap-2 mb-3" role="alert">
+        <i class="bi bi-shield-exclamation fs-5 flex-shrink-0 mt-1"></i>
+        <div><strong>Access Blocked:</strong> {{ session('error') }}</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+@if (session('success'))
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+
 {{-- ═══════════════════════════════════════════════════════════
      PSU-CAT ADMISSION CYCLE LIFECYCLE & ARCHIVING ENGINE
      Gatekeeper, Active State Machine, and Archived Cycle Inspector

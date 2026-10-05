@@ -75,14 +75,20 @@
                 <i class="bi bi-printer me-1"></i> Print Masterlist
             </a>
 
-            {{-- 6. OMR Scanner --}}
+            {{-- 6. Print every assigned paper answer sheet in one packet. --}}
+            <a href="{{ route('admin.admission.sessions.print-paper-answer-sheets', $session) }}" target="_blank" rel="noopener"
+               class="btn btn-outline-primary btn-sm fw-semibold">
+                <i class="bi bi-printer-fill me-1"></i> Print All Paper Sheets
+            </a>
+
+            {{-- 7. OMR Scanner --}}
             @if($session->status !== 'Completed' && !$cycle->isCompleted())
                 <button type="button" class="btn btn-outline-primary btn-sm fw-semibold js-open-omr" data-application-number="">
                     <i class="bi bi-camera me-1"></i> OMR Scanner
                 </button>
             @endif
 
-            {{-- 7. Live Polling Indicator & Manual Refresh --}}
+            {{-- 8. Live Polling Indicator & Manual Refresh --}}
             <button type="button" id="btn-manual-poll" class="btn btn-light border btn-sm" title="Refresh Live Monitor Now">
                 <i class="bi bi-arrow-repeat" id="poll-spinner"></i> <span class="d-none d-md-inline small">Live Feed</span>
             </button>

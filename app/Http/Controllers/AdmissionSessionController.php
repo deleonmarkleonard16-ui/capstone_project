@@ -208,6 +208,36 @@ class AdmissionSessionController extends Controller
     }
 
     /**
+     * Open one print-ready document containing a blank paper answer sheet for
+     * every applicant assigned to this session. Individual paper printing is
+     * intentionally kept available from each applicant row.
+     */
+    public function printPaperAnswerSheets(AdmissionSession $session)
+    {
+        $cycle = $session->cycle;
+        abort_unless($cycle, 404);
+
+        $applicants = $session->applicants()
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        if ($applicants->isEmpty()) {
+            return back()->with('warning', 'There are no applicants assigned to this session yet.');
+        }
+
+        $totalItems = max(1, (int) ($cycle->total_items ?: 80));
+        $psuLogoUrl = asset('images/psu-logo.png');
+
+        return view('admin.admission.sessions.paper_answer_sheets', compact(
+            'session',
+            'applicants',
+            'totalItems',
+            'psuLogoUrl'
+        ));
+    }
+
+    /**
      * Record answers recognized by the session OMR web scanner.
      */
     public function scanOmr(Request $request, AdmissionScoringService $scoring)
@@ -669,6 +699,28 @@ class AdmissionSessionController extends Controller
     {
         $rawDate = $request->input('start_date') ?: $request->input('exam_date') ?: $request->input('date');
         $rawTime = $request->input('start_time') ?: $request->input('time');
+
+        // Browser date/time controls submit separate values. Parse those exact
+        // values together so Carbon never supplies today's date as a fallback.
+        if ($rawDate && $rawTime && preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate)) {
+            $time = trim($rawTime);
+
+            if (preg_match('/^(\d{1,2}:\d{2})(?::\d{2})?\s*([AaPp][Mm])$/', $time, $matches)) {
+                return Carbon::createFromFormat(
+                    '!Y-m-d g:i A',
+                    "{$rawDate} {$matches[1]} ".strtoupper($matches[2]),
+                    'Asia/Manila'
+                )->format('Y-m-d H:i:s');
+            }
+
+            if (preg_match('/^(\d{1,2}:\d{2})(?::\d{2})?$/', $time, $matches)) {
+                return Carbon::createFromFormat(
+                    '!Y-m-d H:i',
+                    "{$rawDate} {$matches[1]}",
+                    'Asia/Manila'
+                )->format('Y-m-d H:i:s');
+            }
+        }
 
         // 1. If start_time contains a full ISO/datetime string (e.g. "2026-10-25T08:30" or "2026-10-25 08:30:00")
         if ($rawTime && preg_match('/^\d{4}-\d{2}-\d{2}[T\s]\d{1,2}:\d{2}/', $rawTime)) {

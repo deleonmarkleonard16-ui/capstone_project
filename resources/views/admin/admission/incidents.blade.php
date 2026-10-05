@@ -77,11 +77,12 @@
                         <th>Course</th>
                         <th>Incident Type</th>
                         <th class="text-center" style="width:90px;">Strike</th>
+                        <th class="text-center" style="width:160px;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="incidents-body">
                     <tr id="empty-row">
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td colspan="7" class="text-center text-muted py-5">
                             <i class="bi bi-shield-check fs-2 d-block mb-2 opacity-25"></i>
                             Feed is live — no security incidents recorded yet.
                         </td>
@@ -190,6 +191,13 @@ async function refresh() {
                 <td><span class="badge bg-light text-dark border small">${item.course_choice || '—'}</span></td>
                 <td>${LABELS[item.incident_type] || item.incident_type}</td>
                 <td class="text-center">${strikeBadge(item.strike_number)}</td>
+                <td class="text-center">
+                    ${item.strike_number >= 3 ? `
+                        <button type="button" class="btn btn-warning text-dark btn-sm fw-bold shadow-sm py-0 px-2" onclick="unterminateApplicant(${item.applicant_id}, '${(item.first_name || '') + ' ' + (item.last_name || '')}')">
+                            <i class="bi bi-unlock-fill me-1"></i> Unlock & Resume
+                        </button>
+                    ` : '<span class="text-muted small">—</span>'}
+                </td>
             `;
             tbody.prepend(tr);
             addToast(item);
@@ -200,6 +208,33 @@ async function refresh() {
     } catch {
         document.getElementById('status-badge').textContent  = 'Feed error – retrying';
         document.getElementById('status-badge').className    = 'badge bg-danger ms-2';
+    }
+}
+
+async function unterminateApplicant(applicantId, name) {
+    if (!applicantId) return;
+    if (!confirm(`Unlock exam session and reset strikes for ${name}?`)) return;
+
+    try {
+        const res = await fetch(`/admin/admission/sessions/unterminate/${applicantId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            alert(data.message || 'Applicant unlocked successfully.');
+            refresh();
+        } else {
+            alert(data.message || 'Failed to unlock applicant.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('An error occurred.');
     }
 }
 

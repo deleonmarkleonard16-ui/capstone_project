@@ -40,7 +40,7 @@ class AdmissionCheckinController extends Controller
         if ($checkedInApplicantId && $checkedInSessionId === $session->id) {
             $applicant = AdmissionApplicant::find($checkedInApplicantId);
             if ($applicant && !$applicant->submitted_at) {
-                return redirect()->route('admission.waiting', ['session_token' => $session_token]);
+                return redirect()->route('admission.checkin.waiting', ['session_token' => $session_token]);
             }
         }
 
@@ -153,7 +153,7 @@ class AdmissionCheckinController extends Controller
         }
 
         // Otherwise examinee waits in the synchronized waiting room until admin launches session
-        return redirect()->route('admission.waiting', ['session_token' => $session_token])
+        return redirect()->route('admission.checkin.waiting', ['session_token' => $session_token])
             ->with('success', 'Attendance verified! Please wait for the admin to start the exam.');
     }
 

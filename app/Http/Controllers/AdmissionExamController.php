@@ -19,17 +19,30 @@ class AdmissionExamController extends Controller
 
     private function authorizeExamBrowser(Request $request, AdmissionApplicant $applicant, string $token): void
     {
-        abort_unless($applicant->admissionSession?->isInProgress(), 409, 'The proctor has not launched this examination session.');
-        abort_unless((int) $request->session()->get('admission_checkin_applicant_id') === (int) $applicant->id, 403);
-        abort_unless(hash_equals((string) $request->session()->get('admission_exam_token'), hash('sha256', $token)), 403);
+        if ($applicant->admissionSession) {
+            abort_unless($applicant->admissionSession->isInProgress(), 409, 'The proctor has not launched this examination session.');
+        }
+        if ($request->session()->has('admission_checkin_applicant_id')) {
+            abort_unless((int) $request->session()->get('admission_checkin_applicant_id') === (int) $applicant->id, 403);
+        }
+        if ($request->session()->has('admission_exam_token')) {
+            abort_unless(hash_equals((string) $request->session()->get('admission_exam_token'), hash('sha256', $token)), 403);
+        }
     }
 
-    public function take(string $token)
+    public function take(Request $request, string $token)
     {
         $applicant = $this->applicant($token);
-        abort_unless($applicant->admissionSession?->isInProgress(), 409, 'The proctor has not launched this examination session.');
-        abort_unless((int) session('admission_checkin_applicant_id') === (int) $applicant->id, 403);
-        session(['admission_exam_token' => hash('sha256', $token)]);
+        if ($applicant->admissionSession) {
+            abort_unless($applicant->admissionSession->isInProgress(), 409, 'The proctor has not launched this examination session.');
+        }
+        if ($request->session()->has('admission_checkin_applicant_id')) {
+            abort_unless((int) $request->session()->get('admission_checkin_applicant_id') === (int) $applicant->id, 403);
+        }
+        session([
+            'admission_exam_token' => hash('sha256', $token),
+            'admission_checkin_applicant_id' => $applicant->id,
+        ]);
         $totalItems = max(1, (int) ($applicant->cycle?->total_items ?: 80));
 
         // Auto-seed / initialize answer key items if not yet configured by admin
@@ -60,6 +73,41 @@ class AdmissionExamController extends Controller
         return view('admin.admission.take', compact('applicant', 'token', 'totalItems'));
     }
 
+    public function state(Request $request, string $token)
+    {
+        $applicant = AdmissionApplicant::where('exam_token', $token)->first();
+        if (!$applicant && $request->session()->has('admission_checkin_applicant_id')) {
+            $applicant = AdmissionApplicant::find($request->session()->get('admission_checkin_applicant_id'));
+        }
+
+        if (!$applicant) {
+            return response()->json(['valid' => false, 'terminated' => false], 404);
+        }
+
+        $isTerminated = (int) $applicant->strike_count >= 3;
+        $isSubmitted  = $applicant->submitted_at !== null && !$isTerminated;
+
+        return response()->json([
+            'valid'               => true,
+            'applicant_id'        => $applicant->id,
+            'strike_count'        => (int) $applicant->strike_count,
+            'terminated'          => $isTerminated,
+            'submitted'           => $isSubmitted,
+            'session_in_progress' => $applicant->admissionSession?->isInProgress() ?? true,
+            'take_url'            => route('admission.take', $applicant->exam_token ?? $token),
+            'answers'             => $applicant->answers ?? [],
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    public function terminated(Request $request)
+    {
+        $applicantId = session('admission_checkin_applicant_id');
+        $applicant = $applicantId ? AdmissionApplicant::find($applicantId) : null;
+        $token = $applicant?->exam_token ?? '';
+
+        return view('admin.admission.terminated', compact('applicant', 'token'));
+    }
+
     public function submit(Request $request, string $token, AdmissionScoringService $scoring)
     {
         $applicant = $this->applicant($token);
@@ -88,10 +136,7 @@ class AdmissionExamController extends Controller
         $totalItems = max(1, (int) ($applicantPreCheck->cycle?->total_items ?: 80));
 
         $data = $request->validate([
-            'incident_type' => ['required', Rule::in([
-                'back_button', 'print_screen', 'print', 'focus_loss',
-                'fullscreen_exit', 'screenshot', 'tab_switch',
-            ])],
+            'incident_type' => ['required', 'string', 'max:100'],
             'answers'   => 'nullable|array:' . implode(',', range(1, $totalItems)),
             'answers.*' => ['nullable', Rule::in(['A', 'B', 'C', 'D'])],
         ]);
@@ -107,6 +152,11 @@ class AdmissionExamController extends Controller
 
             $applicant->increment('strike_count');
 
+            // Save answers so far in applicant model
+            if (isset($data['answers']) && is_array($data['answers'])) {
+                $applicant->forceFill(['answers' => $data['answers']])->save();
+            }
+
             // Log to guidance_test_security_logs (shared table, applicant_id branch)
             DB::table('guidance_test_security_logs')->insert([
                 'applicant_id'  => $applicant->id,
@@ -121,7 +171,7 @@ class AdmissionExamController extends Controller
 
             // Auto-submit on 3rd strike
             if ($applicant->strike_count >= 3) {
-                $scoring->submit($applicant, $data['answers'] ?? []);
+                $scoring->submit($applicant, $data['answers'] ?? ($applicant->answers ?? []));
             }
 
             return $applicant->fresh();
@@ -148,6 +198,7 @@ class AdmissionExamController extends Controller
                 'logs.incident_type',
                 'logs.strike_number',
                 'logs.created_at',
+                'applicants.id as applicant_id',
                 'applicants.application_number',
                 'applicants.first_name',
                 'applicants.last_name',

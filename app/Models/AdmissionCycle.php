@@ -186,8 +186,6 @@ class AdmissionCycle extends Model
      */
     public function activate(): void
     {
-        abort_if($this->isCompleted(), 409, 'A completed/archived cycle cannot be reactivated.');
-
         DB::transaction(function () {
             static::query()->where('id', '!=', $this->id)->update([
                 'is_active'   => false,

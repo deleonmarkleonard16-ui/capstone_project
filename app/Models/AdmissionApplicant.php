@@ -37,6 +37,8 @@ class AdmissionApplicant extends Model
         'gwa',
         'interview_score',
         'attendance_status',
+        'exam_token',
+        'answers',
     ];
 
     /**

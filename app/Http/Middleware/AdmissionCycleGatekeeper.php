@@ -29,8 +29,8 @@ class AdmissionCycleGatekeeper
             return $next($request);
         }
 
-        // 2. Setup, cycle lifecycle, analytics, archive overview, and legacy session management routes are always open
-        if ($request->routeIs('admin.admission.index', 'admin.admission.cycles.*', 'admin.admission.answer-key.*', 'admin.admission.analytics', 'admin.admission.archive', 'admin.sessions.*')) {
+        // 2. Setup, cycle lifecycle, analytics overview, archive, answer-key inspection, and session listing remain accessible
+        if ($request->routeIs('admin.admission.index', 'admin.admission.cycles.*', 'admin.admission.answer-key.index', 'admin.admission.analytics', 'admin.admission.archive', 'admin.sessions.*')) {
             return $next($request);
         }
 

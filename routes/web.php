@@ -143,12 +143,16 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->group(func
 Route::middleware([PreventBackHistory::class, \App\Http\Middleware\PrivateGuidanceResponse::class])->prefix('admission/take/{token}')->name('admission.')->group(function () {
     $exam = \App\Http\Controllers\AdmissionExamController::class;
     Route::get('/', [$exam, 'take'])->name('take');
+    Route::get('/state', [$exam, 'state'])->name('state');
     Route::post('/', [$exam, 'submit'])->middleware('throttle:guidance-exam')->name('submit');
     Route::post('/strike', [$exam, 'strike'])->middleware('throttle:guidance-strikes')->name('strike');
 });
 Route::get('/admission/complete', fn () => view('admin.admission.complete'))
     ->middleware([PreventBackHistory::class, \App\Http\Middleware\PrivateGuidanceResponse::class])
     ->name('admission.complete');
+Route::get('/admission/terminated', [\App\Http\Controllers\AdmissionExamController::class, 'terminated'])
+    ->middleware([PreventBackHistory::class, \App\Http\Middleware\PrivateGuidanceResponse::class])
+    ->name('admission.terminated');
 
 Route::middleware(['auth', PreventBackHistory::class, 'role:staff'])->prefix('staff')->name('staff.settings.')->group(function (): void {
     Route::get('/settings', [\App\Http\Controllers\StaffSettingsController::class, 'index'])->name('index');
@@ -248,6 +252,8 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::post('/sessions/{session}/reassign-absent-bulk', [\App\Http\Controllers\AdmissionSessionController::class, 'reassignAbsentBulk'])->name('sessions.reassign-absent-bulk');
         Route::post('/sessions/{session}/checkin/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'checkinApplicant'])->name('sessions.checkin-applicant');
         Route::post('/sessions/{session}/mark-absent/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'markAbsentApplicant'])->name('sessions.mark-absent-applicant');
+        Route::post('/sessions/unterminate/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'unterminate'])->name('sessions.unterminate');
+        Route::post('/api/admission/reset-strikes/{applicant}', [\App\Http\Controllers\AdmissionSessionController::class, 'unterminate'])->name('api.reset-strikes');
         Route::resource('sessions', \App\Http\Controllers\AdmissionSessionController::class);
         Route::post('/sessions/scan-omr', [\App\Http\Controllers\AdmissionSessionController::class, 'scanOmr'])->name('sessions.scan-omr');
         Route::post('/sessions/{session}/status', [\App\Http\Controllers\AdmissionSessionController::class, 'updateStatus'])->name('sessions.status');

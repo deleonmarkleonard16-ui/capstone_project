@@ -56,9 +56,6 @@
                 <i class="bi bi-grid-3x3 me-1"></i> Encoding Sheet
             </a>
         @endif
-        <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.admission.proctoring') }}">
-            <i class="bi bi-camera-video me-1"></i> Proctoring
-        </a>
     </div>
 </div>
 

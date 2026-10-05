@@ -16,7 +16,7 @@
                         <span class="badge bg-success fs-6"><i class="bi bi-check-circle me-1"></i> Completed</span>
                     @elseif ($session->status === 'In-Progress')
                         <span class="badge bg-warning text-dark fs-6">
-                            <span class="spinner-grow spinner-grow-sm me-1 text-dark" role="status" style="width: 0.75rem; height: 0.75rem;"></span>
+                            <i class="bi bi-play-circle-fill me-1"></i>
                             In-Progress (Live)
                         </span>
                     @else
@@ -675,12 +675,22 @@
                 </div>
 
                 <div class="alert alert-danger py-2 px-3 small rounded-3 mt-3 mb-0" id="sec-modal-terminated-alert" style="display:none;">
-                    <i class="bi bi-slash-circle me-1"></i>
-                    <strong>Exam Auto-Terminated:</strong> Examinee reached 3 strikes for violating test lockdown rules.
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div>
+                            <i class="bi bi-slash-circle me-1"></i>
+                            <strong>Exam Auto-Terminated:</strong> Examinee reached 3 strikes for violating test lockdown rules.
+                        </div>
+                        <button type="button" class="btn btn-warning text-dark btn-sm fw-bold shadow-sm" id="btn-sec-modal-unterminate-alert" onclick="unterminateCurrentApplicant()">
+                            <i class="bi bi-unlock-fill me-1"></i> Unlock & Resume Exam
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer bg-light border-top">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer bg-light border-top d-flex justify-content-between">
+                <button type="button" class="btn btn-warning text-dark btn-sm fw-bold shadow-sm" id="btn-sec-modal-unterminate" style="display:none;" onclick="unterminateCurrentApplicant()">
+                    <i class="bi bi-unlock-fill me-1"></i> Unlock & Resume Exam
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm ms-auto" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -787,7 +797,10 @@
         @endforeach
     };
 
+    let currentSecurityApplicantId = null;
+
     function openIncidentModal(applicantId, applicantName, applicationNumber) {
+        currentSecurityApplicantId = applicantId;
         document.getElementById('sec-modal-name').textContent = applicantName;
         document.getElementById('sec-modal-app').textContent = applicationNumber;
         const tbody = document.getElementById('sec-modal-tbody');
@@ -808,11 +821,53 @@
             });
         }
 
-        const isTerminated = logs.some(l => l.strike >= 3);
-        document.getElementById('sec-modal-terminated-alert').style.display = isTerminated ? 'block' : 'none';
+        const isTerminated = logs.some(l => l.strike >= 3) || logs.length >= 3;
+        const alertEl = document.getElementById('sec-modal-terminated-alert');
+        if (alertEl) alertEl.style.display = isTerminated ? 'block' : 'none';
+        const footerBtn = document.getElementById('btn-sec-modal-unterminate');
+        if (footerBtn) footerBtn.style.display = isTerminated ? 'inline-block' : 'none';
 
         const modal = new bootstrap.Modal(document.getElementById('applicantSecurityModal'));
         modal.show();
+    }
+
+    async function unterminateCurrentApplicant() {
+        if (!currentSecurityApplicantId) return;
+        if (!confirm('Unlock exam and grant re-entry to this examinee? Their strikes will be reset to 0 and their exam access will be restored immediately.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/admission/sessions/unterminate/${currentSecurityApplicantId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                const modalEl = document.getElementById('applicantSecurityModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                examineeSecurityLogs[currentSecurityApplicantId] = [];
+
+                if (typeof fetchMonitorUpdates === 'function') {
+                    fetchMonitorUpdates();
+                }
+
+                alert(data.message || 'Examinee unlocked successfully. Access restored.');
+            } else {
+                alert(data.message || 'Failed to unlock applicant.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('An error occurred while attempting to unlock examinee.');
+        }
     }
 
     // Bulk selection helpers

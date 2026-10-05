@@ -586,6 +586,62 @@ class AdmissionSessionController extends Controller
         return back()->with('success', "Examinee {$applicant->full_name} is marked as Absent.");
     }
 
+    /**
+     * Administrative Override / Re-entry: Reset strikes, clear auto-termination lockout,
+     * and allow examinee to resume taking the exam.
+     */
+    public function unterminate(Request $request, AdmissionApplicant $applicant, AdmissionScoringService $scoring)
+    {
+        $cycle = $applicant->cycle ?? AdmissionCycle::active();
+        abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot override examinee on an archived cycle.');
+
+        $token = $applicant->exam_token ?: Str::random(64);
+
+        $applicant->forceFill([
+            'strike_count'      => 0,
+            'submitted_at'      => null,
+            'attendance_status' => 'In-Progress',
+            'exam_token'        => $token,
+            'exam_score'        => null,
+            'stanine_score'     => null,
+            'total_score'       => null,
+            'qualification_status' => 'Pending',
+        ])->save();
+
+        // Log administrative override to security logs
+        \Illuminate\Support\Facades\DB::table('guidance_test_security_logs')->insert([
+            'applicant_id'        => $applicant->id,
+            'student_id'          => $applicant->student_id ?: $applicant->application_number,
+            'course_program'      => $applicant->course_choice ?: 'Not provided',
+            'current_test_taking' => 'PSU College Admission Test',
+            'incident_type'       => 'Admin Override / Re-entry Granted',
+            'strike_number'       => 0,
+            'created_at'          => now(),
+            'updated_at'          => now(),
+        ]);
+
+        if ($applicant->cycle) {
+            $scoring->evaluate($applicant->cycle);
+        }
+
+        if (class_exists(\App\Events\ApplicantSessionResumedEvent::class)) {
+            event(new \App\Events\ApplicantSessionResumedEvent($applicant));
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success'      => true,
+                'message'      => "Exam session for {$applicant->full_name} has been unlocked and strikes reset.",
+                'applicant_id' => $applicant->id,
+                'strike_count' => 0,
+                'exam_token'   => $token,
+                'take_url'     => route('admission.take', $token),
+            ]);
+        }
+
+        return back()->with('success', "Exam session for {$applicant->full_name} has been unlocked and strikes reset. The examinee may now resume the exam.");
+    }
+
     // ── Destroy ───────────────────────────────────────────────────────────────
 
     public function destroy(AdmissionSession $session)

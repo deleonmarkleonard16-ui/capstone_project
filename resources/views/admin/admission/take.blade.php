@@ -153,16 +153,20 @@
 
     <div id="answered-count">Answered: <span id="ans-count">0</span> / {{ $totalItems }}</div>
 
+    @php
+        $savedAnswers = is_array($applicant->answers) ? $applicant->answers : (json_decode($applicant->answers, true) ?: []);
+    @endphp
+
     <form id="exam-form">
         @csrf
         <div class="exam-item-list flex flex-col gap-3" aria-label="Admission exam answers">
             @for($i = 1; $i <= $totalItems; $i++)
-                <div class="question-card" id="qcard-{{ $i }}" data-item="{{ $i }}">
+                <div class="question-card {{ !empty($savedAnswers[$i]) ? 'answered' : '' }}" id="qcard-{{ $i }}" data-item="{{ $i }}">
                     <div class="q-num">Item #{{ str_pad($i, 2, '0', STR_PAD_LEFT) }}</div>
                     <div class="choices" role="radiogroup" aria-label="Answer for item {{ $i }}">
                         @foreach(['A','B','C','D'] as $letter)
                         <label class="choice-label" for="a{{ $i }}_{{ $letter }}">
-                            <input type="radio" name="answers[{{ $i }}]" id="a{{ $i }}_{{ $letter }}" value="{{ $letter }}">
+                            <input type="radio" name="answers[{{ $i }}]" id="a{{ $i }}_{{ $letter }}" value="{{ $letter }}" {{ ($savedAnswers[$i] ?? null) === $letter ? 'checked' : '' }}>
                             <span>{{ $letter }}</span>
                         </label>
                         @endforeach
@@ -194,12 +198,13 @@
 </div>
 
 <script>
-const SUBMIT_URL  = @json(route('admission.submit', $token));
-const STRIKE_URL  = @json(route('guidance.log-strike'));
-const COMPLETE_URL = @json(route('admission.complete'));
-const CSRF        = document.querySelector('meta[name="csrf-token"]').content;
+const SUBMIT_URL      = @json(route('admission.submit', $token));
+const STRIKE_URL      = @json(route('guidance.log-strike'));
+const COMPLETE_URL    = @json(route('admission.complete'));
+const TERMINATED_URL  = @json(route('admission.terminated', ['token' => $token]));
+const CSRF            = document.querySelector('meta[name="csrf-token"]').content;
 const INITIAL_STRIKES = {{ (int)$applicant->strike_count }};
-const TOTAL_ITEMS = {{ (int)$totalItems }};
+const TOTAL_ITEMS     = {{ (int)$totalItems }};
 
 const kioskLock    = document.getElementById('kiosk-lock');
 const examShell    = document.getElementById('exam-shell');
@@ -283,7 +288,7 @@ function showStrikeModal(strikeNum, type) {
         title.className    = 'h2 s3';
         title.textContent  = 'Exam Terminated';
         body.textContent   = 'Your exam has been automatically submitted due to 3 security violations. Please see the proctor for further instructions.';
-        document.getElementById('strike-continue').textContent = 'Close';
+        document.getElementById('strike-continue').textContent = 'View Lockout Status';
     }
 
     strikeModal.classList.add('active');
@@ -293,7 +298,7 @@ document.getElementById('strike-continue').addEventListener('click', () => {
     strikeModal.classList.remove('active');
     hideBlackout();
     if (strikes >= 3) {
-        location.replace(COMPLETE_URL);
+        location.replace(TERMINATED_URL);
     } else {
         // Re-enter fullscreen
         if (!document.fullscreenElement) {
@@ -336,6 +341,9 @@ async function reportIncident(type) {
         if (state.terminated) {
             sending = true;
             showStrikeModal(3, type);
+            setTimeout(() => {
+                location.replace(TERMINATED_URL);
+            }, 3000);
             return;
         }
 
@@ -390,14 +398,15 @@ window.addEventListener('popstate', () => {
 
 // ── SCREENSHOT / PRINT HOTKEY BLACKOUT ─────────────────────
 document.addEventListener('keydown', e => {
-    const isPrint = e.key === 'PrintScreen'
-        || (e.ctrlKey && e.key.toLowerCase() === 'p')
-        || (e.metaKey && e.shiftKey && e.key === '4');
+    const isPrintScreen = e.key === 'PrintScreen' || (e.altKey && e.key === 'PrintScreen');
+    const isPrint = (e.ctrlKey && e.key.toLowerCase() === 'p') || (e.metaKey && e.key.toLowerCase() === 'p');
+    const isMacScreenshot = (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key));
+    const isWinScreenshot = (e.key === 'Snapshot' || (e.ctrlKey && e.key === 'PrintScreen'));
 
-    if (isPrint) {
+    if (isPrintScreen || isPrint || isMacScreenshot || isWinScreenshot) {
         e.preventDefault();
         showBlackout();
-        reportIncident(e.key === 'PrintScreen' ? 'print_screen' : 'print');
+        reportIncident(isPrintScreen || isWinScreenshot ? 'print_screen' : (isMacScreenshot ? 'screenshot' : 'print'));
         return;
     }
     // Block context-menu, save, and other dangerous combos

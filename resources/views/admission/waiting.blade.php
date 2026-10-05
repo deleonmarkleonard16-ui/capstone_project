@@ -31,7 +31,7 @@
                 </h1>
 
                 <p class="text-muted small mb-4" style="font-size: 13.5px; line-height: 1.45;">
-                    Waiting for the Guidance Admin/Proctor to start the examination session...
+                    Waiting for the Guidance Admin/Proctor to start the examination session... Waiting for the staff to click "Start Test / Launch Session" to begin.
                 </p>
 
                 {{-- 3 Metadata Stat Boxes --}}
@@ -64,7 +64,7 @@
 
                 <div class="rounded-3 p-3 text-center small mb-0" role="status" aria-live="polite" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 13px;">
                     <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-                    Waiting for the Guidance Admin/Proctor to start the examination session...
+                    Waiting for the Guidance Admin/Proctor to start the examination session... (Waiting for the staff to click Start Test)
                 </div>
 
             </div>

@@ -71,7 +71,7 @@ class AdmissionScoringService
                 'stanine_score' => $stanine,
                 'submitted_at' => now(),
                 'attendance_status' => 'Submitted',
-                'exam_token' => null,
+                'exam_token' => $applicant->exam_token,
             ])->save();
 
             $this->evaluate($applicant->cycle);

@@ -116,8 +116,6 @@ class AdmissionPipelineController extends Controller
 
     public function activate(AdmissionCycle $cycle)
     {
-        abort_if($cycle->isCompleted(), 409, 'Cannot activate an archived/completed cycle.');
-
         $cycle->activate();
 
         return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])

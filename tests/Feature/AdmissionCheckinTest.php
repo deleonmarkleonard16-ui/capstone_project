@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AdmissionApplicant;
+use App\Models\AdmissionBatch;
 use App\Models\AdmissionCycle;
 use App\Models\AdmissionSession;
 use App\Models\Role;
@@ -451,14 +452,20 @@ class AdmissionCheckinTest extends TestCase
             'status'        => AdmissionCycle::STATUS_ACTIVE,
         ]);
 
-        // Case 1: Separate start_date and start_time (e.g., Nov 20, 2026 at 09:30 AM)
+        $novemberBatch = AdmissionBatch::create([
+            'admission_cycle_id' => $cycle->id,
+            'batch_name' => 'November Batch',
+            'batch_date' => '2026-11-20',
+            'room' => 'Rm 301',
+        ]);
+
+        // The date is supplied by the selected batch, while the session supplies its time.
         $response = $this->post(route('admin.admission.sessions.store'), [
             'session_name' => 'Session November Batch',
-            'start_date'   => '2026-11-20',
+            'admission_batch_id' => $novemberBatch->id,
             'start_time'   => '09:30',
             'start_number' => 1,
             'end_number'   => 25,
-            'room'         => 'Rm 301',
         ]);
 
         $response->assertRedirect(route('admin.admission.sessions.index'));
@@ -470,13 +477,20 @@ class AdmissionCheckinTest extends TestCase
             ->assertOk()
             ->assertSee('Nov 20, 2026 | 09:30 AM');
 
-        // Case 2: Datetime-local string (e.g. Dec 15, 2026 at 13:00)
+        $decemberBatch = AdmissionBatch::create([
+            'admission_cycle_id' => $cycle->id,
+            'batch_name' => 'December Batch',
+            'batch_date' => '2026-12-15',
+            'room' => 'Rm 302',
+        ]);
+
+        // A second batch can use a different date with its own sessions.
         $response2 = $this->post(route('admin.admission.sessions.store'), [
             'session_name' => 'Session December Batch',
-            'start_time'   => '2026-12-15T13:00',
+            'admission_batch_id' => $decemberBatch->id,
+            'start_time'   => '13:00',
             'start_number' => 26,
             'end_number'   => 50,
-            'room'         => 'Rm 302',
         ]);
 
         $response2->assertRedirect(route('admin.admission.sessions.index'));
@@ -504,6 +518,56 @@ class AdmissionCheckinTest extends TestCase
             DB::table('admission_sessions')->where('id', $session->id)->value('start_time')
         );
     }
+
+    public function test_expanding_a_session_range_reassigns_applicants_released_by_a_deleted_session(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => 'Range Reassignment',
+            'academic_year' => '2026-2027',
+            'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+        $batch = AdmissionBatch::create([
+            'admission_cycle_id' => $cycle->id,
+            'batch_name' => 'Batch 1',
+            'batch_date' => '2026-10-08',
+            'room' => 'Covered Court',
+        ]);
+        $sessionA = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'admission_batch_id' => $batch->id,
+            'session_name' => 'Session A', 'start_time' => '2026-10-08 08:00:00',
+            'start_number' => 1, 'end_number' => 5, 'status' => AdmissionSession::STATUS_SCHEDULED,
+        ]);
+        $sessionB = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'admission_batch_id' => $batch->id,
+            'session_name' => 'Session B', 'start_time' => '2026-10-08 13:00:00',
+            'start_number' => 6, 'end_number' => 10, 'status' => AdmissionSession::STATUS_SCHEDULED,
+        ]);
+
+        foreach (range(1, 10) as $index) {
+            AdmissionApplicant::create([
+                'admission_cycle_id' => $cycle->id,
+                'admission_session_id' => $index <= 5 ? $sessionA->id : $sessionB->id,
+                'session_label' => $index <= 5 ? 'Session A' : 'Session B',
+                'application_number' => 'CAT-RANGE-'.str_pad((string) $index, 2, '0', STR_PAD_LEFT),
+                'first_name' => "Applicant {$index}", 'last_name' => 'Range', 'course_choice' => 'BSIT',
+            ]);
+        }
+
+        $this->delete(route('admin.admission.sessions.destroy', $sessionB))->assertRedirect();
+        $this->assertSame(5, AdmissionApplicant::whereNull('admission_session_id')->count());
+
+        $this->put(route('admin.admission.sessions.update', $sessionA), [
+            'session_name' => 'Session A',
+            'start_date' => '2026-10-08',
+            'start_time' => '08:00',
+            'start_number' => 1,
+            'end_number' => 10,
+            'status' => AdmissionSession::STATUS_SCHEDULED,
+        ])->assertRedirect(route('admin.admission.sessions.index'));
+
+        $this->assertSame(10, AdmissionApplicant::where('admission_session_id', $sessionA->id)->count());
+        $this->assertSame(0, AdmissionApplicant::whereNull('admission_session_id')->count());
+    }
 }
-
-

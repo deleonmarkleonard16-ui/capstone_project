@@ -123,6 +123,14 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
+                <thead class="table-light" id="batchRosterHeaders">
+                    <tr>
+                        <th class="ps-3" colspan="2">Batch Name</th>
+                        <th colspan="2">Batch Date</th>
+                        <th colspan="2">Venue</th>
+                        <th class="pe-3 text-end">Actions</th>
+                    </tr>
+                </thead>
                 <thead class="table-light d-none" id="sessionRosterHeaders">
                     <tr>
                         <th class="ps-3">Session Name</th>
@@ -323,6 +331,7 @@
         const hasVisibleSessions = Array.from(document.querySelectorAll('.batch-session'))
             .some(row => !row.classList.contains('d-none'));
         document.getElementById('sessionRosterHeaders')?.classList.toggle('d-none', !hasVisibleSessions);
+        document.getElementById('batchRosterHeaders')?.classList.toggle('d-none', hasVisibleSessions);
     }
 
     document.getElementById('createSessionModal')?.addEventListener('show.bs.modal', event => {

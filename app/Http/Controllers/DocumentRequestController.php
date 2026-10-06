@@ -37,9 +37,17 @@ class DocumentRequestController extends Controller
             $query->where(fn ($q) => $q->where('student_number', 'like', $like)->orWhere('first_name', 'like', $like)->orWhere('last_name', 'like', $like)->orWhere('reference', 'like', $like));
         }
         $query->whereNull('archived_at', 'and', $archived);
+
+        $queueCounts = ServiceRequest::where('service', $module)
+            ->whereNull('archived_at')
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         return view($module === 'good-moral' ? 'staff.good-moral' : 'staff.exit-form', [
             'requests' => $query->latest()->paginate(15)->withQueryString(), 'moduleKey' => $module,
             'mode' => $archived ? 'archive' : 'queue',
+            'queueCounts' => $queueCounts,
             'archivedBatches' => $archived ? $this->filterDocumentBatches(GuidanceTestBatch::where('module_type', self::MODULES[$module])->whereNotNull('archived_at'), $filters)->latest()->paginate(10, ['*'], 'batches_page')->withQueryString() : null,
         ]);
     }
@@ -54,7 +62,13 @@ class DocumentRequestController extends Controller
             ->when($filters['course'] ?? null, fn ($q, $course) => $q->where('course', $course));
         $batches = $this->filterDocumentBatches($batches, $filters)
             ->with('documentRequests')->latest('batch_id')->paginate(10)->withQueryString();
-        return view('staff.document-batches', compact('module', 'batches', 'archived'));
+        $queueCounts = ServiceRequest::where('service', $module)
+            ->whereNotNull('batch_id')
+            ->whereNull('archived_at')
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        return view('staff.document-batches', compact('module', 'batches', 'archived', 'queueCounts'));
     }
 
     private function filterDocumentBatches(\Illuminate\Database\Eloquent\Builder $query, array $filters): \Illuminate\Database\Eloquent\Builder

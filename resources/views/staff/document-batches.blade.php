@@ -2,10 +2,7 @@
 @section('content')
 @php($moduleKey = $module)
 @php($mode = $archived ? 'archive' : 'batches')
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-    <div><h1 class="h3 mb-1">{{ \App\Http\Controllers\DocumentRequestController::MODULES[$module] }} {{ $archived ? 'Archived Batches' : 'Bundled / Batch Queue' }}</h1><p class="text-muted mb-0">Document requests are verified and claimed without an exam.</p></div>
-    @unless($archived)<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#document-batch-modal">+ Create Bundled Request</button>@endunless
-</div>
+@include('staff.partials.document-workspace-header')
 @include('staff.partials.document-tabs')
 @include('staff.partials.course-filter')
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif

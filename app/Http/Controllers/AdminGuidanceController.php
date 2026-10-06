@@ -19,7 +19,11 @@ class AdminGuidanceController extends Controller
         $appointments = $queue->query($filters, $archived)->with(['applicant', 'response', 'serviceRequest', 'securityIncidents'])
             ->orderByRaw("CASE WHEN status = 'Receipt Uploaded' THEN 0 WHEN status = 'Pending Payment' THEN 1 ELSE 2 END")
             ->latest('guidance_appointment_id')->paginate(25)->withQueryString();
-        $data = compact('appointments', 'filters', 'archived');
+        $queueCounts = $queue->query([], false)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        $data = compact('appointments', 'filters', 'archived', 'queueCounts');
         if ($request->expectsJson()) return response()->json(['html' => view('guidance.queue', $data)->render()]);
         return view('guidance.dashboard', $data);
     }

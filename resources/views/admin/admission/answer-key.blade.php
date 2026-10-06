@@ -8,9 +8,6 @@
         <h1 class="h3 mb-1">Official Answer Key</h1>
         <p class="text-muted mb-0">Configure the admission exam answers and re-score existing submissions.</p>
     </div>
-    <a href="{{ route('admin.admission.index') }}" class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-arrow-left me-1"></i> Admission Cycle
-    </a>
 </div>
 
 @if ($active)
@@ -30,7 +27,7 @@
             <div class="d-flex align-items-center gap-2">
                 <label class="form-label form-label-sm mb-0 fw-semibold text-muted" for="total_items_setter">Total Items:</label>
                 <input type="number" id="total_items_setter" class="form-control form-control-sm" style="width:90px" min="10" max="200" value="{{ $configuredItems }}">
-                <button type="button" class="btn btn-outline-secondary btn-sm" id="applyItemCount"><i class="bi bi-arrow-repeat me-1"></i> Apply</button>
+                <button type="button" class="btn btn-primary btn-sm" id="applyItemCount"><i class="bi bi-arrow-repeat me-1"></i> Apply</button>
             </div>
         </div>
         <div class="card-body p-4">
@@ -40,14 +37,12 @@
                 <div class="vertical-answer-grid" id="answerKeyGrid" data-total-items="{{ $configuredItems }}">
                     @for ($i = 1; $i <= $configuredItems; $i++)
                         <div class="vertical-answer-grid__item">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text" style="min-width:36px">{{ $i }}</span>
-                                <select name="answers[{{ $i }}]" class="form-select form-select-sm" required>
-                                    <option value="">&ndash;</option>
-                                    @foreach (['A', 'B', 'C', 'D'] as $letter)
-                                        <option value="{{ $letter }}" @selected(($keys[$i] ?? null) === $letter)>{{ $letter }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="answer-choice-set" role="radiogroup" aria-label="Answer for item {{ $i }}">
+                                <span class="input-group-text answer-choice-set__number">{{ $i }}</span>
+                                @foreach (['A', 'B', 'C', 'D'] as $letter)
+                                    <input class="btn-check" type="radio" name="answers[{{ $i }}]" id="answer-{{ $i }}-{{ $letter }}" value="{{ $letter }}" @checked(($keys[$i] ?? null) === $letter) @required($loop->first)>
+                                    <label class="btn btn-outline-primary btn-sm answer-choice-set__option" for="answer-{{ $i }}-{{ $letter }}">{{ $letter }}</label>
+                                @endforeach
                             </div>
                         </div>
                     @endfor
@@ -81,6 +76,9 @@
         max-height: 620px;
         overflow: auto;
     }
+    .answer-choice-set { display: flex; align-items: stretch; gap: .25rem; }
+    .answer-choice-set__number { min-width: 36px; justify-content: center; }
+    .answer-choice-set__option { min-width: 38px; }
     @media (max-width: 767.98px) {
         .vertical-answer-grid { grid-template-columns: minmax(0, 1fr); }
     }
@@ -97,11 +95,23 @@
     const hiddenInput = document.getElementById('hidden_total_items');
     const badge = document.getElementById('key-item-badge');
     const label = document.getElementById('item-count-label');
-    const buildItem = (item, answer = '') => {
+    const buildLegacyItem = (item, answer = '') => {
         const col = document.createElement('div');
         col.className = 'vertical-answer-grid__item';
         col.innerHTML = `<div class="input-group input-group-sm"><span class="input-group-text" style="min-width:36px">${item}</span><select name="answers[${item}]" class="form-select form-select-sm" required><option value="">–</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>`;
         col.querySelector('select').value = answer;
+        return col;
+    };
+
+    const buildItem = (item, answer = '') => {
+        const col = document.createElement('div');
+        col.className = 'vertical-answer-grid__item';
+        const choices = ['A', 'B', 'C', 'D'].map((letter, index) =>
+            `<input class="btn-check" type="radio" name="answers[${item}]" id="answer-${item}-${letter}" value="${letter}" ${letter === answer ? 'checked' : ''} ${index === 0 ? 'required' : ''}>` +
+            `<label class="btn btn-outline-primary btn-sm answer-choice-set__option" for="answer-${item}-${letter}">${letter}</label>`
+        ).join('');
+        col.innerHTML = `<div class="answer-choice-set" role="radiogroup" aria-label="Answer for item ${item}">` +
+            `<span class="input-group-text answer-choice-set__number">${item}</span>${choices}</div>`;
         return col;
     };
 
@@ -110,7 +120,8 @@
         if (!Number.isInteger(count) || count < 10 || count > 200) return setter.classList.add('is-invalid');
         setter.classList.remove('is-invalid');
 
-        const answers = [...grid.querySelectorAll('select')].map(select => select.value);
+        const answers = [...grid.querySelectorAll('.vertical-answer-grid__item')]
+            .map(item => item.querySelector('input[type="radio"]:checked')?.value || '');
         grid.replaceChildren(...Array.from({ length: count }, (_, index) => buildItem(index + 1, answers[index] || '')));
         grid.dataset.totalItems = count;
         hiddenInput.value = count;

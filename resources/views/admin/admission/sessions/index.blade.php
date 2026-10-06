@@ -47,12 +47,6 @@
                 <i class="bi bi-plus-circle me-1"></i> Create Test Session
             </button>
         @endif
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}">
-            <i class="bi bi-table me-1"></i> Masterlist
-        </a>
-        <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.admission.encoding-sheet', ['cycle_id' => $cycle->id]) }}">
-            <i class="bi bi-grid-3x3 me-1"></i> Encoding Sheet
-        </a>
     </div>
 </div>
 

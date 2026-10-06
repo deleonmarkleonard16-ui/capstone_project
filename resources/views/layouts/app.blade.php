@@ -304,7 +304,7 @@
         <div class="{{ $user ? 'friendly-shell' : '' }}">
             @if ($user && request()->routeIs('admin.admission.*') && !request()->routeIs('admin.admission.masterlist', 'admin.admission.encoding-sheet'))
                 <div class="d-flex justify-content-end mb-2">
-                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.location.reload()" title="Reload this Admission Test page">
+                    <button class="btn btn-primary btn-sm" type="button" onclick="window.location.reload()" title="Reload this Admission Test page">
                         <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
                     </button>
                 </div>

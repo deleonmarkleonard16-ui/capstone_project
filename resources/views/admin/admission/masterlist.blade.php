@@ -27,7 +27,7 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         {{-- ── REFRESH DATA BUTTON ── --}}
-        <button class="btn btn-outline-secondary btn-sm" id="refreshMasterlistBtn" type="button" title="Reload applicant list without a full page reload">
+        <button class="btn btn-primary btn-sm" id="refreshMasterlistBtn" type="button" title="Reload applicant list without a full page reload">
             <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
         </button>
     </div>

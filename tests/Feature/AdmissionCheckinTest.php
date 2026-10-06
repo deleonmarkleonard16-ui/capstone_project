@@ -669,4 +669,60 @@ class AdmissionCheckinTest extends TestCase
             ->assertOk()
             ->assertSee('Session Timer');
     }
+
+    public function test_deleting_a_session_resets_unfinished_applicants_for_a_new_checkin_flow(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => 'Delete Reset', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+        $session = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Deleted Session',
+            'start_time' => now(), 'start_number' => 1, 'end_number' => 2,
+            'status' => AdmissionSession::STATUS_IN_PROGRESS,
+        ]);
+        $unfinished = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'session_label' => $session->session_name, 'application_number' => 'CAT-RESET-1',
+            'first_name' => 'Ready', 'last_name' => 'Applicant', 'course_choice' => 'BSIT',
+            'attendance_status' => 'Ready', 'checked_in_at' => now(), 'exam_token' => Str::random(64),
+            'answers' => [1 => 'A'],
+        ]);
+        $submitted = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'session_label' => $session->session_name, 'application_number' => 'CAT-RESET-2',
+            'first_name' => 'Submitted', 'last_name' => 'Applicant', 'course_choice' => 'BSIT',
+        ]);
+        $submitted->forceFill([
+            'submitted_at' => now(), 'exam_score' => 55, 'stanine_score' => 6,
+            'attendance_status' => 'Submitted', 'answers' => [1 => 'A'],
+        ])->save();
+
+        $this->delete(route('admin.admission.sessions.destroy', $session))->assertRedirect();
+
+        $unfinished->refresh();
+        $submitted->refresh();
+        $this->assertNull($unfinished->admission_session_id);
+        $this->assertNull($unfinished->session_label);
+        $this->assertSame('Absent', $unfinished->attendance_status);
+        $this->assertNull($unfinished->checked_in_at);
+        $this->assertNull($unfinished->exam_token);
+        $this->assertNull($unfinished->answers);
+        $this->assertSame(0, $unfinished->strike_count);
+        $this->assertNull($submitted->admission_session_id);
+        $this->assertNotNull($submitted->submitted_at);
+        $this->assertSame('55.00', $submitted->exam_score);
+
+        $newSession = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Replacement Session',
+            'start_time' => now()->addDay(), 'start_number' => 1, 'end_number' => 1,
+            'status' => AdmissionSession::STATUS_SCHEDULED,
+        ]);
+        $unfinished->update([
+            'admission_session_id' => $newSession->id,
+            'session_label' => $newSession->session_name,
+        ]);
+        $this->assertSame('Absent', $unfinished->fresh('admissionSession')->computed_attendance_status);
+    }
 }

@@ -327,10 +327,7 @@ class AdmissionSessionController extends Controller
         $sessionIds = $batch->sessions()->pluck('id');
 
         DB::transaction(function () use ($batch, $sessionIds) {
-            // Applicant records remain in the masterlist. They are only
-            // unassigned from sessions that are being removed with the batch.
-            AdmissionApplicant::whereIn('admission_session_id', $sessionIds)
-                ->update(['admission_session_id' => null, 'session_label' => null]);
+            $this->resetDeletedSessionApplicants($sessionIds);
             $batch->sessions()->delete();
             $batch->delete();
         });
@@ -857,15 +854,50 @@ class AdmissionSessionController extends Controller
         $cycle = $session->cycle;
         abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot delete sessions on an archived cycle.');
 
-        // Unlink assigned applicants
-        AdmissionApplicant::where('admission_session_id', $session->id)
-            ->update(['admission_session_id' => null, 'session_label' => null]);
+        $this->resetDeletedSessionApplicants(collect([$session->id]));
 
         $name = $session->session_name;
         $session->delete();
 
         return redirect()->route('admin.admission.sessions.index')
-            ->with('success', "Session '{$name}' deleted. Assigned applicants have been unlinked.");
+            ->with('success', "Session '{$name}' deleted. Unfinished applicants were reset to Absent and can check in again when assigned to a new session.");
+    }
+
+    /**
+     * Return examinees from deleted sessions to the masterlist's first-flow
+     * state. Completed examination results stay intact; only unfinished
+     * examination drafts and attendance/check-in data are reset.
+     */
+    private function resetDeletedSessionApplicants($sessionIds): void
+    {
+        $sessionIds = collect($sessionIds)->filter()->values();
+        if ($sessionIds->isEmpty()) {
+            return;
+        }
+
+        $unsubmitted = AdmissionApplicant::whereIn('admission_session_id', $sessionIds)
+            ->whereNull('submitted_at');
+
+        $unsubmitted->update([
+            'admission_session_id' => null,
+            'session_label' => null,
+            'attendance_status' => 'Absent',
+            'checked_in_at' => null,
+            'exam_token' => null,
+            'answers' => null,
+            'strike_count' => 0,
+        ]);
+
+        // A completed score/result must remain part of the applicant record,
+        // but it must no longer point to a session that has been deleted.
+        AdmissionApplicant::whereIn('admission_session_id', $sessionIds)
+            ->whereNotNull('submitted_at')
+            ->update([
+                'admission_session_id' => null,
+                'session_label' => null,
+                'checked_in_at' => null,
+                'exam_token' => null,
+            ]);
     }
 
     /**

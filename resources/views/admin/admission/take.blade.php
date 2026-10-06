@@ -141,7 +141,7 @@
         <strong>Before you begin, read carefully:</strong>
         <ul>
             <li>The exam will run in <strong>mandatory fullscreen kiosk mode</strong>.</li>
-            <li>Exiting fullscreen, switching tabs, or losing window focus counts as a <strong>security strike</strong>.</li>
+            <li>Only the answer sheet may remain on screen. Exiting fullscreen, switching tabs/apps, navigating away, or losing window focus counts as a <strong>security strike</strong>.</li>
             <li>Using Print Screen, Ctrl+P, or similar keys is <strong>prohibited</strong>.</li>
             <li>3 strikes result in <strong>automatic exam submission</strong>.</li>
             <li>There are <strong>{{ $totalItems }} items</strong>. Choose A, B, C, or D for each item.</li>
@@ -475,6 +475,22 @@ document.addEventListener('visibilitychange', () => {
     if (document.hidden && started && !sending) {
         showBlackout();
         reportIncident('tab_switch');
+    }
+});
+
+// Covers browser navigation, closing/minimizing the page, and Chrome placing
+// the page in its background lifecycle. keepalive on reportIncident lets the
+// violation request leave even while the browser is changing pages.
+window.addEventListener('pagehide', () => {
+    if (started && !sending) {
+        showBlackout();
+        reportIncident('page_exit');
+    }
+});
+document.addEventListener('freeze', () => {
+    if (started && !sending) {
+        showBlackout();
+        reportIncident('page_backgrounded');
     }
 });
 

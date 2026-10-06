@@ -79,6 +79,8 @@ class AdmissionPipelineTest extends TestCase
             ->assertSee('Item #01')->assertSee('Item #80')
             ->assertSee('exam-watermark')
             ->assertSee('Cruz, Ben')
+            ->assertSee("window.addEventListener('pagehide'", false)
+            ->assertSee("document.addEventListener('freeze'", false)
             ->assertSee('exam-item-list flex flex-col gap-3');
         foreach (range(1, 3) as $strike) $this->postJson('/admission/take/'.str_repeat('a', 64).'/strike', ['incident_type' => 'back_button', 'answers' => [1 => 'A']])->assertOk()->assertJsonPath('strikes', $strike);
         $this->assertNotNull($applicant->fresh()->submitted_at);

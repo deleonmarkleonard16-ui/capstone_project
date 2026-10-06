@@ -199,7 +199,10 @@
 
 <script>
 const SUBMIT_URL      = @json(route('admission.submit', $token));
-const STRIKE_URL      = @json(route('guidance.log-strike'));
+// Admission security events must go to the admission endpoint.  The guidance
+// endpoint expects a guidance appointment and therefore cannot record an
+// admission examinee's screenshot attempt.
+const STRIKE_URL      = @json(route('admission.strike', $token));
 const COMPLETE_URL    = @json(route('admission.complete'));
 const TERMINATED_URL  = @json(route('admission.terminated', ['token' => $token]));
 const CSRF            = document.querySelector('meta[name="csrf-token"]').content;
@@ -222,8 +225,10 @@ let strikes        = INITIAL_STRIKES;
 let pendingIncident = false;
 let lastIncident   = 0;
 let securityLockActive = false;
-let totalSecs      = 3600; // 60-minute default
+const EXAM_DURATION_SECONDS = 3600; // 60-minute default
+let totalSecs      = EXAM_DURATION_SECONDS;
 let timerInterval  = null;
+let deadlineAt      = null;
 
 // ── ANSWER COLLECTION ───────────────────────────────────────
 function collectAnswers() {
@@ -243,22 +248,32 @@ function updateAnswerCount() {
         const checked = card.querySelector('input:checked');
         card.classList.toggle('answered', !!checked);
     });
-    // Enable submit only when ALL items are answered
-    submitBtn.disabled = (n < TOTAL_ITEMS || !started || sending);
+    // Unanswered questions are valid blank answers.  An examinee may submit
+    // whenever they choose; the server scores only the choices received.
+    submitBtn.disabled = (!started || sending);
 }
 
 document.getElementById('exam-form').addEventListener('change', updateAnswerCount);
 
 // ── TIMER ──────────────────────────────────────────────────
 function startTimer() {
-    timerInterval = setInterval(() => {
-        if (!started || sending) return;
-        totalSecs = Math.max(0, totalSecs - 1);
+    // Calculate against a fixed deadline instead of counting intervals.  This
+    // prevents background-tab timer throttling from giving extra exam time.
+    deadlineAt = deadlineAt || (Date.now() + (EXAM_DURATION_SECONDS * 1000));
+
+    const tick = () => {
+        totalSecs = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
         const m = Math.floor(totalSecs / 60);
         const s = totalSecs % 60;
         timer.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
         timer.classList.toggle('danger', totalSecs <= 300);
         if (totalSecs === 0 && !sending) submitExam(true);
+    };
+
+    tick();
+    timerInterval = setInterval(() => {
+        if (!started || sending) return;
+        tick();
     }, 1000);
 }
 
@@ -326,16 +341,13 @@ async function reportIncident(type) {
     try {
         const res = await fetch(STRIKE_URL, {
             method:  'POST',
+            keepalive: true,
             headers: {
                 'Content-Type':  'application/json',
                 'Accept':        'application/json',
                 'X-CSRF-TOKEN':  CSRF,
             },
             body: JSON.stringify({
-                admission_token: @json($token),
-                student_id: @json($applicant->student_id ?: $applicant->application_number),
-                course_program: @json($applicant->course_choice),
-                timestamp: new Date().toISOString(),
                 incident_type: type,
                 answers: collectAnswers()
             }),

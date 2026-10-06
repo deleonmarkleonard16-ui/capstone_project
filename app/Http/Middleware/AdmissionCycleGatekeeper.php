@@ -32,7 +32,10 @@ class AdmissionCycleGatekeeper
         // 2. These routes are always accessible (cycle management + overview)
         if ($request->routeIs(
             'admin.admission.index',
-            'admin.admission.cycles.*'
+            'admin.admission.cycles.*',
+            // The read-only Answer Key page explains why editing is locked
+            // when no cycle is active.  Its POST route remains protected.
+            'admin.admission.answer-key.index'
         )) {
             return $next($request);
         }

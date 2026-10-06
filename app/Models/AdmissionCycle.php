@@ -162,7 +162,10 @@ class AdmissionCycle extends Model
     public function isActive(): bool
     {
         return (bool) $this->is_active
-            && $this->status === self::STATUS_ACTIVE
+            // Older/imported records may have is_active=1 while retaining the
+            // database default status of Draft.  is_active remains the source
+            // of truth, except for explicitly locked states.
+            && !in_array($this->status, [self::STATUS_MAINTENANCE, self::STATUS_COMPLETED, self::STATUS_ARCHIVED], true)
             && !$this->is_archived;
     }
 

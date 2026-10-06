@@ -74,4 +74,45 @@ class AdmissionPipelineTest extends TestCase
         $this->assertSame(3, DB::table('guidance_test_security_logs')->where('applicant_id', $applicant->id)->count());
         $this->get('/admission/take/'.str_repeat('a', 64))->assertNotFound();
     }
+
+    public function test_admission_exam_accepts_partial_answers_and_logs_screenshot_attempts(): void
+    {
+        $cycle = AdmissionCycle::create(['name' => '2026', 'academic_year' => '2026-2027', 'is_active' => true]);
+        $applicant = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id,
+            'application_number' => 'A-003',
+            'first_name' => 'Cara',
+            'last_name' => 'Santos',
+            'course_choice' => 'BSIT',
+            'exam_token' => str_repeat('c', 64),
+        ]);
+        $session = \App\Models\AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Partial submission',
+            'start_time' => now(), 'start_number' => 1, 'end_number' => 1,
+            'qr_token' => str_repeat('d', 64), 'status' => 'In-Progress',
+        ]);
+        $applicant->update(['admission_session_id' => $session->id]);
+
+        $token = str_repeat('c', 64);
+        $this->withSession(['admission_checkin_applicant_id' => $applicant->id])
+            ->postJson('/admission/take/'.$token.'/strike', [
+                'incident_type' => 'print_screen',
+                'answers' => [1 => 'A'],
+            ])
+            ->assertOk()
+            ->assertJsonPath('strikes', 1);
+
+        $this->withSession(['admission_checkin_applicant_id' => $applicant->id])
+            ->postJson('/admission/take/'.$token, ['answers' => [1 => 'A']])
+            ->assertOk()
+            ->assertJsonPath('done', true);
+
+        $applicant->refresh();
+        $this->assertNotNull($applicant->submitted_at);
+        $this->assertSame(['1' => 'A'], $applicant->answers);
+        $this->assertDatabaseHas('guidance_test_security_logs', [
+            'applicant_id' => $applicant->id,
+            'incident_type' => 'print_screen',
+        ]);
+    }
 }

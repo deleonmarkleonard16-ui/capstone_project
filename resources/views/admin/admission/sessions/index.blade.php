@@ -1,6 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $assignedSessionRanges = [];
+    foreach ($batches as $rangeBatch) {
+        foreach ($rangeBatch->sessions as $rangeSession) {
+            $assignedSessionRanges[] = [
+                'start' => (int) $rangeSession->start_number,
+                'end' => (int) $rangeSession->end_number,
+                'session' => $rangeSession->session_name,
+                'batch' => $rangeBatch->batch_name,
+            ];
+        }
+    }
+@endphp
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
     <div>
         <div class="d-flex align-items-center gap-2 mb-1">
@@ -316,6 +329,27 @@
 {{-- ── MODALS ── --}}
 @include('admin.admission.sessions.create_session_modal')
 
+{{-- Client-side guard: stops an overlapping range before any request reaches the server. --}}
+<div class="modal fade" id="sessionRangeOverlapModal" tabindex="-1" aria-labelledby="sessionRangeOverlapModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-warning shadow">
+            <div class="modal-header bg-warning-subtle">
+                <h5 class="modal-title fw-bold" id="sessionRangeOverlapModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill text-warning-emphasis me-2"></i>Overlapping Session Range
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">This session was not created.</p>
+                <div class="alert alert-warning mb-0" id="sessionRangeOverlapMessage"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Change Range</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @include('admin.admission.batches.create_modal')
 @foreach($batches as $batch)
     @include('admin.admission.batches.edit_modal', ['batch' => $batch])
@@ -326,6 +360,8 @@
 @endforeach
 
 <script>
+    const assignedSessionRanges = @json($assignedSessionRanges);
+
     function toggleBatchSessions(batchId) {
         const rows = document.querySelectorAll('.batch-session-' + batchId);
         const icon = document.getElementById('batchIcon' + batchId);
@@ -345,6 +381,25 @@
         if (batchId) event.currentTarget.querySelector('[name="admission_batch_id"]').value = batchId;
         const label = event.currentTarget.querySelector('[data-selected-batch]');
         if (label && batchName) label.textContent = batchName;
+    });
+
+    document.getElementById('createSessionForm')?.addEventListener('submit', event => {
+        const start = Number(document.getElementById('create_start_number')?.value);
+        const end = Number(document.getElementById('create_end_number')?.value);
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start > end) return;
+
+        const overlap = assignedSessionRanges.find(range => start <= range.end && end >= range.start);
+        if (!overlap) return;
+
+        event.preventDefault();
+        const overlapStart = Math.max(start, overlap.start);
+        const overlapEnd = Math.min(end, overlap.end);
+        const occupied = overlapStart === overlapEnd
+            ? `Masterlist #${overlapStart}`
+            : `Masterlist #${overlapStart}–#${overlapEnd}`;
+        document.getElementById('sessionRangeOverlapMessage').textContent =
+            `${occupied} is already assigned to ${overlap.session} in ${overlap.batch}. Choose a range that does not overlap this session.`;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('sessionRangeOverlapModal')).show();
     });
 
     // Keep the session form open after a rejected range so the admin sees the

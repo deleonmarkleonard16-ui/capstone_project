@@ -77,7 +77,7 @@ class GuidanceSecurityTest extends TestCase
         $this->actingAs(User::factory()->create(['role_id' => null]))->postJson($url, ['reason' => 'Invalid role'])->assertForbidden();
         $staff = $this->staff(); $this->actingAs($staff);
         $this->postJson($url, [])->assertUnprocessable();
-        $this->postJson($url, ['reason' => 'Repeated app switching'])->assertOk()->assertJsonPath('status', 'Completed');
+        $this->postJson($url, ['reason' => 'Repeated app switching'])->assertOk()->assertJsonPath('status', 'Under review');
         $this->postJson($url, ['reason' => 'Retry must not replace reason'])->assertOk();
         $appointment->refresh();
         $this->assertSame($staff->id, $appointment->terminated_by);
@@ -135,13 +135,13 @@ class GuidanceSecurityTest extends TestCase
 
         // Strike 3 triggers auto-termination
         $response = $this->postJson(route('guidance.log-strike'), $this->payload($appointment, 'app_switch'))
-            ->assertOk()->assertJsonPath('strike_count', 3)->assertJsonPath('status', 'Completed');
+            ->assertOk()->assertJsonPath('strike_count', 3)->assertJsonPath('status', 'Terminated');
 
         $this->assertTrue($response->json('terminated'));
         $this->assertSame('Terminated - Violation', $response->json('termination_reason'));
 
         $appointment->refresh();
-        $this->assertSame('Completed', $appointment->status);
+        $this->assertSame('Terminated', $appointment->status);
         $this->assertSame('Terminated - Violation', $appointment->termination_reason);
         $this->assertNotNull($appointment->terminated_at);
         $this->assertFalse($appointment->qrCode->fresh()->is_active);
@@ -166,5 +166,29 @@ class GuidanceSecurityTest extends TestCase
             'incident_type' => 'app_switch',
             'strike_number' => 3,
         ]);
+
+        $this->actingAs($this->staff())
+            ->post(route('staff.guidance-appointments.resume', $appointment))
+            ->assertRedirect();
+        $appointment->refresh();
+        $this->assertSame('In-Progress', $appointment->status);
+        $this->assertSame(0, $appointment->strike_count);
+        $this->assertNull($appointment->response);
+        $this->assertTrue($appointment->qrCode->fresh()->is_active);
+        $this->assertSame([1 => 2], $appointment->draft_answers[$appointment->test_type]);
+
+        // Terminate it again to verify the staff-review path separately.
+        $this->postJson(route('guidance.log-strike'), $this->payload($appointment, 'back_navigation'))->assertOk();
+        $this->postJson(route('guidance.log-strike'), $this->payload($appointment, 'screenshot'))->assertOk();
+        $this->postJson(route('guidance.log-strike'), $this->payload($appointment, 'app_switch'))->assertOk();
+
+        // A terminated request remains in its active queue until staff sends
+        // it to Under Review; only then is it removed from the live incident feed.
+        $this->actingAs($this->staff())
+            ->post(route('staff.guidance-appointments.evaluate', $appointment), ['action' => 'move_to_review'])
+            ->assertRedirect();
+        $this->assertSame('Under review', $appointment->fresh()->status);
+        $this->getJson(route('staff.guidance-appointments.security-incidents'))
+            ->assertOk()->assertJsonCount(0, 'incidents');
     }
 }

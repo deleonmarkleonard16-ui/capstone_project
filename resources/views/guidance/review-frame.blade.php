@@ -66,6 +66,25 @@
     </section>
 
     {{-- ═══ EVALUATE FORM — only shown for Under Review appointments ═══ --}}
+    @if($appointment->status === 'Terminated')
+    <section class="col-12" aria-label="Terminated assessment review">
+        <hr>
+        <div class="alert alert-danger mb-0">
+            <strong>Terminated after security violations.</strong> The saved answers and incident logs remain in the active queue.
+            <div class="d-flex gap-2 flex-wrap mt-2">
+            <form method="post" action="{{ route(auth()->user()->role.'.guidance-appointments.resume', $appointment) }}" data-review-evaluate>
+                @csrf
+                <button type="submit" class="btn btn-outline-danger btn-sm">Allow Continue</button>
+            </form>
+            <form method="post" action="{{ route(auth()->user()->role.'.guidance-appointments.evaluate', $appointment) }}" data-review-evaluate>
+                @csrf
+                <button type="submit" name="action" value="move_to_review" class="btn btn-warning btn-sm">Move to Under Review</button>
+            </form>
+            </div>
+        </div>
+    </section>
+    @endif
+
     @if($appointment->status === 'Under review')
     <section class="col-12" aria-label="Counselor evaluation">
         <hr>

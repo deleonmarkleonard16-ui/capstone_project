@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class GuidanceAppointment extends Model
 {
-    public const STATUSES = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress', 'Under review', 'Completed'];
+    public const STATUSES = ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress', 'Terminated', 'Under review', 'Completed'];
     protected $primaryKey = 'guidance_appointment_id';
     protected $guarded = ['guidance_appointment_id'];
 

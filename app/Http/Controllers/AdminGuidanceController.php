@@ -150,7 +150,7 @@ class AdminGuidanceController extends Controller
         $data = $request->validate([
             'remarks' => 'nullable|string|max:5000',
             'recommendations' => 'nullable|string|max:500',
-            'action' => ['required', Rule::in(['save', 'archive', 'complete_and_archive'])],
+            'action' => ['required', Rule::in(['save', 'move_to_review', 'archive', 'complete_and_archive'])],
         ]);
 
         DB::transaction(function () use ($request, $appointment, $data) {
@@ -163,7 +163,11 @@ class AdminGuidanceController extends Controller
                 'reviewed_at' => now(),
             ];
 
-            if (in_array($data['action'], ['archive', 'complete_and_archive'], true)) {
+            if ($data['action'] === 'move_to_review') {
+                abort_unless($locked->status === 'Terminated', 409, 'Only a terminated assessment can be moved to Under Review.');
+                $update['status'] = 'Under review';
+                $locked->update($update);
+            } elseif (in_array($data['action'], ['archive', 'complete_and_archive'], true)) {
                 $update['status'] = 'Completed';
                 $update['is_archived'] = true;
                 $update['archived_at'] = now();
@@ -194,7 +198,8 @@ class AdminGuidanceController extends Controller
         });
 
         $isArchived = in_array($data['action'], ['archive', 'complete_and_archive'], true);
-        $message = $isArchived ? 'Evaluation finalized and record moved to Module Archives.' : 'Remarks and recommendations saved successfully.';
+        $movedToReview = $data['action'] === 'move_to_review';
+        $message = $isArchived ? 'Evaluation finalized and record moved to Module Archives.' : ($movedToReview ? 'Assessment moved to Under Review.' : 'Remarks and recommendations saved successfully.');
 
         if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
             return response()->json([
@@ -203,6 +208,18 @@ class AdminGuidanceController extends Controller
                 'status' => $isArchived ? 'Completed' : 'Under review',
                 'is_archived' => $isArchived,
             ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function resumeTerminated(Request $request, GuidanceAppointment $appointment, \App\Services\GuidanceAssessmentSessionService $sessions)
+    {
+        $state = $sessions->resumeTerminated($appointment);
+        $message = 'Termination removed. The QR pass is active again and the requester can continue from saved answers.';
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => $message, 'status' => $state['status']]);
         }
 
         return back()->with('success', $message);

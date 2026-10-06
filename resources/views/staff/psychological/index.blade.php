@@ -68,30 +68,7 @@
 <div class="card page-card"><div class="card-body p-4"><h2 class="h5 section-title">Completed Appointments</h2><p class="text-muted">Counts represent requests marked completed by the guidance office.</p><div class="row g-3">@foreach(['Male','Female','Prefer not to say'] as $gender)<div class="col-md-4"><div class="border rounded-3 p-3">{{ $gender }}<div class="fs-4 fw-bold">{{ $genderCounts[$gender] ?? 0 }}</div></div></div>@endforeach</div></div></div>
 @else
 @if($mode === 'queue')
-<div class="card page-card mb-4">
-    <div class="card-body p-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div>
-                <h2 class="h5 section-title mb-1"><i class="bi bi-shield-exclamation text-danger me-1"></i>Recent Security Incidents</h2>
-                <p class="text-muted small mb-0">Individual assessment violations: screenshots/capture shortcuts, back navigation, fullscreen exit, and app or tab switching.</p>
-            </div>
-            <span class="badge {{ $securityIncidentCount ? 'text-bg-danger' : 'text-bg-success' }} fs-6">{{ $securityIncidentCount }} Incident(s) Logged</span>
-        </div>
-        @forelse($recentSecurityIncidents as $incident)
-            @php($appointment = $incident->appointment)
-            <div class="border rounded p-2 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                    <strong>{{ $appointment?->applicant?->full_name ?? 'Unknown applicant' }}</strong>
-                    <span class="text-muted small ms-1">{{ $appointment?->request_code }}</span>
-                    <div class="small text-danger">Strike {{ $incident->strike_number }}: {{ \App\Models\GuidanceSecurityIncident::TYPES[$incident->incident_type] ?? $incident->incident_type }}</div>
-                </div>
-                <small class="text-muted">{{ $incident->created_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</small>
-            </div>
-        @empty
-            <p class="text-muted mb-0">No security incidents have been logged for individual requests.</p>
-        @endforelse
-    </div>
-</div>
+@include('guidance.security-feed')
 @endif
 <div class="card page-card"><div class="card-body p-4"><h2 class="h5 section-title">{{ $mode === 'archive' ? 'Archived Requests' : 'Request Queue' }}</h2><p class="text-muted small">{{ $mode === 'archive' ? 'Completed, declined, and cancelled requests are retained here.' : 'Review uploaded receipts and verify requests to issue assessment passes. Appointment time is set when the receipt is uploaded. Finished requests move to the archive.' }}</p>
 <section data-live-queue><form method="GET" data-live-filters class="row g-2 mb-4"><div class="col-md-4"><label class="visually-hidden" for="search">Search requests</label><input class="form-control" id="search" name="q" value="{{ request('q') }}" placeholder="Search name, student ID or reference"></div><div class="col-md-3"><label class="visually-hidden" for="filter">Status</label><select class="form-select" name="status" id="filter"><option value="">All statuses</option>@foreach(\App\Models\GuidanceAppointment::STATUSES as $status)<option value="{{ $status }}" @selected(request('status')===$status)>{{ ucfirst(str_replace('_',' ',$status)) }}</option>@endforeach</select></div>@if($moduleKey !== 'psychological')<div class="col-md-3"><label class="visually-hidden" for="test-filter">Filter by assessment</label><select id="test-filter" class="form-select" name="test_type"><option value="">All assessments</option>@foreach($module['tests'] as $key=>$label)<option value="{{ $key }}" @selected(request('test_type')===$key)>{{ $label }}</option>@endforeach</select></div>@endif<div class="col-md-2"><button class="btn btn-primary">Search</button><a class="btn btn-link" href="{{ url()->current() }}">Clear</a></div></form>

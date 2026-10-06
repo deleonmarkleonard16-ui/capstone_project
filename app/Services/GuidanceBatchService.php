@@ -202,7 +202,7 @@ class GuidanceBatchService
     public function completeIfDone(GuidanceTestBatch $batch): void
     {
         if (!$batch->appointments()->whereNotIn('attendance_status', ['Completed', 'Absent'])->exists()
-            && !$batch->appointments()->where('status', 'Under review')->exists()) {
+            && !$batch->appointments()->whereIn('status', ['Terminated', 'Under review'])->exists()) {
             $batch->update(['status' => 'Completed', 'archived_at' => now()]);
         }
     }

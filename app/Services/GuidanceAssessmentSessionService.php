@@ -44,7 +44,9 @@ class GuidanceAssessmentSessionService
             if ($appointment->batch_id) \App\Models\GuidanceTestBatch::whereKey($appointment->batch_id)->lockForUpdate()->firstOrFail();
             if ($appointment->service_request_id) ServiceRequest::whereKey($appointment->service_request_id)->lockForUpdate()->firstOrFail();
             $locked = GuidanceAppointment::whereKey($appointment->getKey())->lockForUpdate()->firstOrFail();
-            if ($locked->status === 'Completed') return ['status' => 'Completed'];
+            if (in_array($locked->status, ['Completed', 'Under review', 'Terminated'], true)) {
+                return ['status' => $locked->status];
+            }
             abort_unless($locked->status === 'In-Progress', 409, 'Only a running assessment can be terminated.');
             $locked->qrCode()->lockForUpdate()->firstOrFail();
             $locked->update(['terminated_at' => now(), 'terminated_by' => $staffId, 'termination_reason' => $reason]);
@@ -61,11 +63,55 @@ class GuidanceAssessmentSessionService
             'terminated_at' => now(),
             'termination_reason' => $reason,
         ]);
-        $state = $this->finish($appointment, $appointment->draft_answers ?? [], false);
+        // Keep a three-strike attempt in its active individual/batch queue.
+        // Staff explicitly moves it to Under Review after inspecting the
+        // recorded security incidents and saved answers.
+        $state = $this->finish($appointment, $appointment->draft_answers ?? [], false, 'Terminated');
         $state['strike_count'] = $appointment->strike_count;
         $state['terminated'] = true;
         $state['termination_reason'] = $reason;
         return $state;
+    }
+
+    /** Restore a force-submitted assessment from its saved answers. */
+    public function resumeTerminated(GuidanceAppointment $appointment): array
+    {
+        return DB::transaction(function () use ($appointment) {
+            if ($appointment->batch_id) {
+                $batch = \App\Models\GuidanceTestBatch::whereKey($appointment->batch_id)->lockForUpdate()->firstOrFail();
+                abort_unless($batch->status === 'In-Progress', 409, 'The batch is no longer running.');
+            }
+            if ($appointment->service_request_id) ServiceRequest::whereKey($appointment->service_request_id)->lockForUpdate()->firstOrFail();
+
+            $locked = GuidanceAppointment::whereKey($appointment->getKey())->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'Terminated', 409, 'Only a terminated assessment can continue.');
+            $response = $locked->response()->lockForUpdate()->firstOrFail();
+            $qr = $locked->qrCode()->lockForUpdate()->firstOrFail();
+
+            $answers = $response->answers ?? [];
+            // Legacy one-instrument appointments store a flat answer map;
+            // the active engine expects the instrument-keyed draft format.
+            if (!$locked->test_types) $answers = [$locked->test_type => $answers];
+
+            $started = now();
+            $locked->update([
+                'status' => 'In-Progress',
+                'attendance_status' => 'Ready',
+                'draft_answers' => $answers,
+                'started_at' => $started,
+                'expires_at' => $started->copy()->addSeconds(self::DURATION),
+                'terminated_at' => null,
+                'terminated_by' => null,
+                'termination_reason' => null,
+                // Keep the incident logs, but reset the active strike counter
+                // so the requester receives a fresh three-strike allowance.
+                'strike_count' => 0,
+            ]);
+            $response->delete();
+            $qr->update(['is_active' => true]);
+
+            return $this->state($locked->fresh());
+        }, 3);
     }
 
     public function state(GuidanceAppointment $appointment): array
@@ -148,7 +194,7 @@ class GuidanceAssessmentSessionService
         return $this->state($appointment);
     }
 
-    private function finish(GuidanceAppointment $appointment, array $answers, bool $timedOut): array
+    private function finish(GuidanceAppointment $appointment, array $answers, bool $timedOut, string $finalStatus = 'Under review'): array
     {
         $summaries = [];
         foreach ($appointment->testTypes() as $test) {
@@ -201,7 +247,7 @@ class GuidanceAssessmentSessionService
         }
 
         $appointment->update([
-            'status' => 'Under review',
+            'status' => $finalStatus,
             'attendance_status' => 'Completed',
             'draft_answers' => null,
             'is_archived' => false,
@@ -215,7 +261,13 @@ class GuidanceAssessmentSessionService
             $entry = ServiceRequest::findOrFail($appointment->service_request_id);
             $entry->update(['status' => 'processing', 'archived_at' => null]);
         }
-        return ['status' => 'Under review', 'timed_out' => $timedOut, 'message' => 'Your saved answers have been recorded for counselor review.'];
+        return [
+            'status' => $finalStatus,
+            'timed_out' => $timedOut,
+            'message' => $finalStatus === 'Terminated'
+                ? 'This assessment was force-submitted after security violations and remains in the active queue for staff review.'
+                : 'Your saved answers have been recorded for counselor review.',
+        ];
     }
 
     public function expireDue(): int

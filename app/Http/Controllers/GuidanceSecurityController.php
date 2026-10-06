@@ -75,7 +75,11 @@ class GuidanceSecurityController extends Controller
     public function feed(Request $request)
     {
         $data = $request->validate(['after' => 'nullable|integer|min:0', 'module' => ['nullable', Rule::in(['psychological', 'personality', 'career'])]]);
-        $query = GuidanceSecurityIncident::with(['appointment.applicant', 'appointment.serviceRequest', 'appointment.securityLogs']);
+        // Only active/terminated assessments belong in the live queue feed.
+        // Once staff moves an assessment to Under Review, its audit trail
+        // remains in the record but disappears from Recent Security Incidents.
+        $query = GuidanceSecurityIncident::with(['appointment.applicant', 'appointment.serviceRequest', 'appointment.securityLogs'])
+            ->whereHas('appointment', fn ($appointments) => $appointments->whereIn('status', ['In-Progress', 'Terminated']));
         if (!empty($data['module'])) $query->whereHas('appointment', fn ($appointments) => $appointments->where('test_category', $data['module']));
         if (array_key_exists('after', $data)) $incidents = $query->where('id', '>', $data['after'])->orderBy('id')->limit(100)->get();
         else $incidents = $query->latest('id')->limit(20)->get()->reverse()->values();

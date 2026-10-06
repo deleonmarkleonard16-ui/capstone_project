@@ -305,7 +305,18 @@
                                 <span class="text-muted">–</span>
                             @endif
                         </td>
-                        <td>
+                        <td data-interview-cell="{{ $applicant->id }}">
+                            @if(!$isLocked)
+                                <form class="js-inline-interview-form mb-1" action="{{ route('admin.admission.applicants.interview-score', $applicant) }}" data-applicant-id="{{ $applicant->id }}">
+                                    @csrf
+                                    <div class="input-group input-group-sm" style="min-width: 116px;">
+                                        <input class="form-control text-center js-inline-interview-input" type="number" name="interview_score" min="0" max="100" step="0.01"
+                                               value="{{ $applicant->interview_score }}" placeholder="Enter score" aria-label="Interview score for {{ $applicant->full_name }}" required>
+                                        <button class="btn btn-outline-primary js-inline-interview-save" type="submit" title="Save interview score"><i class="bi bi-check-lg"></i></button>
+                                    </div>
+                                </form>
+                            @endif
+                            <div class="js-inline-interview-result">
                             @if($applicant->interview_score !== null)
                                 <span class="fw-semibold">{{ number_format($applicant->interview_score, 2) }}%</span>
                                 <div class="text-muted" style="font-size: 10px;" title="{{ number_format($applicant->interview_score, 2) }}% × {{ $interviewWeight }}% weight">
@@ -314,14 +325,15 @@
                             @else
                                 <span class="text-muted">–</span>
                             @endif
+                            </div>
                         </td>
-                        <td class="fw-bold">
+                        <td class="fw-bold" data-total-cell="{{ $applicant->id }}">
                             @php
                                 $tot = $applicant->calculated_total ?? $applicant->total_score;
                             @endphp
                             {{ $tot !== null ? number_format($tot, 2) . '%' : '–' }}
                         </td>
-                        <td>
+                        <td data-remarks-cell="{{ $applicant->id }}">
                             <span class="badge {{ $eval['badge'] ?? 'bg-secondary' }}">
                                 {{ $eval['remarks'] }}
                             </span>
@@ -753,6 +765,70 @@
         const url = '{{ url("admin/admission/applicants") }}/' + id + '/certificate?' + params.toString();
         window.open(url, '_blank');
     };
+
+    // Inline interview-score entry is delegated so it also works after the
+    // masterlist's AJAX refresh replaces table rows.
+    document.addEventListener('change', event => {
+        if (event.target.matches('.js-inline-interview-input') && event.target.value !== '') {
+            event.target.closest('.js-inline-interview-form')?.requestSubmit();
+        }
+    });
+
+    document.addEventListener('submit', async event => {
+        const form = event.target.closest('.js-inline-interview-form');
+        if (!form) return;
+        event.preventDefault();
+
+        const button = form.querySelector('.js-inline-interview-save');
+        const input = form.querySelector('.js-inline-interview-input');
+        const applicantId = form.dataset.applicantId;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(form),
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.message || 'Unable to save the interview score.');
+            }
+
+            input.value = Number(payload.interview_score).toFixed(2);
+            const result = document.querySelector(`[data-interview-cell="${applicantId}"] .js-inline-interview-result`);
+            if (result) {
+                const score = Number(payload.interview_score);
+                const weighted = score * (Number(payload.interview_weight) / 100);
+                result.replaceChildren();
+                const scoreLine = document.createElement('span');
+                scoreLine.className = 'fw-semibold';
+                scoreLine.textContent = `${score.toFixed(2)}%`;
+                const weightLine = document.createElement('div');
+                weightLine.className = 'text-muted';
+                weightLine.style.fontSize = '10px';
+                weightLine.textContent = `Wt: ${weighted.toFixed(2)}%`;
+                result.append(scoreLine, weightLine);
+            }
+
+            const total = document.querySelector(`[data-total-cell="${applicantId}"]`);
+            if (total) total.textContent = payload.total_score === null ? '–' : `${Number(payload.total_score).toFixed(2)}%`;
+
+            const remarks = document.querySelector(`[data-remarks-cell="${applicantId}"] .badge`);
+            if (remarks) {
+                remarks.className = `badge ${payload.remarks_badge || 'bg-secondary'}`;
+                remarks.textContent = payload.remarks;
+            }
+
+            showToast(payload.warning || 'Interview score, total, and remarks updated.', payload.warning ? 'warning' : 'success');
+        } catch (error) {
+            showToast(error.message || 'Unable to save the interview score.', 'danger');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-check-lg"></i>';
+        }
+    });
 
     btn.addEventListener('click', () => refresh(false));
 

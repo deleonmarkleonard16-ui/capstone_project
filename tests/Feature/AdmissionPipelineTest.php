@@ -48,6 +48,11 @@ class AdmissionPipelineTest extends TestCase
         $this->post('/admin/admission/applicants/'.$applicant->id.'/encode', ['answers' => array_fill_keys(range(1, 80), 'A')])->assertRedirect();
         $this->assertEquals(80, $applicant->fresh()->exam_score);
         $this->assertSame('Qualified', $applicant->fresh()->qualification_status);
+        $this->postJson('/admin/admission/applicants/'.$applicant->id.'/interview-score', ['interview_score' => 80])
+            ->assertOk()
+            ->assertJsonPath('saved', true)
+            ->assertJsonPath('interview_score', 80);
+        $this->assertNotNull($applicant->fresh()->total_score);
         $this->post('/admin/admission/applicants/'.$applicant->id, ['application_number' => 'A-001', 'first_name' => 'Ana', 'last_name' => 'Reyes', 'course_choice' => 'BSIT', 'gwa' => 90, 'interview_score' => 80, 'exam_score' => 0])->assertRedirect();
         $this->assertEquals(80, $applicant->fresh()->exam_score);
         $this->assertNotNull($applicant->fresh()->total_score);

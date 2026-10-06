@@ -589,6 +589,45 @@ class AdmissionPipelineController extends Controller
         return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])->with('success', 'Applicant saved.');
     }
 
+    /** Save an interview score directly from the masterlist row. */
+    public function saveInterviewScore(Request $request, AdmissionApplicant $applicant, AdmissionScoringService $scoring)
+    {
+        $cycle = $applicant->cycle;
+        abort_unless($cycle, 404);
+        abort_if($cycle->isCompleted(), 422, 'This admission cycle is archived/completed and locked from edits.');
+
+        $data = $request->validate([
+            'interview_score' => ['required', 'numeric', 'between:0,100'],
+        ]);
+
+        $applicant->forceFill(['interview_score' => $data['interview_score']])->save();
+        $scoring->refreshApplicantTotal($applicant);
+
+        $warning = null;
+        try {
+            $scoring->evaluate($cycle);
+        } catch (\Throwable $exception) {
+            // The score and total were already saved. A separate ranking
+            // issue must not leave the administrator at a 502 page.
+            report($exception);
+            $warning = 'Score and total were saved, but the complete masterlist ranking refresh could not finish.';
+        }
+
+        $updated = $applicant->fresh(['cycle', 'admissionSession']);
+        $evaluation = $updated->qualification_evaluation;
+
+        return response()->json([
+            'saved' => true,
+            'warning' => $warning,
+            'interview_score' => (float) $updated->interview_score,
+            'interview_weight' => (float) $cycle->interview_weight,
+            'total_score' => $updated->calculated_total,
+            'qualification_status' => $updated->qualification_status,
+            'remarks' => $evaluation['remarks'],
+            'remarks_badge' => $evaluation['badge'] ?? 'bg-secondary',
+        ]);
+    }
+
     public function import(Request $request, AdmissionScoringService $scoring, \App\Services\AdmissionSpreadsheetReader $reader)
     {
         $cycleId = $request->input('cycle_id');

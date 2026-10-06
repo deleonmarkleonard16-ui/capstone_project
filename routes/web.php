@@ -271,6 +271,7 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::post('/applicants/store-batch-encoded', [\App\Http\Controllers\AdmissionApplicantController::class, 'storeBatchEncoded'])->name('applicants.store-batch-encoded');
         Route::post('/applicants/import', [$c, 'import'])->name('applicants.import');
         Route::post('/applicants/{applicant?}', [$c, 'saveApplicant'])->name('applicants.save');
+        Route::post('/applicants/{applicant}/interview-score', [$c, 'saveInterviewScore'])->name('applicants.interview-score');
         Route::post('/applicants/{applicant}/token', [$c, 'issueToken'])->name('applicants.token');
         Route::get('/applicants/{applicant}/paper', [$c, 'paper'])->name('paper');
         Route::get('/scan-paper', [$c, 'scanner'])->name('scan-paper');

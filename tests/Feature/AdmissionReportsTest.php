@@ -97,6 +97,32 @@ class AdmissionReportsTest extends TestCase
         $this->get('/admin/admission/masterlist')->assertOk()->assertSee('Qualified for Enrollment')->assertSee('Waitlisted');
     }
 
+    public function test_masterlist_saves_enrollment_quotas_for_all_programs_in_one_request(): void
+    {
+        $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]));
+        $cycle = AdmissionCycle::create([
+            'name' => 'Bulk Quota Cycle',
+            'academic_year' => '2030-2031',
+            'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+
+        $this->post(route('admin.admission.quotas.save'), [
+            'quotas' => ['BSIT' => 120, 'BEED' => 80],
+        ])->assertRedirect()->assertSessionHas('success', 'Enrollment quotas updated.');
+
+        $this->assertDatabaseHas('admission_course_quotas', [
+            'admission_cycle_id' => $cycle->id,
+            'course_code' => 'BSIT',
+            'seats' => 120,
+        ]);
+        $this->assertDatabaseHas('admission_course_quotas', [
+            'admission_cycle_id' => $cycle->id,
+            'course_code' => 'BEED',
+            'seats' => 80,
+        ]);
+    }
+
     private function applicant(AdmissionCycle $cycle, string $number, string $course, ?int $stanine, ?int $total, ?int $interview): AdmissionApplicant
     {
         $applicant = AdmissionApplicant::create([

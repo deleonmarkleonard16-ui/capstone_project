@@ -42,7 +42,7 @@ class AdmissionPipelineTest extends TestCase
         $this->get('/admin/admission/masterlist')->assertOk()
             ->assertSee('A-001')
             ->assertSee('Enrollment Quotas by Program')
-            ->assertSee('BSIT Enrollment Seats');
+            ->assertSee('Save Enrollment Quotas');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/paper')->assertOk()->assertSee('Answer Sheet');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/paper?format=pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/encode')->assertOk()->assertSee('Item 80');

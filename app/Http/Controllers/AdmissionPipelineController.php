@@ -147,6 +147,36 @@ class AdmissionPipelineController extends Controller
 
         abort_if($cycle->isCompleted(), 422, 'Cannot edit quotas on an archived cycle.');
 
+        // Masterlist quota form: save all program limits together, matching
+        // the Interview Top Limits workflow. Keep the single-program payload
+        // below for backward compatibility with any old links/forms.
+        if ($request->has('quotas')) {
+            $data = $request->validate([
+                'quotas' => 'required|array',
+                'quotas.*' => 'required|integer|min:0|max:100000',
+            ]);
+
+            $allowedCodes = array_flip(array_keys(CourseCatalog::allOptions()));
+            foreach (array_keys($data['quotas']) as $courseCode) {
+                if (!isset($allowedCodes[$courseCode])) {
+                    return back()->withErrors(['quotas' => 'Select a valid program.'])->withInput();
+                }
+            }
+
+            DB::transaction(function () use ($cycle, $data) {
+                foreach ($data['quotas'] as $courseCode => $seats) {
+                    DB::table('admission_course_quotas')->updateOrInsert(
+                        ['admission_cycle_id' => $cycle->id, 'course_code' => $courseCode],
+                        ['seats' => $seats, 'updated_at' => now(), 'created_at' => now()]
+                    );
+                }
+            });
+
+            app(AdmissionScoringService::class)->evaluate($cycle);
+
+            return back()->with('success', 'Enrollment quotas updated.');
+        }
+
         $data = $request->validate([
             'course_code' => CourseCatalog::rule(),
             'seats' => 'required|integer|min:0|max:100000',

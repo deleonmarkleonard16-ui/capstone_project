@@ -124,17 +124,6 @@ class AdmissionSessionController extends Controller
             $startNumber = (int) $request->input('start_number', 1);
             $endNumber   = (int) $request->input('end_number', $startNumber);
 
-            $session = $cycle->sessions()->create([
-                'session_name' => $request->input('session_name', 'Unnamed Session'),
-                'admission_batch_id' => $data['admission_batch_id'],
-                'start_time'   => $startTime,
-                'start_number' => $startNumber,
-                'end_number'   => $endNumber,
-                'room'         => $batch->room ?: 'N/A',
-                'qr_token'     => Str::random(64),
-                'status'       => AdmissionSession::STATUS_SCHEDULED,
-            ]);
-
             // ── Masterlist Range Assignment ────────────────────────────────────────
             $start = $startNumber;
             $end   = $endNumber;
@@ -150,6 +139,33 @@ class AdmissionSessionController extends Controller
             }
 
             $targets = $query->skip($start - 1)->take($limit)->get();
+
+            // Never move an examinee out of an existing session because of a
+            // range overlap. This catches, for example, Session B 10-20 when
+            // Session A already owns masterlist number 10.
+            $conflictIndex = $targets->search(fn (AdmissionApplicant $applicant) =>
+                $applicant->admission_session_id !== null || filled($applicant->session_label)
+            );
+            if ($conflictIndex !== false) {
+                $number = $start + $conflictIndex;
+                $assignedTo = $targets[$conflictIndex]->session_label ?: 'another session';
+
+                return redirect()->back()->withInput()->withErrors([
+                    'start_number' => "Masterlist #{$number} is already assigned to {$assignedTo}. Choose a range that does not overlap an existing session.",
+                ]);
+            }
+
+            $session = $cycle->sessions()->create([
+                'session_name' => $request->input('session_name', 'Unnamed Session'),
+                'admission_batch_id' => $data['admission_batch_id'],
+                'start_time'   => $startTime,
+                'start_number' => $startNumber,
+                'end_number'   => $endNumber,
+                'room'         => $batch->room ?: 'N/A',
+                'qr_token'     => Str::random(64),
+                'status'       => AdmissionSession::STATUS_SCHEDULED,
+            ]);
+
             foreach ($targets as $applicant) {
                 $applicant->update([
                     'admission_session_id' => $session->id,
@@ -525,7 +541,15 @@ class AdmissionSessionController extends Controller
             'status' => ['required', Rule::in(AdmissionSession::STATUSES)],
         ]);
 
-        $session->update(['status' => $data['status']]);
+        $updates = ['status' => $data['status']];
+        if ($data['status'] === AdmissionSession::STATUS_IN_PROGRESS && !$session->started_at) {
+            $updates['started_at'] = now();
+            $updates['ended_at'] = null;
+        }
+        if ($data['status'] === AdmissionSession::STATUS_COMPLETED && !$session->ended_at) {
+            $updates['ended_at'] = now();
+        }
+        $session->update($updates);
 
         // When launching session (In-Progress), transition all Ready examinees into In-Progress
         if ($data['status'] === AdmissionSession::STATUS_IN_PROGRESS) {
@@ -545,15 +569,26 @@ class AdmissionSessionController extends Controller
         return back()->with('success', "Session '{$session->session_name}' status changed to {$session->status}.");
     }
 
-    public function complete(AdmissionSession $session)
+    public function complete(AdmissionSession $session, AdmissionScoringService $scoring)
     {
         $cycle = $session->cycle;
         abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot complete session on an archived cycle.');
 
-        $session->update(['status' => AdmissionSession::STATUS_COMPLETED]);
+        $unfinished = $session->applicants()->whereNull('submitted_at')->get();
+        foreach ($unfinished as $applicant) {
+            // Save the answers already entered by the examinee, if any. A
+            // blank sheet is still a final submitted sheet when the admin
+            // ends the session, so no examinee is left taking the test.
+            $scoring->submit($applicant, is_array($applicant->answers) ? $applicant->answers : []);
+        }
+
+        $session->update([
+            'status' => AdmissionSession::STATUS_COMPLETED,
+            'ended_at' => now(),
+        ]);
         Cache::flush();
 
-        return back()->with('success', "Session '{$session->session_name}' has been marked as Completed.");
+        return back()->with('success', "Session '{$session->session_name}' has been ended. {$unfinished->count()} unfinished applicant(s) were automatically submitted and marked as Completed.");
     }
 
     // ── Live Monitor Polling ───────────────────────────────────────────────────
@@ -624,6 +659,8 @@ class AdmissionSessionController extends Controller
                 'is_scheduled' => $session->isScheduled(),
                 'is_in_progress' => $session->isInProgress(),
                 'is_completed' => $session->isCompleted(),
+                'started_at' => $session->started_at?->toIso8601String(),
+                'ends_at' => $session->started_at?->copy()->addHour()->toIso8601String(),
             ],
             'kpis' => [
                 'total' => $totalAssigned,

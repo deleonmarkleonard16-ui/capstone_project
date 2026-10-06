@@ -26,6 +26,8 @@ class AdmissionSession extends Model
         'admission_batch_id',
         'session_name',
         'start_time',
+        'started_at',
+        'ended_at',
         'start_number',
         'end_number',
         'room',
@@ -35,6 +37,8 @@ class AdmissionSession extends Model
 
     protected $casts = [
         'start_time'   => 'datetime',
+        'started_at'   => 'datetime',
+        'ended_at'     => 'datetime',
         'start_number' => 'integer',
         'end_number'   => 'integer',
     ];
@@ -43,6 +47,8 @@ class AdmissionSession extends Model
     {
         return [
             'start_time'   => 'datetime',
+            'started_at'   => 'datetime',
+            'ended_at'     => 'datetime',
             'start_number' => 'integer',
             'end_number'   => 'integer',
         ];

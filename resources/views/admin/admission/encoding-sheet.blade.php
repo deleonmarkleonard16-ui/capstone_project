@@ -128,16 +128,9 @@
                 </p>
             </div>
             <div class="d-flex gap-2 align-items-center">
-                <form method="get" action="{{ route('admin.admission.encoding-sheet') }}" class="d-flex gap-2 align-items-center mb-0">
-                    <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
-                    <input type="hidden" name="batch_group" value="{{ request('batch_group') }}">
-                    <button class="btn btn-outline-secondary btn-sm" name="sort" value="course_gwa" title="Sort by Course and Highest GWA">
-                        <i class="bi bi-sort-down me-1"></i> Sort Course / Highest GWA
-                    </button>
-                </form>
                 @unless($isLocked)
                     <button class="btn btn-primary btn-sm" id="btn-save-grid" form="encoding-form" type="submit">
-                        <i class="bi bi-save me-1"></i> Save Encoded Rows
+                        <i class="bi bi-save me-1"></i> Save &amp; Sort by Course / Highest GWA
                     </button>
                 @endunless
             </div>
@@ -167,6 +160,7 @@
             @csrf
             <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
             <input type="hidden" name="batch_group" value="{{ request('batch_group') }}">
+            <input type="hidden" name="sort_after_save" value="1">
 
             <div class="table-responsive" style="max-height: 62vh; overflow-y: auto;">
                 <table class="table table-sm table-bordered mb-0" id="encoding-grid" style="min-width: 1100px;">
@@ -384,7 +378,7 @@
                     <div class="d-flex gap-2 align-items-center">
                         <span id="save-status-indicator" class="small text-muted d-none"></span>
                         <button class="btn btn-primary btn-sm" id="btn-save-grid-bottom" form="encoding-form" type="submit">
-                            <i class="bi bi-save me-1"></i> Save Encoded Rows
+                            <i class="bi bi-save me-1"></i> Save &amp; Sort by Course / Highest GWA
                         </button>
                     </div>
                 @endunless
@@ -593,6 +587,13 @@ function loadBatchGroup(value) {
                     }
                 });
             }
+
+            // Saving and sorting are one action. Reload the grid in its
+            // course-then-highest-GWA order after the server confirms save.
+            if (data.redirect_url) {
+                window.location.assign(data.redirect_url);
+                return;
+            }
         } catch (error) {
             console.error('Batch save error:', error);
             showToast('Save error: ' + error.message, 'danger');
@@ -603,7 +604,7 @@ function loadBatchGroup(value) {
         } finally {
             buttons.forEach(b => {
                 b.disabled = false;
-                b.innerHTML = '<i class="bi bi-save me-1"></i> Save Encoded Rows';
+                b.innerHTML = '<i class="bi bi-save me-1"></i> Save &amp; Sort by Course / Highest GWA';
             });
         }
     }

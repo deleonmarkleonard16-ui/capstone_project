@@ -29,6 +29,12 @@
                 Masterlist Range: <span class="badge bg-light text-primary border font-monospace">#{{ $session->start_number }} – #{{ $session->end_number }}</span> &nbsp;·&nbsp;
                 Venue: <strong>{{ $session->room ?: 'Main Testing Hall' }}</strong>
             </p>
+            <p class="mb-0 mt-1 small" id="session-timer-wrap">
+                <i class="bi bi-stopwatch me-1"></i>Session Timer:
+                <strong id="session-timer" class="font-monospace">
+                    {{ $session->started_at ? '00:00:00' : 'Starts when the test is launched' }}
+                </strong>
+            </p>
         </div>
 
         {{-- ── LAUNCH / END SESSION & UTILITY ACTION BUTTONS ── --}}
@@ -775,6 +781,21 @@
     const pollUrl = "{{ route('admin.admission.sessions.poll', $session) }}";
     const sessionId = {{ $session->id }};
     let isPolling = true;
+    let sessionEndsAt = @json($session->started_at?->copy()->addHour()->toIso8601String());
+
+    function updateSessionTimer() {
+        const timer = document.getElementById('session-timer');
+        if (!timer || !sessionEndsAt) return;
+
+        const seconds = Math.max(0, Math.ceil((new Date(sessionEndsAt).getTime() - Date.now()) / 1000));
+        const hours = String(Math.floor(seconds / 3600)).padStart(2, '0');
+        const minutes = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+        const remainingSeconds = String(seconds % 60).padStart(2, '0');
+        timer.textContent = `${hours}:${minutes}:${remainingSeconds}`;
+        timer.classList.toggle('text-danger', seconds === 0);
+    }
+    updateSessionTimer();
+    setInterval(updateSessionTimer, 1000);
 
     // Single Reassign Modal Trigger
     function openSingleReassignModal(applicantId, applicantName, applicationNumber) {
@@ -917,6 +938,11 @@
 
             if (!response.ok) return;
             const data = await response.json();
+
+            if (data.session?.ends_at) {
+                sessionEndsAt = data.session.ends_at;
+                updateSessionTimer();
+            }
 
             // 1. Update KPIs
             if (data.kpis) {

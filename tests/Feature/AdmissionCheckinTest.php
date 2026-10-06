@@ -572,4 +572,101 @@ class AdmissionCheckinTest extends TestCase
         $this->assertSame(10, AdmissionApplicant::where('admission_session_id', $sessionA->id)->count());
         $this->assertSame(0, AdmissionApplicant::whereNull('admission_session_id')->count());
     }
+
+    public function test_session_creation_rejects_a_masterlist_range_that_overlaps_an_existing_session(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => 'Overlap Guard', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+        $batch = AdmissionBatch::create([
+            'admission_cycle_id' => $cycle->id, 'batch_name' => 'Batch 1',
+            'batch_date' => '2026-10-10', 'room' => 'Room 1',
+        ]);
+        $sessionA = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'admission_batch_id' => $batch->id,
+            'session_name' => 'Session A', 'start_time' => '2026-10-10 08:00:00',
+            'start_number' => 1, 'end_number' => 10, 'status' => AdmissionSession::STATUS_SCHEDULED,
+        ]);
+
+        foreach (range(1, 12) as $number) {
+            AdmissionApplicant::create([
+                'admission_cycle_id' => $cycle->id,
+                'admission_session_id' => $number <= 10 ? $sessionA->id : null,
+                'session_label' => $number <= 10 ? 'Session A' : null,
+                'application_number' => "CAT-OVERLAP-{$number}",
+                'first_name' => "Applicant {$number}", 'last_name' => 'Overlap', 'course_choice' => 'BSIT',
+            ]);
+        }
+
+        $this->post(route('admin.admission.sessions.store'), [
+            'session_name' => 'Session B', 'admission_batch_id' => $batch->id,
+            'start_time' => '13:00', 'start_number' => 10, 'end_number' => 12,
+        ])->assertSessionHasErrors('start_number');
+
+        $this->assertSame(0, AdmissionSession::where('session_name', 'Session B')->count());
+        $this->assertSame($sessionA->id, AdmissionApplicant::orderBy('id')->skip(9)->first()->admission_session_id);
+    }
+
+    public function test_ending_a_live_session_submits_all_unfinished_examinees(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => 'Forced End', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE, 'total_items' => 2,
+        ]);
+        $session = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Live Session',
+            'start_time' => now(), 'started_at' => now(), 'start_number' => 1, 'end_number' => 2,
+            'status' => AdmissionSession::STATUS_IN_PROGRESS,
+        ]);
+        $pending = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'application_number' => 'CAT-FORCED-1', 'first_name' => 'Pending', 'last_name' => 'Exam',
+            'course_choice' => 'BSIT', 'answers' => [1 => 'A'], 'attendance_status' => 'In-Progress',
+        ]);
+        $blank = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'application_number' => 'CAT-FORCED-2', 'first_name' => 'Blank', 'last_name' => 'Exam',
+            'course_choice' => 'BSIT', 'attendance_status' => 'Ready',
+        ]);
+
+        $this->post(route('admin.admission.sessions.complete', $session))
+            ->assertSessionHas('success');
+
+        $session->refresh();
+        $pending->refresh();
+        $blank->refresh();
+        $this->assertSame(AdmissionSession::STATUS_COMPLETED, $session->status);
+        $this->assertNotNull($session->ended_at);
+        $this->assertNotNull($pending->submitted_at);
+        $this->assertNotNull($blank->submitted_at);
+        $this->assertSame('Submitted', $pending->attendance_status);
+        $this->assertSame('Submitted', $blank->attendance_status);
+    }
+
+    public function test_launching_a_session_records_the_roster_monitor_timer_start(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => 'Timer Start', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+        $session = AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Timer Session',
+            'start_time' => now()->addDay(), 'start_number' => 1, 'end_number' => 1,
+            'status' => AdmissionSession::STATUS_SCHEDULED,
+        ]);
+
+        $this->post(route('admin.admission.sessions.status', $session), [
+            'status' => AdmissionSession::STATUS_IN_PROGRESS,
+        ])->assertSessionHas('success');
+
+        $session->refresh();
+        $this->assertNotNull($session->started_at);
+        $this->get(route('admin.admission.sessions.show', $session))
+            ->assertOk()
+            ->assertSee('Session Timer');
+    }
 }

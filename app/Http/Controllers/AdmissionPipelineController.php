@@ -376,6 +376,7 @@ class AdmissionPipelineController extends Controller
 
         $inputRows = $request->input('rows', []);
         $batchGroup = trim((string) $request->input('batch_group', ''));
+        $sortAfterSave = $request->boolean('sort_after_save');
         $savedCount = 0;
         $savedIds   = [];
 
@@ -491,6 +492,10 @@ class AdmissionPipelineController extends Controller
         }
 
         $message = "Successfully saved {$savedCount} row(s) to the Masterlist Encoding Sheet.";
+        $redirectParams = ['batch_group' => $batchGroup, 'cycle_id' => $cycle->id];
+        if ($sortAfterSave) {
+            $redirectParams['sort'] = 'course_gwa';
+        }
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
@@ -498,10 +503,11 @@ class AdmissionPipelineController extends Controller
                 'message'     => $message,
                 'saved_count' => $savedCount,
                 'saved_ids'   => $savedIds,
+                'redirect_url' => route('admin.admission.encoding-sheet', $redirectParams),
             ]);
         }
 
-        return redirect()->route('admin.admission.encoding-sheet', ['batch_group' => $batchGroup, 'cycle_id' => $cycle->id])
+        return redirect()->route('admin.admission.encoding-sheet', $redirectParams)
             ->with('success', $message);
     }
 
@@ -798,6 +804,20 @@ class AdmissionPipelineController extends Controller
         }
 
         $sessionLabel = trim($data['session_label']);
+        $conflictIndex = $targetApplicants->search(function (AdmissionApplicant $applicant) use ($sessionLabel) {
+            return ($applicant->admission_session_id !== null || filled($applicant->session_label))
+                && $applicant->session_label !== $sessionLabel;
+        });
+
+        if ($conflictIndex !== false) {
+            $number = $data['start_number'] + $conflictIndex;
+            $assignedTo = $targetApplicants[$conflictIndex]->session_label ?: 'another session';
+
+            return back()->withInput()->withErrors([
+                'start_number' => "Masterlist #{$number} is already assigned to {$assignedTo}. Choose a range that does not overlap an existing session.",
+            ]);
+        }
+
         foreach ($targetApplicants as $app) {
             $app->update(['session_label' => $sessionLabel]);
         }

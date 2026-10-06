@@ -37,7 +37,7 @@
             <form method="post" action="{{ route('admin.admission.answer-key.save') }}" id="answerKeyForm">
                 @csrf
                 <input type="hidden" name="total_items" id="hidden_total_items" value="{{ $configuredItems }}">
-                <div class="vertical-answer-grid" id="answerKeyGrid" data-total-items="{{ $configuredItems }}" style="--vertical-grid-rows: {{ (int) ceil($configuredItems / 6) }}">
+                <div class="vertical-answer-grid" id="answerKeyGrid" data-total-items="{{ $configuredItems }}">
                     @for ($i = 1; $i <= $configuredItems; $i++)
                         <div class="vertical-answer-grid__item">
                             <div class="input-group input-group-sm">
@@ -76,15 +76,13 @@
     /* Grid places 1–14 top-to-bottom, then starts the next column. */
     .vertical-answer-grid {
         display: grid;
-        grid-auto-flow: column;
-        grid-template-rows: repeat(var(--vertical-grid-rows), minmax(0, 1fr));
-        grid-auto-columns: minmax(0, 1fr);
-        gap: .75rem;
+        grid-template-columns: minmax(0, 520px);
+        gap: .55rem;
         max-height: 620px;
         overflow: auto;
     }
     @media (max-width: 767.98px) {
-        .vertical-answer-grid { grid-auto-columns: minmax(245px, 1fr); }
+        .vertical-answer-grid { grid-template-columns: minmax(0, 1fr); }
     }
 </style>
 @endpush
@@ -115,19 +113,10 @@
         const answers = [...grid.querySelectorAll('select')].map(select => select.value);
         grid.replaceChildren(...Array.from({ length: count }, (_, index) => buildItem(index + 1, answers[index] || '')));
         grid.dataset.totalItems = count;
-        setGridRows();
         hiddenInput.value = count;
         badge.textContent = `${count} Items`;
         label.textContent = count;
     });
-
-    const setGridRows = () => {
-        const total = Number(grid.dataset.totalItems || grid.querySelectorAll('.vertical-answer-grid__item').length);
-        const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 768 ? 2 : window.innerWidth < 1024 ? 4 : 6;
-        grid.style.setProperty('--vertical-grid-rows', Math.ceil(total / columns));
-    };
-    setGridRows();
-    window.addEventListener('resize', setGridRows);
 })();
 </script>
 @endpush

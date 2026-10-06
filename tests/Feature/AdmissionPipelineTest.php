@@ -77,6 +77,8 @@ class AdmissionPipelineTest extends TestCase
         $this->withSession(['admission_checkin_applicant_id' => $applicant->id])
             ->get('/admission/take/'.str_repeat('a', 64))->assertOk()
             ->assertSee('Item #01')->assertSee('Item #80')
+            ->assertSee('exam-watermark')
+            ->assertSee('Cruz, Ben')
             ->assertSee('exam-item-list flex flex-col gap-3');
         foreach (range(1, 3) as $strike) $this->postJson('/admission/take/'.str_repeat('a', 64).'/strike', ['incident_type' => 'back_button', 'answers' => [1 => 'A']])->assertOk()->assertJsonPath('strikes', $strike);
         $this->assertNotNull($applicant->fresh()->submitted_at);

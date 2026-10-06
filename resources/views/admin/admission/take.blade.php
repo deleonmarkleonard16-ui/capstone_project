@@ -99,6 +99,22 @@
         #exam-header .left, #answered-count { color: #475569; }
         .choice-label { color: #334155; }
         #exam-header { gap: 8px; flex-wrap: wrap; }
+
+        /* Personalized deterrent watermark. It remains above the answer sheet
+           in captured images, but never intercepts exam touches/clicks. */
+        #exam-watermark {
+            position: fixed; inset: 0; z-index: 90; pointer-events: none;
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(4, 1fr); overflow: hidden;
+            opacity: 0.16; transform: rotate(-24deg) scale(1.25);
+            transform-origin: center; user-select: none; -webkit-user-select: none;
+        }
+        #exam-watermark span {
+            display: flex; align-items: center; justify-content: center;
+            color: #0d1b3e; font-size: clamp(13px, 2.3vw, 25px);
+            font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -182,6 +198,13 @@
 </div>
 
 {{-- ── BLACKOUT SCREEN (screenshot / focus-loss protection) ── --}}
+{{-- Name-only watermark: screenshots remain attributable without showing an ID. --}}
+<div id="exam-watermark" aria-hidden="true">
+    @for($watermark = 0; $watermark < 12; $watermark++)
+        <span>{{ $applicant->full_name }}</span>
+    @endfor
+</div>
+
 <div id="blackout">
     <div class="msg">⛔ Screen Protected</div>
     <div class="sub">Return focus to the exam window to continue.</div>

@@ -24,6 +24,16 @@
             <form method="POST" action="{{ route('admin.admission.sessions.store') }}" id="createSessionForm">
                 @csrf
                 <div class="modal-body p-4">
+                    @if($errors->has('start_number'))
+                        <div class="alert alert-warning border-warning d-flex align-items-start gap-2 py-2 px-3 mb-3" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                            <div>
+                                <strong>Range already assigned.</strong><br>
+                                {{ $errors->first('start_number') }}
+                            </div>
+                        </div>
+                    @endif
+
                     {{-- Notice Alert --}}
                     <div class="alert alert-primary bg-primary bg-opacity-10 border-primary border-opacity-25 d-flex align-items-start gap-2 py-2 px-3 mb-4 rounded-3">
                         <i class="bi bi-info-circle-fill text-primary fs-5 mt-1"></i>

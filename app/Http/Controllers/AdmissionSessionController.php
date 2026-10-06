@@ -150,7 +150,7 @@ class AdmissionSessionController extends Controller
                 $number = $start + $conflictIndex;
                 $assignedTo = $targets[$conflictIndex]->session_label ?: 'another session';
 
-                return redirect()->back()->withInput()->withErrors([
+                return redirect()->route('admin.admission.sessions.index')->withInput()->withErrors([
                     'start_number' => "Masterlist #{$number} is already assigned to {$assignedTo}. Choose a range that does not overlap an existing session.",
                 ]);
             }

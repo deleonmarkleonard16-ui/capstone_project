@@ -346,6 +346,26 @@
         const label = event.currentTarget.querySelector('[data-selected-batch]');
         if (label && batchName) label.textContent = batchName;
     });
+
+    // Keep the session form open after a rejected range so the admin sees the
+    // exact occupied masterlist number and can correct it immediately.
+    @if($errors->has('start_number'))
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalElement = document.getElementById('createSessionModal');
+            if (!modalElement) return;
+
+            const batchId = @json(old('admission_batch_id'));
+            const batch = batchId
+                ? document.querySelector(`[data-batch-id="${batchId}"]`)
+                : null;
+            if (batch) {
+                modalElement.querySelector('[name="admission_batch_id"]').value = batchId;
+                const label = modalElement.querySelector('[data-selected-batch]');
+                if (label) label.textContent = batch.dataset.batchName || 'this batch';
+            }
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        });
+    @endif
     function updateProjectorClocks() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });

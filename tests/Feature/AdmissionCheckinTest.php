@@ -600,10 +600,15 @@ class AdmissionCheckinTest extends TestCase
             ]);
         }
 
-        $this->post(route('admin.admission.sessions.store'), [
+        $response = $this->post(route('admin.admission.sessions.store'), [
             'session_name' => 'Session B', 'admission_batch_id' => $batch->id,
             'start_time' => '13:00', 'start_number' => 10, 'end_number' => 12,
-        ])->assertSessionHasErrors('start_number');
+        ]);
+
+        $response->assertSessionHasErrors('start_number');
+        $this->followRedirects($response)
+            ->assertOk()
+            ->assertSee('Masterlist #10 is already assigned to Session A.');
 
         $this->assertSame(0, AdmissionSession::where('session_name', 'Session B')->count());
         $this->assertSame($sessionA->id, AdmissionApplicant::orderBy('id')->skip(9)->first()->admission_session_id);

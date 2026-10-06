@@ -46,6 +46,10 @@ class AdmissionReportController extends Controller
         });
         app(AdmissionScoringService::class)->evaluate($cycle);
 
+        if ($request->boolean('save_only')) {
+            return back()->with('success', 'Interview top limits saved.');
+        }
+
         return $this->download($request, $reports, $export, 'interview-qualifiers');
     }
 

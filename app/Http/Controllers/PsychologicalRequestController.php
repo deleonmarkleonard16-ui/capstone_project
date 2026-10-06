@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GuidanceTestBatch;
 use App\Models\GuidanceAppointment;
+use App\Models\GuidanceSecurityIncident;
 use App\Models\ServiceRequest;
 use App\Services\GuidanceCategories;
 use Illuminate\Http\Request;
@@ -109,8 +110,24 @@ class PsychologicalRequestController extends Controller
         if (!empty($filters['course'])) $query->where('course', $filters['course']);
         \App\Support\TableFilters::dates($query, $filters);
 
+        $incidentQuery = GuidanceSecurityIncident::query()
+            ->whereHas('appointment', fn ($appointments) => $appointments
+                ->whereNull('batch_id')
+                ->where('test_category', $moduleKey));
+
         return view('staff.psychological.index', [
-            'requests' => $query->with(['guidanceAppointments.response', 'guidanceAppointments.applicant'])->latest()->paginate(15)->withQueryString(),
+            'requests' => $query->with([
+                'guidanceAppointments.response',
+                'guidanceAppointments.applicant',
+                'guidanceAppointments.securityIncidents',
+            ])->latest()->paginate(15)->withQueryString(),
+            // Individual-request staff need immediate visibility of the same
+            // security events already available to the batch/proctor screens.
+            'recentSecurityIncidents' => (clone $incidentQuery)->with([
+                'appointment.applicant',
+                'appointment.serviceRequest',
+            ])->latest('id')->limit(8)->get(),
+            'securityIncidentCount' => (clone $incidentQuery)->count(),
             'stats' => $stats,
             'counts' => $counts,
             'mode' => $mode,

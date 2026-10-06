@@ -27,7 +27,10 @@ class GuidanceAssessmentSessionService
             while ($locked->expires_at && now()->greaterThanOrEqualTo($locked->expires_at)) {
                 $advanced = true;
                 $result = $this->advance($locked, true);
-                if ($result['status'] === 'Completed') return $result;
+                // finish() sends an assessment to counselor review.  Treat
+                // every state other than In-Progress as terminal so an
+                // overdue request is never finalized twice.
+                if ($result['status'] !== 'In-Progress') return $result;
             }
             // Ignore stale writes belonging to a section that just expired.
             if ($advanced && !$continueAfterAdvance) return $this->state($locked);

@@ -71,6 +71,32 @@ class AdmissionReportsTest extends TestCase
             ->assertOk()->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
 
+    public function test_enrollment_remarks_rank_passed_interviewees_and_waitlist_over_capacity(): void
+    {
+        $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]));
+        $cycle = AdmissionCycle::create(['name' => 'Capacity Cycle', 'academic_year' => '2026-2027', 'is_active' => true, 'status' => 'Active']);
+        $this->applicant($cycle, 'IT-1', 'BSIT', 5, 92, 88);
+        $this->applicant($cycle, 'IT-2', 'BSIT', 5, 89, 85);
+        $this->applicant($cycle, 'IT-3', 'BSIT', 5, 84, 82);
+
+        DB::table('admission_course_quotas')->insert([
+            'admission_cycle_id' => $cycle->id, 'course_code' => 'BSIT', 'seats' => 2,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->post('/admin/admission/reports/interview-qualifiers', [
+            'top_limits' => ['BSIT' => 3], 'save_only' => 1,
+        ])->assertRedirect()->assertSessionHas('success', 'Interview top limits saved.');
+
+        $reports = app(AdmissionReportService::class);
+        $outcomes = $reports->outcomes($cycle);
+        $this->assertSame('Qualified for Enrollment', $outcomes[AdmissionApplicant::where('application_number', 'IT-1')->value('id')]['remark']);
+        $this->assertSame('Qualified for Enrollment', $outcomes[AdmissionApplicant::where('application_number', 'IT-2')->value('id')]['remark']);
+        $this->assertSame('Waitlisted', $outcomes[AdmissionApplicant::where('application_number', 'IT-3')->value('id')]['remark']);
+        $this->assertSame(['IT-1', 'IT-2'], $this->numbers($reports->roster($cycle, 'final-enrollment-qualified')));
+        $this->assertSame(['IT-3'], $this->numbers($reports->roster($cycle, 'final-enrollment-waitlisted')));
+        $this->get('/admin/admission/masterlist')->assertOk()->assertSee('Qualified for Enrollment')->assertSee('Waitlisted');
+    }
+
     private function applicant(AdmissionCycle $cycle, string $number, string $course, ?int $stanine, ?int $total, ?int $interview): AdmissionApplicant
     {
         $applicant = AdmissionApplicant::create([

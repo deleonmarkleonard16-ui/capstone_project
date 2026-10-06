@@ -73,7 +73,17 @@
         </a>
     </li>
 
-    {{-- Tab 2: Under Review --}}
+    {{-- Tab 2: Bundled / Batch Queue --}}
+    <li class="nav-item flex-shrink-0" role="presentation">
+        <a class="nav-link {{ $isBatch ? 'active fw-bold' : '' }}"
+           href="{{ $batchRoute }}"
+           role="tab"
+           aria-selected="{{ $isBatch ? 'true' : 'false' }}">
+            <i class="bi bi-people me-1"></i><span class="tab-label">Bundled / Batch Queue</span>
+        </a>
+    </li>
+
+    {{-- Tab 3: Under Review --}}
     @unless($isDocumentModule)
     <li class="nav-item flex-shrink-0" role="presentation">
         <a class="nav-link {{ $isUnderReview ? 'active fw-bold' : '' }}"
@@ -84,16 +94,6 @@
         </a>
     </li>
     @endunless
-
-    {{-- Tab 3: Bundled / Batch Queue --}}
-    <li class="nav-item flex-shrink-0" role="presentation">
-        <a class="nav-link {{ $isBatch ? 'active fw-bold' : '' }}"
-           href="{{ $batchRoute }}"
-           role="tab"
-           aria-selected="{{ $isBatch ? 'true' : 'false' }}">
-            <i class="bi bi-people me-1"></i><span class="tab-label">Bundled / Batch Queue</span>
-        </a>
-    </li>
 
     {{-- Tab 4: Archives --}}
     <li class="nav-item flex-shrink-0" role="presentation">

@@ -25,46 +25,14 @@
     {{-- Top Action & Export Buttons --}}
     @if ($cycle && $isAdmin)
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}">
-            <i class="bi bi-table me-1"></i> Inspect Masterlist Roster
-        </a>
         <a class="btn btn-primary btn-sm" href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
             <i class="bi bi-file-earmark-word me-1"></i> Download Evaluation (DOCX)
-        </a>
-        <a class="btn btn-outline-danger btn-sm" href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'pdf']) }}" target="_blank">
-            <i class="bi bi-file-earmark-pdf me-1"></i> PDF Summary
         </a>
     </div>
     @endif
 </div>
 
 {{-- ── CYCLE SELECTOR DROPDOWN (HISTORIC ARCHIVE VIEWER) ── --}}
-<div class="card page-card shadow-sm mb-4">
-    <div class="card-body p-3">
-        <form method="get" action="{{ route($analyticsRoute) }}" class="row g-2 align-items-center">
-            <div class="col-md-2">
-                <label for="analytics-cycle" class="form-label form-label-sm fw-bold text-muted mb-0">
-                    <i class="bi bi-clock-history me-1"></i> Admission Cycle:
-                </label>
-            </div>
-            <div class="col-md-7">
-                <select id="analytics-cycle" name="cycle_id" class="form-select form-select-sm fw-bold border-primary" onchange="this.form.submit()">
-                    @foreach($cycles as $option)
-                        <option value="{{ $option->id }}" @selected($cycle?->id === $option->id)>
-                            Viewing: {{ $option->displayName }} [{{ $option->isCompleted() ? 'Archived' : ($option->isActive() ? 'Active' : 'Draft') }}]
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3 text-end">
-                <span class="badge bg-light text-dark border">
-                    {{ $cycles->count() }} cycle(s) registered
-                </span>
-            </div>
-        </form>
-    </div>
-</div>
-
 @if ($cycle)
     {{-- ── HISTORIC ARCHIVE BANNER IF ARCHIVED ── --}}
     @if ($cycle->isCompleted())
@@ -261,13 +229,6 @@
                         </table>
                     </div>
                 </div>
-                @if ($isAdmin)
-                <div class="card-footer bg-light py-2 text-end">
-                    <a href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary']) }}" class="btn btn-outline-primary btn-sm">
-                        <i class="bi bi-file-earmark-text me-1"></i> View Full Evaluation Report
-                    </a>
-                </div>
-                @endif
             </div>
         </div>
     </div>

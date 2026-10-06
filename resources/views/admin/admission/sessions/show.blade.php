@@ -156,11 +156,11 @@
 
     {{-- ── LIVE MONITOR KPI CARDS ── --}}
     <div class="row g-3 mb-4">
-        {{-- Total Enrolled --}}
+        {{-- Total Applicants --}}
         <div class="col-6 col-md-4 col-xl-2">
             <div class="card page-card shadow-xs border-start border-4 border-primary h-100">
                 <div class="card-body p-3">
-                    <div class="text-muted small text-uppercase fw-semibold" style="font-size: 11px;">Total Enrolled</div>
+                    <div class="text-muted small text-uppercase fw-semibold" style="font-size: 11px;">Total Applicants</div>
                     <div id="kpi-total" class="h3 mb-0 fw-bold text-dark">{{ $totalAssigned }}</div>
                     <div class="small text-muted mt-1 text-truncate">#{{ $session->start_number }}–#{{ $session->end_number }}</div>
                 </div>
@@ -310,14 +310,7 @@
                 <span class="badge bg-light text-dark border font-monospace" id="roster-count-badge">{{ $applicants->count() }} Examinee(s)</span>
             </div>
 
-            {{-- Bulk Actions Bar --}}
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                @if(!$cycle->isCompleted() && $session->status !== 'Completed' && $otherSessions->isNotEmpty())
-                    <button type="button" class="btn btn-outline-warning text-dark btn-sm fw-semibold"
-                            data-bs-toggle="modal" data-bs-target="#reassignBulkModal" title="Transfer Absent Applicants">
-                        <i class="bi bi-box-arrow-right me-1"></i> Transfer Absent to Batch
-                    </button>
-                @endif
                 <div class="input-group input-group-sm" style="max-width: 220px;">
                     <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
                     <input type="text" id="roster-search-input" class="form-control" placeholder="Search examinee...">

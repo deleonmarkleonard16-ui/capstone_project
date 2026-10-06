@@ -571,7 +571,20 @@ class AdmissionPipelineController extends Controller
         $record->fill($data);
         $record->admission_cycle_id = $cycle->id;
         $record->save();
-        $scoring->evaluate($cycle);
+
+        // Persist the applicant's total before recalculating the masterlist.
+        // This prevents a legacy/corrupt row elsewhere in the cycle from
+        // turning a valid interview-score save into an upstream 502.
+        $scoring->refreshApplicantTotal($record);
+
+        try {
+            $scoring->evaluate($cycle);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])
+                ->with('warning', 'Applicant saved and total score updated. The masterlist ranking refresh could not finish; please review the server log.');
+        }
 
         return redirect()->route('admin.admission.masterlist', ['cycle_id' => $cycle->id])->with('success', 'Applicant saved.');
     }

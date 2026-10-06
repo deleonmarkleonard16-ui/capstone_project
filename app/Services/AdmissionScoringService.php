@@ -8,6 +8,41 @@ use Illuminate\Support\Facades\DB;
 
 class AdmissionScoringService
 {
+    /**
+     * Update the saved total for one applicant without recalculating the
+     * entire masterlist.  This keeps an interview-score save reliable even if
+     * a separate legacy record prevents the wider ranking refresh.
+     */
+    public function refreshApplicantTotal(AdmissionApplicant $applicant): void
+    {
+        $applicant->loadMissing('cycle');
+        $cycle = $applicant->cycle;
+        if (!$cycle) {
+            return;
+        }
+
+        $itemCount = max(1, (int) ($cycle->total_items ?: 80));
+        $total = $applicant->exam_score === null || $applicant->gwa === null || $applicant->interview_score === null
+            ? null
+            : round(
+                (float) $applicant->exam_score / $itemCount * (float) $cycle->exam_weight
+                + (float) $applicant->gwa * (float) $cycle->gwa_weight / 100
+                + (float) $applicant->interview_score * (float) $cycle->interview_weight / 100,
+                2
+            );
+
+        $applicant->forceFill([
+            'total_score' => $total,
+            // A total cannot be qualified until the cycle-wide ranking pass
+            // assigns seats.  Never retain an old qualification for missing data.
+            'qualification_status' => $total === null ? 'Pending' : $applicant->qualification_status,
+        ]);
+
+        if ($applicant->isDirty()) {
+            $applicant->save();
+        }
+    }
+
     public function rescoreCycle(AdmissionCycle $cycle): void
     {
         $key = DB::table('admission_answer_keys')
@@ -105,9 +140,9 @@ class AdmissionScoringService
                 $total = $applicant->exam_score === null || $applicant->gwa === null || $applicant->interview_score === null
                     ? null
                     : round(
-                        (float) $applicant->exam_score / $itemCount * $cycle->exam_weight
-                        + (float) $applicant->gwa * $cycle->gwa_weight / 100
-                        + (float) $applicant->interview_score * $cycle->interview_weight / 100,
+                        (float) $applicant->exam_score / $itemCount * (float) $cycle->exam_weight
+                        + (float) $applicant->gwa * (float) $cycle->gwa_weight / 100
+                        + (float) $applicant->interview_score * (float) $cycle->interview_weight / 100,
                         2
                     );
 

@@ -39,7 +39,10 @@ class AdmissionPipelineTest extends TestCase
         $this->login('admin');
         $cycle = AdmissionCycle::create(['name' => '2025', 'academic_year' => '2025-2026', 'is_active' => true]);
         $applicant = AdmissionApplicant::create(['admission_cycle_id' => $cycle->id, 'application_number' => 'A-001', 'first_name' => 'Ana', 'last_name' => 'Reyes', 'course_choice' => 'BSIT', 'gwa' => 90, 'interview_score' => 90]);
-        $this->get('/admin/admission/masterlist')->assertOk()->assertSee('A-001');
+        $this->get('/admin/admission/masterlist')->assertOk()
+            ->assertSee('A-001')
+            ->assertSee('Enrollment Quotas by Program')
+            ->assertSee('BSIT Enrollment Seats');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/paper')->assertOk()->assertSee('Answer Sheet');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/paper?format=pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->get('/admin/admission/applicants/'.$applicant->id.'/encode')->assertOk()->assertSee('Item 80');

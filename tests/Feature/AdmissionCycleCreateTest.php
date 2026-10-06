@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\AdmissionCycle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -68,6 +69,65 @@ class AdmissionCycleCreateTest extends TestCase
         $this->assertDatabaseHas('admission_cycles', [
             'cycle_name' => 'Draft Cycle 2027-2028',
             'is_active'  => false,
+        ]);
+    }
+
+    public function test_maintenance_toggle_preserves_existing_cycle_configuration(): void
+    {
+        $admin = $this->adminUser();
+        $cycle = AdmissionCycle::create([
+            'name' => 'S.Y. 2030-2031',
+            'cycle_name' => 'S.Y. 2030-2031',
+            'academic_year' => '2030-2031',
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+            'is_active' => true,
+            'passing_stanine' => 5,
+            'total_items' => 100,
+            'exam_weight' => 50,
+            'gwa_weight' => 25,
+            'interview_weight' => 25,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.admission.cycles.save', $cycle), ['status' => AdmissionCycle::STATUS_MAINTENANCE])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $cycle->refresh();
+        $this->assertSame(AdmissionCycle::STATUS_MAINTENANCE, $cycle->status);
+        $this->assertTrue((bool) $cycle->is_active);
+        $this->assertSame('S.Y. 2030-2031', $cycle->cycle_name);
+        $this->assertSame(100, $cycle->total_items);
+        $this->assertSame('50.00', $cycle->exam_weight);
+    }
+
+    public function test_maintenance_locks_admission_tools_but_allows_reactivation(): void
+    {
+        $admin = $this->adminUser();
+        $cycle = AdmissionCycle::create([
+            'name' => 'Maintenance Cycle',
+            'cycle_name' => 'Maintenance Cycle',
+            'academic_year' => '2030-2031',
+            'status' => AdmissionCycle::STATUS_MAINTENANCE,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.admission.masterlist'))
+            ->assertRedirect(route('admin.admission.index'));
+        $this->actingAs($admin)
+            ->get(route('admin.admission.encoding-sheet'))
+            ->assertRedirect(route('admin.admission.index'));
+
+        // Cycle management remains available, so the admin can exit maintenance.
+        $this->actingAs($admin)
+            ->post(route('admin.admission.cycles.activate', $cycle))
+            ->assertRedirect(route('admin.admission.masterlist', ['cycle_id' => $cycle->id]));
+
+        $this->assertDatabaseHas('admission_cycles', [
+            'id' => $cycle->id,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+            'is_active' => true,
         ]);
     }
 }

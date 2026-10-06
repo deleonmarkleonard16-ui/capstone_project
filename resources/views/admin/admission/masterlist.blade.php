@@ -60,6 +60,27 @@
 @if($cycle->isActive())
 <div class="card page-card shadow-sm mb-3">
     <div class="card-body p-3">
+        <h2 class="h6 mb-1">Enrollment Quotas by Program</h2>
+        <p class="small text-muted mb-2">
+            Set the number of available enrollment seats here. This is separate from the Interview Top Limit below.
+            A missing or zero quota makes otherwise eligible applicants <strong>Waitlisted</strong>.
+        </p>
+        <div class="row g-2 mb-3">
+            @foreach($reportPrograms as $code)
+                <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                    <form method="post" action="{{ route('admin.admission.quotas.save') }}" class="border rounded p-2 bg-light h-100">
+                        @csrf
+                        <label class="form-label small fw-semibold mb-1" for="quota-{{ $loop->index }}">{{ $code }} Enrollment Seats</label>
+                        <input type="hidden" name="course_code" value="{{ $code }}">
+                        <div class="input-group input-group-sm">
+                            <input id="quota-{{ $loop->index }}" class="form-control" type="number" min="0" max="100000" required name="seats" value="{{ old('course_code') === $code ? old('seats') : ($courseQuotas[$code] ?? 0) }}" aria-label="{{ $code }} enrollment seats">
+                            <button class="btn btn-primary" type="submit">Save Quota</button>
+                        </div>
+                    </form>
+                </div>
+            @endforeach
+        </div>
+
         <h2 class="h6 mb-2">Admission Reports</h2>
         <div class="d-flex flex-wrap gap-2 mb-3">
             @foreach([

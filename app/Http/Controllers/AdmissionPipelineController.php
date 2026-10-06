@@ -42,12 +42,16 @@ class AdmissionPipelineController extends Controller
         ]);
 
 
-        $cycleName = trim($data['cycle_name'] ?? ($data['name'] ?? ''));
+        // Compact actions such as the Maintenance button only send `status`.
+        // Keep the existing cycle values for every omitted field.
+        $record = $cycle ?? new AdmissionCycle();
+
+        $cycleName = trim($data['cycle_name'] ?? ($data['name'] ?? ($record->cycle_name ?? $record->name ?? '')));
         if ($cycleName === '') {
             return back()->withErrors(['cycle_name' => 'Cycle name is required.']);
         }
 
-        $academicYear = trim($data['academic_year'] ?? '');
+        $academicYear = trim($data['academic_year'] ?? ($record->academic_year ?? ''));
         if ($academicYear === '') {
             // Extract academic year from cycleName (e.g., "S.Y. 2026 - 2027" -> "2026-2027")
             if (preg_match('/(\d{4})\s*[-–]\s*(\d{4})/', $cycleName, $matches)) {
@@ -57,19 +61,18 @@ class AdmissionPipelineController extends Controller
             }
         }
 
-        $examWeight = (float) ($data['exam_weight'] ?? 60.00);
-        $gwaWeight = (float) ($data['gwa_weight'] ?? 20.00);
-        $interviewWeight = (float) ($data['interview_weight'] ?? 20.00);
+        $examWeight = (float) ($data['exam_weight'] ?? ($record->exam_weight ?? 60.00));
+        $gwaWeight = (float) ($data['gwa_weight'] ?? ($record->gwa_weight ?? 20.00));
+        $interviewWeight = (float) ($data['interview_weight'] ?? ($record->interview_weight ?? 20.00));
 
         if (abs(($examWeight + $gwaWeight + $interviewWeight) - 100) > 0.01) {
             return back()->withErrors(['exam_weight' => 'Weights must total 100%.']);
         }
 
-        $record = $cycle ?? new AdmissionCycle();
         $record->name = $cycleName;
         $record->cycle_name = $cycleName;
         $record->academic_year = $academicYear;
-        $record->passing_stanine = (int) ($data['passing_stanine'] ?? 4);
+        $record->passing_stanine = (int) ($data['passing_stanine'] ?? ($record->passing_stanine ?: 4));
 
         $boardCutoff = $data['stanine_board'] ?? ($data['stanine_cutoff_board'] ?? null);
         if ($boardCutoff !== null) {
@@ -298,6 +301,14 @@ class AdmissionPipelineController extends Controller
         }
 
         $isLocked = $cycle->isCompleted();
+        $reportPrograms = array_values(array_unique(array_filter(array_merge(
+            array_keys(CourseCatalog::allOptions()),
+            $cycle->applicants()->distinct()->pluck('course_choice')->all()
+        ))));
+        $courseQuotas = DB::table('admission_course_quotas')
+            ->where('admission_cycle_id', $cycle->id)
+            ->pluck('seats', 'course_code')
+            ->all();
 
         return view('admin.admission.masterlist', [
             'cycle' => $cycle,
@@ -307,9 +318,9 @@ class AdmissionPipelineController extends Controller
             'ranks' => $ranks,
             'search' => $search,
             'courses' => CourseCatalog::allOptions(),
-            'reportPrograms' => array_unique(array_merge(array_keys(CourseCatalog::allOptions()),
-                $cycle->applicants()->distinct()->pluck('course_choice')->all())),
+            'reportPrograms' => $reportPrograms,
             'reportCutoffs' => app(\App\Services\AdmissionReportService::class)->cutoffs($cycle),
+            'courseQuotas' => $courseQuotas,
             'outcomes' => app(\App\Services\AdmissionReportService::class)->outcomes($cycle),
             'batchGroups' => $batchGroups,
             'sessionOptions' => $sessionOptions,

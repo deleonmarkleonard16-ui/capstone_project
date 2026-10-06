@@ -310,6 +310,7 @@ class AdmissionPipelineController extends Controller
             'reportPrograms' => array_unique(array_merge(array_keys(CourseCatalog::allOptions()),
                 $cycle->applicants()->distinct()->pluck('course_choice')->all())),
             'reportCutoffs' => app(\App\Services\AdmissionReportService::class)->cutoffs($cycle),
+            'outcomes' => app(\App\Services\AdmissionReportService::class)->outcomes($cycle),
             'batchGroups' => $batchGroups,
             'sessionOptions' => $sessionOptions,
         ]);
@@ -615,6 +616,7 @@ class AdmissionPipelineController extends Controller
 
         $updated = $applicant->fresh(['cycle', 'admissionSession']);
         $evaluation = $updated->qualification_evaluation;
+        $outcome = app(\App\Services\AdmissionReportService::class)->outcomes($cycle)[$updated->id] ?? null;
 
         return response()->json([
             'saved' => true,
@@ -623,8 +625,8 @@ class AdmissionPipelineController extends Controller
             'interview_weight' => (float) $cycle->interview_weight,
             'total_score' => $updated->calculated_total,
             'qualification_status' => $updated->qualification_status,
-            'remarks' => $evaluation['remarks'],
-            'remarks_badge' => $evaluation['badge'] ?? 'bg-secondary',
+            'remarks' => $outcome['remark'] ?? $evaluation['remarks'],
+            'remarks_badge' => $outcome['badge'] ?? $evaluation['badge'] ?? 'bg-secondary',
             'first_choice_status' => $evaluation['c1_status'] ?? 'neutral',
             'second_choice_status' => $evaluation['c2_status'] ?? 'neutral',
         ]);

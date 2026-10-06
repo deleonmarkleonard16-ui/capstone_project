@@ -89,6 +89,7 @@
             </div>
             @error('top_limits') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
             <div class="d-flex gap-2 mt-3">
+                <button class="btn btn-outline-secondary btn-sm" name="save_only" value="1">Save Interview Limits</button>
                 <button class="btn btn-primary btn-sm" name="format" value="pdf">Save Limits &amp; Export Interview PDF</button>
                 <button class="btn btn-outline-primary btn-sm" name="format" value="docx">Save Limits &amp; Export Interview DOCX</button>
             </div>
@@ -252,6 +253,7 @@
                 @forelse ($applicants as $i => $applicant)
                     @php
                         $eval = $applicant->qualification_evaluation;
+                        $outcome = $outcomes[$applicant->id] ?? null;
                     @endphp
                     <tr>
                         <td class="ps-3 fw-bold">#{{ $ranks[$applicant->id] ?? ($i + 1) }}</td>
@@ -334,8 +336,8 @@
                             {{ $tot !== null ? number_format($tot, 2) . '%' : '–' }}
                         </td>
                         <td data-remarks-cell="{{ $applicant->id }}">
-                            <span class="badge {{ $eval['badge'] ?? 'bg-secondary' }}">
-                                {{ $eval['remarks'] }}
+                            <span class="badge {{ $outcome['badge'] ?? $eval['badge'] ?? 'bg-secondary' }}">
+                                {{ $outcome['remark'] ?? $eval['remarks'] }}
                             </span>
                             @if($applicant->admissionSession)
                                 <div class="text-muted" style="font-size: 10px;">{{ $applicant->admissionSession->session_name ?? $applicant->session_label }}</div>
@@ -500,8 +502,8 @@
                                    class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label form-label-sm text-muted">Qualification</label>
-                            <input value="{{ $applicant->qualification_status ?? 'Pending' }}"
+                            <label class="form-label form-label-sm text-muted">Remarks</label>
+                            <input value="{{ $outcomes[$applicant->id]['remark'] ?? $eval['remarks'] ?? 'Pending' }}"
                                    id="edit-qualification-{{ $applicant->id }}"
                                    class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
@@ -852,6 +854,9 @@
             updateChoiceColor(2, payload.second_choice_status);
 
             showToast(payload.warning || 'Interview score, total, and remarks updated.', payload.warning ? 'warning' : 'success');
+            // A score can move other applicants between qualified and
+            // waitlisted, so reload the ranked rows after a successful save.
+            if (!payload.warning) refresh(true);
         } catch (error) {
             showToast(error.message || 'Unable to save the interview score.', 'danger');
         } finally {

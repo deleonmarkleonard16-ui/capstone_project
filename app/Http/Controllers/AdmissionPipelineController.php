@@ -625,6 +625,8 @@ class AdmissionPipelineController extends Controller
             'qualification_status' => $updated->qualification_status,
             'remarks' => $evaluation['remarks'],
             'remarks_badge' => $evaluation['badge'] ?? 'bg-secondary',
+            'first_choice_status' => $evaluation['c1_status'] ?? 'neutral',
+            'second_choice_status' => $evaluation['c2_status'] ?? 'neutral',
         ]);
     }
 

@@ -338,7 +338,10 @@ class AdmissionApplicant extends Model
                 'status'           => 'Passed',
                 'remarks'          => 'Passed (1st Choice)',
                 'c1_status'        => 'qualified',    // Soft green highlight
-                'c2_status'        => 'neutral',
+                // A stanine at or above the board cutoff qualifies the
+                // examinee for both program choices, so show the same green
+                // qualification result on the second choice as well.
+                'c2_status'        => $c2 ? 'qualified' : 'neutral',
                 'qualified_choice' => 1,
                 'qualified_course' => $c1,
                 'badge'            => 'bg-success',
@@ -353,7 +356,8 @@ class AdmissionApplicant extends Model
                     'status'           => 'Passed',
                     'remarks'          => 'Passed (1st Choice)',
                     'c1_status'        => 'qualified',    // Soft green highlight
-                    'c2_status'        => 'neutral',
+                    // At stanine 3, only non-board programs qualify.
+                    'c2_status'        => $c2 ? ($isC2Board ? 'not_qualified' : 'qualified') : 'neutral',
                     'qualified_choice' => 1,
                     'qualified_course' => $c1,
                     'badge'            => 'bg-success',

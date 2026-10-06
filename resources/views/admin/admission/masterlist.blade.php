@@ -260,20 +260,20 @@
                         <td>{{ $applicant->middle_name ? mb_strtoupper($applicant->middle_name) : '–' }}</td>
 
                         {{-- 1ST COURSE CHOICE with Qualification Highlighting --}}
-                        <td @if($eval['c1_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c1_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
-                            <span class="badge {{ $eval['c1_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c1_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
+                        <td data-course-cell="{{ $applicant->id }}-1" @if($eval['c1_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c1_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
+                            <span data-course-badge="{{ $applicant->id }}-1" class="badge {{ $eval['c1_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c1_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
                                   title="{{ \App\Support\CourseCatalog::label($applicant->course_choice_1 ?: $applicant->course_choice) }}">
                                 {{ $applicant->course_choice_1 ?: $applicant->course_choice }}
                             </span>
                         </td>
 
                         {{-- 2ND COURSE CHOICE with Qualification Highlighting --}}
-                        <td @if($eval['c2_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c2_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
+                        <td data-course-cell="{{ $applicant->id }}-2" @if($eval['c2_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c2_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
                             @php
                                 $c2Display = $applicant->course_choice_2 ?: $applicant->second_course_choice;
                             @endphp
                             @if($c2Display && $c2Display !== 'N/A' && $c2Display !== 'None')
-                                <span class="badge {{ $eval['c2_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c2_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
+                                <span data-course-badge="{{ $applicant->id }}-2" class="badge {{ $eval['c2_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c2_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
                                       title="{{ \App\Support\CourseCatalog::label($c2Display) }}">
                                     {{ $c2Display }}
                                 </span>
@@ -472,6 +472,7 @@
                             <label class="form-label form-label-sm fw-semibold">Interview Score</label>
                             <input type="number" step="0.01" min="0" max="100"
                                    name="interview_score" value="{{ $applicant->interview_score }}"
+                                   id="edit-interview-score-{{ $applicant->id }}"
                                    class="form-control form-control-sm" placeholder="Optional" @disabled($isLocked)>
                         </div>
 
@@ -495,11 +496,13 @@
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Total Score</label>
                             <input value="{{ $applicant->total_score !== null ? number_format($applicant->total_score, 2) : 'Pending' }}"
+                                   id="edit-total-score-{{ $applicant->id }}"
                                    class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Qualification</label>
                             <input value="{{ $applicant->qualification_status ?? 'Pending' }}"
+                                   id="edit-qualification-{{ $applicant->id }}"
                                    class="form-control form-control-sm bg-light text-muted" disabled readonly>
                         </div>
 
@@ -815,11 +818,38 @@
             const total = document.querySelector(`[data-total-cell="${applicantId}"]`);
             if (total) total.textContent = payload.total_score === null ? '–' : `${Number(payload.total_score).toFixed(2)}%`;
 
+            // Keep the already-rendered Edit modal in sync with the inline
+            // masterlist save; the administrator need not reload the page.
+            const editInterview = document.getElementById(`edit-interview-score-${applicantId}`);
+            if (editInterview) editInterview.value = Number(payload.interview_score).toFixed(2);
+            const editTotal = document.getElementById(`edit-total-score-${applicantId}`);
+            if (editTotal) editTotal.value = payload.total_score === null ? 'Pending' : Number(payload.total_score).toFixed(2);
+            const editQualification = document.getElementById(`edit-qualification-${applicantId}`);
+            if (editQualification) editQualification.value = payload.qualification_status || 'Pending';
+
             const remarks = document.querySelector(`[data-remarks-cell="${applicantId}"] .badge`);
             if (remarks) {
                 remarks.className = `badge ${payload.remarks_badge || 'bg-secondary'}`;
                 remarks.textContent = payload.remarks;
             }
+
+            const updateChoiceColor = (choice, status) => {
+                const cell = document.querySelector(`[data-course-cell="${applicantId}-${choice}"]`);
+                const badge = document.querySelector(`[data-course-badge="${applicantId}-${choice}"]`);
+                if (!cell || !badge) return;
+                cell.style.removeProperty('background-color');
+                if (status === 'qualified') {
+                    cell.style.setProperty('background-color', '#d1fae5', 'important');
+                    badge.className = 'badge bg-success text-white';
+                } else if (status === 'not_qualified') {
+                    cell.style.setProperty('background-color', '#fee2e2', 'important');
+                    badge.className = 'badge bg-danger-subtle text-danger border border-danger-subtle';
+                } else {
+                    badge.className = 'badge bg-light text-dark border';
+                }
+            };
+            updateChoiceColor(1, payload.first_choice_status);
+            updateChoiceColor(2, payload.second_choice_status);
 
             showToast(payload.warning || 'Interview score, total, and remarks updated.', payload.warning ? 'warning' : 'success');
         } catch (error) {

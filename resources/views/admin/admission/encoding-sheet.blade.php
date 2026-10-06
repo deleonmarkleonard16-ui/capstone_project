@@ -18,63 +18,25 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-secondary btn-sm" href="{{ route('admin.admission.sessions.index') }}">
-            <i class="bi bi-calendar3 me-1"></i> Open Test Sessions
-        </a>
         <a class="btn btn-outline-secondary btn-sm"
-           href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
-            <i class="bi bi-file-earmark-word me-1"></i> Download DOCX
-        </a>
-        <a class="btn btn-primary btn-sm" href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}">
-            <i class="bi bi-table me-1"></i> Admission Masterlist
+           href="{{ route('admin.admission.encoding-sheet.export', ['cycle_id' => $cycle->id]) }}">
+            <i class="bi bi-file-earmark-excel me-1"></i> Export Applicants
         </a>
     </div>
 </div>
 
-<div class="row g-3 mb-4">
+<div class="mb-4">
     {{-- ── LEFT: ADMISSION CYCLE CARD ── --}}
-    <div class="col-md-5">
-        <div class="card page-card shadow-sm h-100">
-            <div class="card-body p-4">
-                <h2 class="h5 section-title mb-3">Admission Cycle</h2>
-
                 {{-- Cycle Selector --}}
-                <form method="get" action="{{ route('admin.admission.encoding-sheet') }}" class="d-flex gap-2 mb-3">
-                    <select class="form-select" name="cycle_id" id="cycle-select">
-                        @foreach($allCycles as $c)
-                            <option value="{{ $c->id }}" @selected($cycle->id === $c->id)>
-                                {{ $c->displayName }} {{ $c->isActive() ? '(Active)' : ($c->isCompleted() ? '(Archived)' : '(Draft)') }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <button class="btn btn-outline-primary" type="submit">Open</button>
-                </form>
 
                 {{-- Quick Add New Cycle --}}
-                <form method="post" action="{{ route('admin.admission.cycles.save') }}" class="d-flex gap-2" id="add-cycle-form">
-                    @csrf
-                    <input name="cycle_name" class="form-control" placeholder="Example: AY 2026-2027" required style="flex:1">
-                    <input type="hidden" name="passing_stanine" value="4">
-                    <input type="hidden" name="exam_weight" value="60">
-                    <input type="hidden" name="gwa_weight" value="20">
-                    <input type="hidden" name="interview_weight" value="20">
-                    <select name="status" class="form-select" style="width:110px">
-                        <option value="Draft">Draft</option>
-                        <option value="Active">Active</option>
-                    </select>
-                    <button class="btn btn-outline-primary">Add</button>
-                </form>
-                <div class="mt-2">
+                <div class="d-none">
                     <a class="text-muted small" href="{{ route('admin.admission.index') }}">
                         <i class="bi bi-gear me-1"></i> Full cycle configuration &amp; quotas →
                     </a>
                 </div>
-            </div>
-        </div>
-    </div>
-
     {{-- ── RIGHT: IMPORT APPLICANTS FROM EXCEL CSV ── --}}
-    <div class="col-md-7">
+    <div>
         <div class="card page-card shadow-sm h-100">
             <div class="card-body p-4">
                 <h2 class="h5 section-title mb-1">Import Applicants From Excel / CSV</h2>
@@ -375,12 +337,7 @@
                     @endunless
                 </div>
                 @unless($isLocked)
-                    <div class="d-flex gap-2 align-items-center">
-                        <span id="save-status-indicator" class="small text-muted d-none"></span>
-                        <button class="btn btn-primary btn-sm" id="btn-save-grid-bottom" form="encoding-form" type="submit">
-                            <i class="bi bi-save me-1"></i> Save &amp; Sort by Course / Highest GWA
-                        </button>
-                    </div>
+                    <span id="save-status-indicator" class="small text-muted d-none"></span>
                 @endunless
             </div>
         </form>

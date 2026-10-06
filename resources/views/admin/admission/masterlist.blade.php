@@ -26,33 +26,10 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.encoding-sheet', ['cycle_id' => $cycle->id]) }}">
-            <i class="bi bi-grid-3x3 me-1"></i> Masterlist Encoding Sheet
-        </a>
-        <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.sessions.index') }}">
-            <i class="bi bi-calendar3 me-1"></i> Open Test Sessions
-        </a>
-        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#rangeAllocationModal" @disabled($isLocked)>
-            <i class="bi bi-person-lines-fill me-1"></i> Range Session Allocation
-        </button>
         {{-- ── REFRESH DATA BUTTON ── --}}
         <button class="btn btn-outline-secondary btn-sm" id="refreshMasterlistBtn" type="button" title="Reload applicant list without a full page reload">
             <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
         </button>
-        <a class="btn btn-primary btn-sm"
-           href="{{ route('admin.admission.report', array_merge(request()->only(['course', 'status', 'batch_group']), ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx'])) }}">
-            <i class="bi bi-file-earmark-word me-1"></i> DOCX Export
-        </a>
-        @if ($cycle->isActive())
-            <form method="post" action="{{ route('admin.admission.cycles.complete', $cycle) }}"
-                  onsubmit="return confirm('Are you sure you want to mark cycle \'{{ $cycle->displayName }}\' as Completed and Archive it? This will lock all applicant entries and exam scores from further modification.');"
-                  class="d-inline">
-                @csrf
-                <button class="btn btn-warning btn-sm fw-semibold">
-                    <i class="bi bi-archive-fill me-1"></i> Complete &amp; Archive
-                </button>
-            </form>
-        @endif
     </div>
 </div>
 

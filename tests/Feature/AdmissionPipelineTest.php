@@ -66,6 +66,41 @@ class AdmissionPipelineTest extends TestCase
         $this->get('/admin/admission/report?type=qualified&format=docx')->assertOk()->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
 
+    public function test_encoding_sheet_exports_applicants_as_an_excel_workbook(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => 'Encoding Export Cycle',
+            'academic_year' => '2030-2031',
+            'is_active' => true,
+        ]);
+        AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id,
+            'application_number' => 'EXPORT-001',
+            'last_name' => 'Reyes',
+            'first_name' => 'Ana',
+            'middle_name' => 'M.',
+            'course_choice' => 'BSIT',
+            'second_course_choice' => 'BEED',
+            'sex' => 'Female',
+            'special_group' => '4Ps',
+            'cmfl' => '10,000 below',
+            'gwa' => 92.5,
+        ]);
+
+        $this->get(route('admin.admission.encoding-sheet'))
+            ->assertOk()
+            ->assertSee('Export Applicants')
+            ->assertDontSee('Open Test Sessions')
+            ->assertDontSee('Admission Masterlist')
+            ->assertDontSee('Download DOCX');
+
+        $this->get(route('admin.admission.encoding-sheet.export', ['cycle_id' => $cycle->id]))
+            ->assertOk()
+            ->assertDownload()
+            ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+
     public function test_third_digital_security_strike_submits_exam_and_logs_incidents(): void
     {
         $cycle = AdmissionCycle::create(['name' => '2026', 'academic_year' => '2026-2027', 'is_active' => true]);

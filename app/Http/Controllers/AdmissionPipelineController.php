@@ -359,8 +359,6 @@ class AdmissionPipelineController extends Controller
 
     public function encodingSheet(Request $request)
     {
-        $allCycles = AdmissionCycle::orderByDesc('id')->get();
-
         if ($request->filled('cycle_id')) {
             $cycle = AdmissionCycle::find($request->query('cycle_id'));
         } else {
@@ -396,7 +394,6 @@ class AdmissionPipelineController extends Controller
 
         return view('admin.admission.encoding-sheet', [
             'cycle' => $cycle,
-            'allCycles' => $allCycles,
             'isLocked' => $isLocked,
             'rows' => $rows,
             'batchGroups' => $batchGroups,
@@ -677,6 +674,57 @@ class AdmissionPipelineController extends Controller
             'first_choice_status' => $evaluation['c1_status'] ?? 'neutral',
             'second_choice_status' => $evaluation['c2_status'] ?? 'neutral',
         ]);
+    }
+
+    /** Download the current cycle's applicant masterlist as a real XLSX workbook. */
+    public function exportApplicants(Request $request)
+    {
+        $cycle = $request->filled('cycle_id')
+            ? AdmissionCycle::find($request->integer('cycle_id'))
+            : $this->active();
+
+        if (!$cycle) {
+            return $this->gatekeeperRedirect();
+        }
+
+        $headers = [
+            'last_name', 'first_name', 'middle_name', 'course_choice_1', 'course_choice_2',
+            'sex', '4ps_osy_ip_pwd_sp', 'cmfl', 'gwa',
+        ];
+        $rows = $cycle->applicants()->orderBy('last_name')->orderBy('first_name')->get()
+            ->map(fn (AdmissionApplicant $applicant) => [
+                $applicant->last_name,
+                $applicant->first_name,
+                $applicant->middle_name,
+                $applicant->course_choice_1 ?: $applicant->course_choice,
+                $applicant->course_choice_2 ?: $applicant->second_course_choice,
+                $applicant->sex,
+                $applicant->{'4ps_osy_ip_pwd_sp'} ?: $applicant->special_group,
+                $applicant->cmfl,
+                $applicant->gwa,
+            ])->all();
+
+        $path = tempnam(sys_get_temp_dir(), 'admission_applicants_');
+        if ($path === false) {
+            abort(500, 'Unable to prepare the applicant export.');
+        }
+        @unlink($path);
+
+        try {
+            $this->writeApplicantsXlsx($path, $headers, $rows);
+        } catch (\Throwable $exception) {
+            @unlink($path);
+            report($exception);
+            abort(500, 'Unable to create the Excel file.');
+        }
+
+        $name = 'admission-applicants-' . Str::slug($cycle->displayName) . '.xlsx';
+
+        return response()->download(
+            $path,
+            $name,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
     }
 
     public function import(Request $request, AdmissionScoringService $scoring, \App\Services\AdmissionSpreadsheetReader $reader)
@@ -966,6 +1014,67 @@ class AdmissionPipelineController extends Controller
             'orDate',
             'remarks'
         ));
+    }
+
+    /**
+     * Produce a minimal standards-compliant XLSX workbook without requiring a
+     * separate spreadsheet package. All cells are inline strings so the file
+     * opens directly in Excel, LibreOffice, and Google Sheets.
+     */
+    private function writeApplicantsXlsx(string $path, array $headers, array $rows): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            throw new \RuntimeException('Unable to create the Excel workbook.');
+        }
+
+        $escape = static fn ($value): string => htmlspecialchars((string) ($value ?? ''), ENT_XML1 | ENT_COMPAT, 'UTF-8');
+        $cell = static function (int $column, int $row, $value) use ($escape): string {
+            $letters = '';
+            for ($number = $column + 1; $number > 0; $number = intdiv($number - 1, 26)) {
+                $letters = chr(65 + (($number - 1) % 26)) . $letters;
+            }
+            return '<c r="' . $letters . $row . '" t="inlineStr"><is><t>' . $escape($value) . '</t></is></c>';
+        };
+
+        $sheetRows = [];
+        foreach (array_merge([$headers], $rows) as $rowNumber => $values) {
+            $cells = [];
+            foreach ($values as $column => $value) {
+                $cells[] = $cell($column, $rowNumber + 1, $value);
+            }
+            $sheetRows[] = '<row r="' . ($rowNumber + 1) . '">' . implode('', $cells) . '</row>';
+        }
+
+        $sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+            . '<cols><col min="1" max="9" width="22" customWidth="1"/></cols>'
+            . '<sheetData>' . implode('', $sheetRows) . '</sheetData></worksheet>';
+
+        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            . '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            . '<Default Extension="xml" ContentType="application/xml"/>'
+            . '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            . '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            . '</Types>');
+        $zip->addFromString('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            . '</Relationships>');
+        $zip->addFromString('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            . '<sheets><sheet name="Applicants" sheetId="1" r:id="rId1"/></sheets></workbook>');
+        $zip->addFromString('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+            . '</Relationships>');
+        $zip->addFromString('xl/worksheets/sheet1.xml', $sheetXml);
+
+        if (!$zip->close()) {
+            throw new \RuntimeException('Unable to finalize the Excel workbook.');
+        }
     }
 
     private function active(): ?AdmissionCycle

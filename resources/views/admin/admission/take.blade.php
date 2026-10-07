@@ -8,17 +8,30 @@
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; background-color: #ffffff !important; color: #111827; font-family: Arial, Helvetica, sans-serif; }
-        body { user-select: none; -webkit-user-select: none; overflow-x: hidden; }
+        body { user-select: none; -webkit-user-select: none; overflow: hidden; }
 
         /* ── FORCED FULLSCREEN KIOSK LOCKDOWN MODAL ── */
         #kiosk-lock {
             position: fixed; inset: 0; z-index: 9999;
             background-color: #ffffff !important;
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column; text-align: center; padding: 32px;
+            display: block; text-align: center;
+            overflow-y: auto; overflow-x: hidden;
+            touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
             transition: opacity 0.3s;
         }
         #kiosk-lock.hidden { display: none; }
+        #kiosk-lock .kiosk-details {
+            width: 100%; max-width: 744px; margin: 0 auto; padding: 24px;
+        }
+        #kiosk-lock .kiosk-actions {
+            position: sticky; bottom: 0; background: #fff; z-index: 1;
+            padding: 12px 24px max(16px, env(safe-area-inset-bottom));
+            border-top: 1px solid #e2e8f0;
+        }
+        #kiosk-lock .kiosk-details, #exam-shell { touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch; }
+        #kiosk-lock .kiosk-details .instructions { margin-left: auto; margin-right: auto; }
+        #kiosk-lock #enter-btn { max-width: 100%; }
         #kiosk-lock .psu-logo { font-size: 15px; text-transform: uppercase; letter-spacing: 2px; color: #92400e; margin-bottom: 8px; }
         #kiosk-lock h1 { font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 6px; }
         #kiosk-lock .sub { color: #475569; font-size: 14px; margin-bottom: 24px; }
@@ -35,7 +48,7 @@
         #lock-msg { font-size: 13px; color: #ff9090; margin-top: 14px; min-height: 20px; }
 
         /* ── EXAM SHELL (hidden until fullscreen) ── */
-        #exam-shell { display: none; max-width: 960px; margin: 0 auto; padding: 20px; background-color: #ffffff !important; }
+        #exam-shell { display: none; max-width: 960px; height: 100%; height: 100dvh; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; margin: 0 auto; padding: 20px; background-color: #ffffff !important; }
         #exam-shell.visible { display: block; }
 
         /* Sticky header */
@@ -79,13 +92,15 @@
         html.exam-protected #exam-shell,
         html.exam-protected #exam-watermark { visibility: hidden !important; }
         html.exam-protected, html.exam-protected body { background: #000 !important; }
+        html.exam-away #strike-modal,
+        html.exam-away #blackout > * { visibility: hidden !important; }
         #blackout .msg { color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
         #blackout .sub { color: #888; font-size: 14px; }
 
         /* ── STRIKE WARNING MODAL ── */
         #strike-modal { position: fixed; inset: 0; z-index: 9500; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; }
         #strike-modal.active { display: flex; }
-        #strike-modal-inner { background: #fff; color: #111; border-radius: 12px; padding: 32px; max-width: 440px; text-align: center; }
+        #strike-modal-inner { background: #fff; color: #111; border-radius: 12px; padding: 32px; max-width: 440px; max-height: 100%; overflow-y: auto; touch-action: pan-y pinch-zoom; text-align: center; }
         #strike-modal-inner h2 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
         #strike-modal-inner h2.s1 { color: #b45309; }
         #strike-modal-inner h2.s2 { color: #c2410c; }
@@ -127,6 +142,7 @@
      Rendered on page load, hidden only after fullscreen entry
      ══════════════════════════════════════════════════════════ --}}
 <div id="kiosk-lock">
+    <div class="kiosk-details">
     <div class="psu-logo">Pangasinan State University · San Carlos Campus</div>
     <h1>PSU-CAT Digital Exam</h1>
     <div class="sub">PSU College Admission Test · Official Digital Answer Sheet</div>
@@ -152,10 +168,13 @@
         </ul>
     </div>
 
+    </div>
+    <div class="kiosk-actions">
     <button id="enter-btn" type="button">
         Enable Fullscreen
     </button>
     <div id="lock-msg"></div>
+    </div>
 </div>
 
 {{-- ══════════════════════════════════════════════════════════
@@ -166,7 +185,7 @@
         <div class="left">
             <strong>PSU-CAT Exam · {{ $applicant->application_number }}</strong>
             {{ mb_strtoupper($applicant->full_name) }} · {{ $applicant->course_choice }}
-            <div>Student ID: {{ $applicant->student_id ?: $applicant->application_number }} | O.R. Number: {{ $applicant->or_number ?: 'N/A' }}</div>
+            <div>Student ID: {{ $applicant->student_id ?: $applicant->application_number }}</div>
         </div>
         <div id="timer">00:00</div>
     </div>
@@ -321,6 +340,20 @@ function hideBlackout() {
     }
 }
 
+// Keep the protected page completely black while another window/app has
+// focus. The warning becomes readable when the applicant returns.
+function updateAwayMask(forceAway = false) {
+    if (!started || sending) return;
+    if (forceAway || document.hidden || !document.hasFocus()) {
+        document.documentElement.classList.add('exam-away');
+    } else {
+        document.documentElement.classList.remove('exam-away');
+    }
+}
+window.addEventListener('blur', () => updateAwayMask(true));
+window.addEventListener('focus', () => updateAwayMask());
+document.addEventListener('visibilitychange', () => updateAwayMask());
+
 // ── PROGRESSIVE STRIKE MODAL ───────────────────────────────
 function showStrikeModal(strikeNum, type) {
     const badge  = document.getElementById('strike-badge');
@@ -353,6 +386,9 @@ function showStrikeModal(strikeNum, type) {
     if (type === 'restricted_gesture') {
         body.textContent = 'Restricted Multi-touch / Possible Screenshot: A gesture using three or more fingers was detected and reported to the admin. Use one finger to answer or scroll. ' + body.textContent;
     }
+    if (type === 'screenshot' || type === 'print_screen') {
+        body.textContent = 'Screenshot shortcut detected and reported to the admin. The answer sheet has been hidden. ' + body.textContent;
+    }
 
     strikeModal.classList.add('active');
 }
@@ -380,6 +416,7 @@ async function reportIncident(type) {
     pendingIncident = true;
     securityLockActive = true;
     showBlackout();
+    updateAwayMask();
 
     try {
         const res = await fetch(STRIKE_URL, {

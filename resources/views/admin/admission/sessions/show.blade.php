@@ -270,7 +270,7 @@
                                     <td>
                                         <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
                                             <i class="bi bi-exclamation-diamond me-1"></i>
-                                            {{ ucwords(str_replace('_', ' ', $incident->incident_type)) }}
+                                            {{ \App\Support\AdmissionSecurityIncident::label($incident->incident_type) }}
                                         </span>
                                     </td>
                                     <td>
@@ -808,7 +808,7 @@
                     @foreach($app->securityLogs as $log)
                         {
                             strike: {{ $log->strike_number }},
-                            violation: "{{ ucwords(str_replace('_', ' ', $log->incident_type)) }}",
+                            violation: @json(\App\Support\AdmissionSecurityIncident::label($log->incident_type)),
                             time: "{{ $log->created_at?->format('h:i:s A') ?: '—' }}"
                         },
                     @endforeach

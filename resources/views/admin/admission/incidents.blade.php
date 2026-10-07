@@ -99,15 +99,7 @@
 <script>
 const INCIDENTS_URL = @json(route('admin.admission.incidents'));
 
-const LABELS = {
-    back_button:      'Back Button Pressed',
-    print_screen:     'Print Screen Key',
-    print:            'Ctrl+P / Print Attempt',
-    focus_loss:       'Window Focus Lost',
-    fullscreen_exit:  'Exited Fullscreen',
-    tab_switch:       'Tab / App Switch',
-    screenshot:       'Screenshot Attempt',
-};
+const LABELS = @json(\App\Support\AdmissionSecurityIncident::LABELS);
 
 let cursor    = 0;
 let seenIds   = new Set();

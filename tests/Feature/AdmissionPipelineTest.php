@@ -19,6 +19,39 @@ class AdmissionPipelineTest extends TestCase
         $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', $role)->value('id')]));
     }
 
+    public function test_focus_loss_is_labelled_as_possible_overlay_on_admission_monitor_and_receipt_is_hidden(): void
+    {
+        $cycle = AdmissionCycle::create([
+            'name' => 'Security labels', 'academic_year' => '2026-2027',
+            'is_active' => true, 'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+        $session = \App\Models\AdmissionSession::create([
+            'admission_cycle_id' => $cycle->id, 'session_name' => 'Security test',
+            'start_time' => now(), 'start_number' => 1, 'end_number' => 1,
+            'status' => 'In-Progress',
+        ]);
+        $applicant = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'application_number' => 'CAT-SECURITY', 'first_name' => 'Test', 'last_name' => 'Applicant',
+            'course_choice' => 'BSIT', 'exam_token' => str_repeat('e', 64), 'or_number' => 'OR-PRIVATE-TEST',
+        ]);
+        $this->get(route('admission.take', $applicant->exam_token))->assertOk()
+            ->assertDontSee('OR-PRIVATE-TEST')->assertDontSee('O.R. Number:');
+        $this->postJson(route('admission.strike', $applicant->exam_token), [
+            'incident_type' => 'focus_loss', 'answers' => [1 => 'A'],
+        ])->assertOk()->assertJsonPath('strikes', 1);
+        $this->login('admin');
+        $label = 'Possible Screenshot / Screen Overlay (Focus Loss)';
+        $this->get(route('admin.admission.sessions.show', $session))->assertOk()->assertSee($label);
+        $this->getJson(route('admin.admission.sessions.poll', $session))->assertOk()
+            ->assertJsonPath('recent_incidents.0.incident_type', $label)
+            ->assertJsonPath('applicants.0.security_incidents.0.type', $label);
+        $this->get(route('admin.admission.proctoring'))->assertOk()->assertSee('Possible Screenshot');
+        $this->assertDatabaseHas('guidance_test_security_logs', [
+            'applicant_id' => $applicant->id, 'incident_type' => 'focus_loss',
+        ]);
+    }
+
     public function test_staff_is_forbidden_and_cycle_is_required_for_masterlist(): void
     {
         $this->login('staff');

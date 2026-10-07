@@ -86,3 +86,28 @@ test('failed fullscreen restoration cannot reveal the answer sheet', async () =>
     assert.equal(guard.element('exam-shell').inert, true);
     assert.equal(guard.element('root').classList.contains('exam-protected'), true);
 });
+
+test('focus loss masks the warning while away and still requires acknowledgement on return', async () => {
+    const guard = setup();
+    guard.document.hasFocus = () => false;
+    const request = guard.run("reportIncident('focus_loss')");
+    guard.requests[0].resolve({ok: true, json: async () => ({strikes: 1, terminated: false})});
+    await request;
+    assert.equal(guard.element('root').classList.contains('exam-away'), true);
+    guard.document.hasFocus = () => true;
+    guard.run('updateAwayMask()');
+    assert.equal(guard.element('root').classList.contains('exam-away'), false);
+    assert.equal(guard.element('exam-shell').inert, true);
+    assert.equal(guard.element('strike-modal').classList.contains('active'), true);
+});
+
+test('third screenshot strike remains protected and announces termination', async () => {
+    const guard = setup();
+    const request = guard.run("reportIncident('screenshot')");
+    guard.requests[0].resolve({ok: true, json: async () => ({strikes: 3, terminated: true})});
+    await request;
+    assert.equal(guard.element('exam-shell').inert, true);
+    assert.match(guard.element('strike-title').textContent, /Terminated/);
+    assert.match(guard.element('strike-body').textContent, /Screenshot shortcut detected/);
+    assert.equal(guard.run('sending'), true);
+});

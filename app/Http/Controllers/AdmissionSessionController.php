@@ -619,7 +619,7 @@ class AdmissionSessionController extends Controller
                     'log_id' => $log->log_id,
                     'applicant_name' => $log->admissionApplicant?->full_name ?? 'Unknown',
                     'application_number' => $log->admissionApplicant?->application_number ?? '—',
-                    'incident_type' => str_replace('_', ' ', ucwords($log->incident_type ?? '', '_')),
+                    'incident_type' => \App\Support\AdmissionSecurityIncident::label($log->incident_type),
                     'strike_number' => $log->strike_number,
                     'time' => $log->created_at?->format('h:i:s A') ?? '—',
                 ];
@@ -640,7 +640,7 @@ class AdmissionSessionController extends Controller
                 'total_items' => (int) ($cycle?->total_items ?: 80),
                 'strike_count' => (int) $a->strike_count,
                 'security_incidents' => $a->securityLogs->take(5)->map(fn ($l) => [
-                    'type' => str_replace('_', ' ', ucwords($l->incident_type ?? '', '_')),
+                    'type' => \App\Support\AdmissionSecurityIncident::label($l->incident_type),
                     'strike' => $l->strike_number,
                     'time' => $l->created_at?->format('h:i A'),
                 ]),

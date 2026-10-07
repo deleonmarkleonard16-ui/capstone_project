@@ -153,6 +153,16 @@ class AdmissionPipelineTest extends TestCase
             ->assertOk()
             ->assertJsonPath('strikes', 1);
 
+        $this->postJson('/admission/take/'.$token.'/strike', [
+            'incident_type' => 'restricted_gesture',
+            'answers' => [1 => 'A'],
+        ])->assertOk()->assertJsonPath('strikes', 2)->assertJsonPath('terminated', false);
+        $this->assertDatabaseHas('guidance_test_security_logs', [
+            'applicant_id' => $applicant->id,
+            'incident_type' => 'restricted_gesture',
+            'strike_number' => 2,
+        ]);
+
         $this->withSession(['admission_checkin_applicant_id' => $applicant->id])
             ->postJson('/admission/take/'.$token, ['answers' => [1 => 'A']])
             ->assertOk()

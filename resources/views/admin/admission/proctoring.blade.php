@@ -98,6 +98,7 @@ const INCIDENT_LABELS = {
     fullscreen_exit: 'Fullscreen Exit',
     tab_switch: 'Tab Switch',
     screenshot: 'Screenshot',
+    restricted_gesture: 'Restricted Multi-touch / Possible Screenshot',
 };
 
 let cursor = 0;

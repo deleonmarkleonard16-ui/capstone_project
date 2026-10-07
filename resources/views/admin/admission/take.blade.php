@@ -76,6 +76,9 @@
         /* ── BLACKOUT SCREEN ── */
         #blackout { position: fixed; inset: 0; z-index: 9000; background: #000; display: none; align-items: center; justify-content: center; flex-direction: column; }
         #blackout.active { display: flex; }
+        html.exam-protected #exam-shell,
+        html.exam-protected #exam-watermark { visibility: hidden !important; }
+        html.exam-protected, html.exam-protected body { background: #000 !important; }
         #blackout .msg { color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
         #blackout .sub { color: #888; font-size: 14px; }
 
@@ -134,7 +137,7 @@
     </div>
 
     <div class="security-notice" role="alert">
-        SECURITY NOTICE: This is an official admission exam. Taking screenshots, screen recording, exiting fullscreen mode, or switching tabs is strictly prohibited and monitored in real-time.
+        SECURITY NOTICE: Screenshots and screen recording are prohibited. Detectable screenshot shortcuts, focus loss, tab changes, and fullscreen exits trigger warnings and admin reports. Some phone screenshots and system overlays do not send browser signals and cannot be detected by this website.
     </div>
 
     <div class="instructions">
@@ -143,6 +146,7 @@
             <li>The exam will run in <strong>mandatory fullscreen kiosk mode</strong>.</li>
             <li>Only the answer sheet may remain on screen. Exiting fullscreen, switching tabs/apps, navigating away, or losing window focus counts as a <strong>security strike</strong>.</li>
             <li>Using Print Screen, Ctrl+P, or similar keys is <strong>prohibited</strong>.</li>
+            <li>Use one finger to answer or scroll. Gestures using <strong>three or more fingers</strong> are restricted and count as a security strike when detected.</li>
             <li>3 strikes result in <strong>automatic exam submission</strong>.</li>
             <li>There are <strong>{{ $totalItems }} items</strong>. Choose A, B, C, or D for each item.</li>
         </ul>
@@ -220,7 +224,7 @@
     </div>
 </div>
 
-<script src="{{ asset('js/admission-focus-guard.js') }}"></script>
+<script src="{{ asset('js/admission-focus-guard.js') }}?v={{ filemtime(public_path('js/admission-focus-guard.js')) }}"></script>
 <script>
 const SUBMIT_URL      = @json(route('admission.submit', $token));
 // Admission security events must go to the admission endpoint.  The guidance
@@ -248,7 +252,6 @@ let sending        = false;
 let confirmingSubmission = false;
 let strikes        = INITIAL_STRIKES;
 let pendingIncident = false;
-let lastIncident   = 0;
 let securityLockActive = false;
 const EXAM_DURATION_SECONDS = 3600; // 60-minute default
 let totalSecs      = EXAM_DURATION_SECONDS;
@@ -303,11 +306,19 @@ function startTimer() {
 }
 
 // ── BLACKOUT ───────────────────────────────────────────────
-function showBlackout() { blackout.classList.add('active'); }
+function showBlackout() {
+    document.documentElement.classList.add('exam-protected');
+    examShell.inert = true;
+    blackout.classList.add('active');
+}
 function hideBlackout() {
     // A detected violation must be acknowledged through the warning dialog;
     // returning window focus alone must never reveal the exam again.
-    if (!securityLockActive) blackout.classList.remove('active');
+    if (!securityLockActive) {
+        blackout.classList.remove('active');
+        document.documentElement.classList.remove('exam-protected');
+        examShell.inert = false;
+    }
 }
 
 // ── PROGRESSIVE STRIKE MODAL ───────────────────────────────
@@ -339,6 +350,9 @@ function showStrikeModal(strikeNum, type) {
     if (type === 'focus_loss') {
         body.textContent = 'Possible Screenshot / Screen Overlay: The answer sheet lost focus. A screenshot preview, notification panel, or another application may have taken focus. This focus-loss incident has been reported to the admin. ' + body.textContent;
     }
+    if (type === 'restricted_gesture') {
+        body.textContent = 'Restricted Multi-touch / Possible Screenshot: A gesture using three or more fingers was detected and reported to the admin. Use one finger to answer or scroll. ' + body.textContent;
+    }
 
     strikeModal.classList.add('active');
 }
@@ -362,12 +376,10 @@ document.getElementById('strike-continue').addEventListener('click', async () =>
 // ── INCIDENT REPORTING ─────────────────────────────────────
 async function reportIncident(type) {
     if (!started || sending || confirmingSubmission || pendingIncident || securityLockActive) return;
-    if (Date.now() - lastIncident < 800) return;
 
     pendingIncident = true;
     securityLockActive = true;
     showBlackout();
-    lastIncident = Date.now();
 
     try {
         const res = await fetch(STRIKE_URL, {
@@ -464,17 +476,6 @@ window.addEventListener('popstate', () => {
 
 // ── SCREENSHOT / PRINT HOTKEY BLACKOUT ─────────────────────
 document.addEventListener('keydown', e => {
-    const isPrintScreen = e.key === 'PrintScreen' || (e.altKey && e.key === 'PrintScreen');
-    const isPrint = (e.ctrlKey && e.key.toLowerCase() === 'p') || (e.metaKey && e.key.toLowerCase() === 'p');
-    const isMacScreenshot = (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key));
-    const isWinScreenshot = (e.key === 'Snapshot' || (e.ctrlKey && e.key === 'PrintScreen'));
-
-    if (isPrintScreen || isPrint || isMacScreenshot || isWinScreenshot) {
-        e.preventDefault();
-        showBlackout();
-        reportIncident(isPrintScreen || isWinScreenshot ? 'print_screen' : (isMacScreenshot ? 'screenshot' : 'print'));
-        return;
-    }
     // Block context-menu, save, and other dangerous combos
     if ((e.ctrlKey || e.metaKey) && ['s','u','i','j','a','c'].includes(e.key.toLowerCase())) {
         e.preventDefault();

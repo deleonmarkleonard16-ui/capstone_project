@@ -336,6 +336,10 @@ function showStrikeModal(strikeNum, type) {
         document.getElementById('strike-continue').textContent = 'View Lockout Status';
     }
 
+    if (type === 'focus_loss') {
+        body.textContent = 'Possible Screenshot / Screen Overlay: The answer sheet lost focus. A screenshot preview, notification panel, or another application may have taken focus. This focus-loss incident has been reported to the admin. ' + body.textContent;
+    }
+
     strikeModal.classList.add('active');
 }
 

@@ -94,7 +94,7 @@ const INCIDENT_LABELS = {
     back_button: 'Back Button',
     print_screen: 'Print Screen',
     print: 'Ctrl+P Print',
-    focus_loss: 'Focus Loss',
+    focus_loss: 'Possible Screenshot / Screen Overlay (Focus Loss)',
     fullscreen_exit: 'Fullscreen Exit',
     tab_switch: 'Tab Switch',
     screenshot: 'Screenshot',

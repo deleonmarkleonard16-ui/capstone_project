@@ -16,12 +16,12 @@ const {chromium} = require('../../storage/app/testing-browser/node_modules/playw
     const browser = await chromium.launch({headless:true, channel:'chrome'});
     try {
         for (const [width,height] of [[360,640],[320,568],[820,360],[1280,800]]) {
-            const page = await browser.newPage({viewport:{width,height}, hasTouch:true});
+            const page = await browser.newPage({viewport:{width,height}, hasTouch:true, isMobile:width<=420});
             const errors = [];
             page.on('pageerror', e => errors.push(e.message));
             await page.route('http://admission.test/**', route => route.fulfill({contentType:'text/html',body:'<html></html>'}));
             await page.goto('http://admission.test/exam');
-            await page.setContent(`<html><head>${styles}</head><body>${kiosk}${content}${warning}</body></html>`);
+            await page.setContent(`<html><head><meta name="viewport" content="width=device-width,initial-scale=1">${styles}</head><body>${kiosk}${content}${warning}</body></html>`);
             await page.addScriptTag({content:fs.readFileSync('public/js/admission-focus-guard.js','utf8')});
             await page.addScriptTag({content:`const INITIAL_STRIKES=0, CSRF='test', STRIKE_URL='/strike', SUBMIT_URL='/submit', COMPLETE_URL='/complete', TERMINATED_URL='/terminated';
                 window.reports=[]; window.fetch=async (url, options) => {
@@ -37,10 +37,10 @@ const {chromium} = require('../../storage/app/testing-browser/node_modules/playw
                 for (let y=from-20;y>to;y-=20) await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}]});
                 await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
             };
-            const needsScroll = await page.locator('#kiosk-lock').evaluate(el=>el.scrollHeight>el.clientHeight);
+            const needsScroll = await page.evaluate(()=>document.scrollingElement.scrollHeight>innerHeight);
             if (needsScroll) {
                 await swipe(8, height-180, 60);
-                await page.waitForFunction(()=>document.getElementById('kiosk-lock').scrollTop>0);
+                await page.waitForFunction(()=>document.scrollingElement.scrollTop>0);
                 await page.locator('.instructions li').last().scrollIntoViewIfNeeded();
                 assert.equal(await page.evaluate(()=>window.reports.length),0);
                 const button = await page.locator('#enter-btn').boundingBox();

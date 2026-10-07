@@ -46,12 +46,18 @@ test('blackout hides and disables answers before reporting finishes, with one re
     assert.equal(guard.element('root').classList.contains('exam-protected'), true);
     assert.equal(guard.element('exam-shell').inert, true);
     assert.equal(guard.element('blackout').classList.contains('active'), true);
+    assert.equal(guard.element('strike-modal').classList.contains('active'), true);
+    assert.equal(guard.element('strike-continue').disabled, true);
+    assert.match(guard.element('strike-badge').textContent, /Reporting incident/);
+    guard.element('strike-continue').dispatchEvent(new Event('click'));
+    assert.equal(guard.element('exam-shell').inert, true);
     await guard.run("reportIncident('focus_loss')");
     assert.equal(guard.requests.length, 1);
     assert.equal(JSON.parse(guard.requests[0].options.body).incident_type, 'restricted_gesture');
     guard.requests[0].resolve({ok: true, json: async () => ({strikes: 1, terminated: false})});
     await request;
     assert.equal(guard.element('strike-modal').classList.contains('active'), true);
+    assert.equal(guard.element('strike-continue').disabled, false);
     assert.match(guard.element('strike-body').textContent, /Restricted Multi-touch/);
     guard.element('strike-continue').dispatchEvent(new Event('click'));
     assert.equal(guard.element('exam-shell').inert, false);

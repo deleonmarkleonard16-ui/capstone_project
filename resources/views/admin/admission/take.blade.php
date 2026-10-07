@@ -8,14 +8,14 @@
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; background-color: #ffffff !important; color: #111827; font-family: Arial, Helvetica, sans-serif; }
-        body { user-select: none; -webkit-user-select: none; overflow: hidden; }
+        body { height: auto; min-height: 100%; user-select: none; -webkit-user-select: none; overflow-x: hidden; }
+        html.exam-running, html.exam-running body { height: 100%; overflow: hidden; }
 
         /* ── FORCED FULLSCREEN KIOSK LOCKDOWN MODAL ── */
         #kiosk-lock {
-            position: fixed; inset: 0; z-index: 9999;
+            position: relative; min-height: 100vh; min-height: 100dvh; z-index: 9999;
             background-color: #ffffff !important;
             display: block; text-align: center;
-            overflow-y: auto; overflow-x: hidden;
             touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: contain;
             transition: opacity 0.3s;
@@ -391,9 +391,11 @@ function showStrikeModal(strikeNum, type) {
     }
 
     strikeModal.classList.add('active');
+    document.getElementById('strike-continue').disabled = false;
 }
 
 document.getElementById('strike-continue').addEventListener('click', async () => {
+    if (pendingIncident) return;
     if (strikes >= 3) {
         location.replace(TERMINATED_URL);
     } else {
@@ -417,6 +419,11 @@ async function reportIncident(type) {
     securityLockActive = true;
     showBlackout();
     updateAwayMask();
+    document.getElementById('strike-title').textContent = 'Security Warning';
+    document.getElementById('strike-badge').textContent = 'Reporting incident';
+    document.getElementById('strike-body').textContent = 'The answer sheet is protected. A security event was detected and is being reported to the admin. Please wait for confirmation.';
+    document.getElementById('strike-continue').disabled = true;
+    strikeModal.classList.add('active');
 
     try {
         const res = await fetch(STRIKE_URL, {
@@ -562,6 +569,7 @@ enterBtn.addEventListener('click', async () => {
         }
         await document.documentElement.requestFullscreen();
         started = true;
+        document.documentElement.classList.add('exam-running');
         kioskLock.classList.add('hidden');
         examShell.classList.add('visible');
         updateAnswerCount();
@@ -578,6 +586,7 @@ async function launchKiosk() {
     try {
         await document.documentElement.requestFullscreen();
         started = true;
+        document.documentElement.classList.add('exam-running');
         kioskLock.classList.add('hidden');
         examShell.classList.add('visible');
         updateAnswerCount();

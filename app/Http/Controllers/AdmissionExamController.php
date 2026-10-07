@@ -70,7 +70,8 @@ class AdmissionExamController extends Controller
             }
         }
 
-        return view('admin.admission.take', compact('applicant', 'token', 'totalItems'));
+        return response()->view('admin.admission.take', compact('applicant', 'token', 'totalItems'))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function state(Request $request, string $token)

@@ -36,12 +36,13 @@ class AdmissionPipelineTest extends TestCase
             'course_choice' => 'BSIT', 'exam_token' => str_repeat('e', 64), 'or_number' => 'OR-PRIVATE-TEST',
         ]);
         $this->get(route('admission.take', $applicant->exam_token))->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
             ->assertDontSee('OR-PRIVATE-TEST')->assertDontSee('O.R. Number:');
         $this->postJson(route('admission.strike', $applicant->exam_token), [
             'incident_type' => 'focus_loss', 'answers' => [1 => 'A'],
         ])->assertOk()->assertJsonPath('strikes', 1);
         $this->login('admin');
-        $label = 'Possible Screenshot / Screen Overlay (Focus Loss)';
+        $label = 'Possible Screenshot / Screen Overlay';
         $this->get(route('admin.admission.sessions.show', $session))->assertOk()->assertSee($label);
         $this->getJson(route('admin.admission.sessions.poll', $session))->assertOk()
             ->assertJsonPath('recent_incidents.0.incident_type', $label)

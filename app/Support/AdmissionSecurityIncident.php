@@ -5,7 +5,7 @@ namespace App\Support;
 final class AdmissionSecurityIncident
 {
     public const LABELS = [
-        'focus_loss' => 'Possible Screenshot / Screen Overlay (Focus Loss)',
+        'focus_loss' => 'Possible Screenshot / Screen Overlay',
         'print_screen' => 'Screenshot Shortcut (Print Screen)',
         'screenshot' => 'Screenshot Shortcut',
         'restricted_gesture' => 'Restricted Multi-touch / Possible Screenshot',

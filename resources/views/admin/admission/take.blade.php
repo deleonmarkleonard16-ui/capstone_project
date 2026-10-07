@@ -220,6 +220,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/admission-focus-guard.js') }}"></script>
 <script>
 const SUBMIT_URL      = @json(route('admission.submit', $token));
 // Admission security events must go to the admission endpoint.  The guidance
@@ -244,6 +245,7 @@ const ansCount     = document.getElementById('ans-count');
 
 let started        = false;
 let sending        = false;
+let confirmingSubmission = false;
 let strikes        = INITIAL_STRIKES;
 let pendingIncident = false;
 let lastIncident   = 0;
@@ -337,23 +339,25 @@ function showStrikeModal(strikeNum, type) {
     strikeModal.classList.add('active');
 }
 
-document.getElementById('strike-continue').addEventListener('click', () => {
-    strikeModal.classList.remove('active');
-    securityLockActive = false;
-    hideBlackout();
+document.getElementById('strike-continue').addEventListener('click', async () => {
     if (strikes >= 3) {
         location.replace(TERMINATED_URL);
     } else {
-        // Re-enter fullscreen
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {});
+        try {
+            if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+            if (document.hidden || !document.hasFocus()) return;
+            strikeModal.classList.remove('active');
+            securityLockActive = false;
+            hideBlackout();
+        } catch (_) {
+            document.getElementById('strike-body').textContent = 'Fullscreen could not be restored. Tap Continue again or ask the proctor for help.';
         }
     }
 });
 
 // ── INCIDENT REPORTING ─────────────────────────────────────
 async function reportIncident(type) {
-    if (!started || sending || pendingIncident) return;
+    if (!started || sending || confirmingSubmission || pendingIncident || securityLockActive) return;
     if (Date.now() - lastIncident < 800) return;
 
     pendingIncident = true;
@@ -376,7 +380,7 @@ async function reportIncident(type) {
             }),
         });
 
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('Incident reporting failed');
         const state = await res.json();
         strikes = state.strikes;
 
@@ -391,7 +395,12 @@ async function reportIncident(type) {
 
         showStrikeModal(strikes, type);
     } catch (err) {
-        // Connection lost, keep blackout up
+        // Do not unlock or blindly retry: the server may already have recorded
+        // this request. A proctor must reconcile an uncertain response.
+        document.getElementById('strike-title').textContent = 'Security Reporting Interrupted';
+        document.getElementById('strike-body').textContent = 'The exam is protected, but the security report could not be confirmed. Please ask the proctor for help before continuing.';
+        document.getElementById('strike-continue').hidden = true;
+        strikeModal.classList.add('active');
     } finally {
         pendingIncident = false;
     }
@@ -400,7 +409,18 @@ async function reportIncident(type) {
 // ── SUBMIT EXAM ─────────────────────────────────────────────
 async function submitExam(timedOut = false) {
     if (sending || !started) return;
-    if (!timedOut && !confirm('Are you sure you want to submit your exam? This cannot be undone.')) return;
+    if (!timedOut && (securityLockActive || pendingIncident)) return;
+    if (!timedOut) {
+        // Native confirmation dialogs may blur the page on some browsers.
+        confirmingSubmission = true;
+        let confirmed;
+        try {
+            confirmed = confirm('Are you sure you want to submit your exam? This cannot be undone.');
+        } finally {
+            confirmingSubmission = false;
+        }
+        if (!confirmed) return;
+    }
 
     sending = true;
     submitBtn.disabled = true;
@@ -461,21 +481,9 @@ document.addEventListener('keydown', e => {
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 // ── FOCUS-LOSS / TAB-SWITCH BLACKOUT ───────────────────────
-window.addEventListener('blur', () => {
-    if (started && !sending) {
-        showBlackout();
-        reportIncident('focus_loss');
-    }
-});
-window.addEventListener('focus', () => {
-    // The blackout remains visible until the examinee acknowledges the
-    // recorded violation in the security warning dialog.
-});
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden && started && !sending) {
-        showBlackout();
-        reportIncident('tab_switch');
-    }
+installAdmissionFocusGuard({
+    active: () => started && !sending && !confirmingSubmission && !securityLockActive,
+    report: reportIncident,
 });
 
 // Covers browser navigation, closing/minimizing the page, and Chrome placing

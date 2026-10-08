@@ -45,19 +45,7 @@ class ServiceRequest extends Model
      */
     public const SAME_DAY_BLOCK_STATUSES = ['pending', 'receipt-uploaded', 'approved', 'in-progress'];
 
-    /**
-     * Check whether the given student already has a SAME-DAY active request
-     * for the specified service (good-moral, exit-form, or testing).
-     *
-     * Rules:
-     *  - Only blocks when a matching request was created TODAY and is still in
-     *    one of the active/pending statuses (SAME_DAY_BLOCK_STATUSES).
-     *  - Re-requests on a later date are always allowed, regardless of whether
-     *    a prior request is completed, void, claimed, or archived.
-     *
-     * @param  string  $studentNumber  Normalised student ID (e.g. "23-SC-4143").
-     * @param  string  $service        Service key from self::SERVICES.
-     */
+    /** Check for an ongoing request for this student and service, regardless of date. */
     public static function hasActiveRequest(string $studentNumber, string $service): bool
     {
         if ($studentNumber === '') {
@@ -66,8 +54,8 @@ class ServiceRequest extends Model
 
         return static::where('student_number', $studentNumber)
             ->where('service', $service)
-            ->whereIn('status', self::SAME_DAY_BLOCK_STATUSES)
-            ->whereDate('created_at', now()->toDateString())
+            ->whereIn('status', self::ACTIVE_STATUSES)
+            ->whereNull('archived_at')
             ->exists();
     }
 

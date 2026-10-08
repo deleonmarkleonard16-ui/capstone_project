@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ServiceRequest;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -112,7 +113,9 @@ class StudentPortalController extends Controller
             }
 
             if ($hasActive) {
-                $message = 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.';
+                $message = $data['service'] === 'testing'
+                    ? 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.'
+                    : 'You still have an ongoing request for this service. Please complete it before submitting another request for the same service.';
                 if ($request->expectsJson()) {
                     return response()->json([
                         'message' => $message,
@@ -121,19 +124,34 @@ class StudentPortalController extends Controller
                 }
 
                 return back()
+                    ->with('ongoing_request_message', $message)
                     ->with('portal_notice', $message)
                     ->withErrors(['service' => $message])
                     ->withInput();
             }
         }
 
-        $entry = $data['service'] === 'testing'
-            ? app(\App\Services\GuidancePortalService::class)->create($data)
-            : ServiceRequest::create($data + [
-            'reference' => ServiceRequest::newReference($data['service']),
-            'status' => 'approved',
-            'expires_at' => now()->addDays(5),
-        ]);
+        try {
+            $entry = $data['service'] === 'testing'
+                ? app(\App\Services\GuidancePortalService::class)->create($data)
+                : \Illuminate\Support\Facades\DB::transaction(fn () => ServiceRequest::create($data + [
+                    'reference' => ServiceRequest::newReference($data['service']),
+                    'status' => 'approved',
+                    'expires_at' => now()->addDays(5),
+                ]));
+        } catch (UniqueConstraintViolationException $exception) {
+            if (! str_contains($exception->getMessage(), 'idx_active_request_per_student')
+                && ! str_contains($exception->getMessage(), 'idx_active_appointment_per_student')) {
+                throw $exception;
+            }
+
+            $message = 'You still have an ongoing request for this service. Please complete it before submitting another request for the same service.';
+            if (! $request->expectsJson()) {
+                return back()->with('ongoing_request_message', $message)
+                    ->with('portal_notice', $message)->withErrors(['service' => $message])->withInput();
+            }
+            throw \Illuminate\Validation\ValidationException::withMessages(['service' => $message]);
+        }
         $request->session()->put('portal_request_reference', $entry->reference);
 
         if ($request->expectsJson()) {

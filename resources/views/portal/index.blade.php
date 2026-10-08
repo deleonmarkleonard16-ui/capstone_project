@@ -18,6 +18,15 @@
 </div>
 @endif
 
+@if(session('ongoing_request_message'))
+<dialog id="ongoing-request-dialog" class="review-dialog" aria-labelledby="ongoing-request-title">
+    <h2 id="ongoing-request-title">You have an ongoing request</h2>
+    <p>{{ session('ongoing_request_message') }}</p>
+    <p class="muted">Use Track Existing Request to check its progress.</p>
+    <form method="dialog"><button class="button" autofocus>Okay</button></form>
+</dialog>
+@endif
+
 {{-- ══ AVAILABLE SERVICES CARDS (LANDING SECTION) ══ --}}
 <section class="card" id="available-services-card">
     <h2>Available services</h2>
@@ -192,6 +201,11 @@
 @push('scripts')
 <script src="{{ asset('js/guidance-tracking.js') }}" defer></script>
 <script>
+const ongoingRequestDialog = document.getElementById('ongoing-request-dialog');
+if (ongoingRequestDialog) {
+    if (typeof ongoingRequestDialog.showModal === 'function') ongoingRequestDialog.showModal();
+    else window.alert(@json(session('ongoing_request_message')));
+}
 const service = document.getElementById('service');
 const statusSelect = document.getElementById('student_status');
 const idLabel = document.getElementById('student-id-label');

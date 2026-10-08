@@ -12,7 +12,26 @@ class DuplicateRequestTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const ONGOING_MESSAGE = 'You still have an ongoing request for this service. Please complete it before submitting another request for the same service.';
+
     private const DUPLICATE_MESSAGE = 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.';
+
+    public function test_database_active_guard_conflict_returns_validation_error(): void
+    {
+        $exception = new \Illuminate\Database\UniqueConstraintViolationException(
+            'mysql', 'insert into service_requests ...', [],
+            new \PDOException("Duplicate entry for key 'idx_active_request_per_student'", 23000)
+        );
+        $this->mock(\App\Services\GuidancePortalService::class, function ($mock) use ($exception) {
+            $mock->shouldReceive('create')->twice()->andThrow($exception);
+        });
+
+        $this->post('/portal/requests', $this->testingPayload())
+            ->assertRedirect()->assertSessionHasErrors('service');
+        $this->postJson('/portal/requests', $this->testingPayload())
+            ->assertUnprocessable()->assertJsonValidationErrors('service');
+        $this->assertDatabaseCount('service_requests', 0);
+    }
 
     private function testingPayload(string $testCategory = 'psychological', string $studentNumber = '23-SC-4143'): array
     {
@@ -117,11 +136,11 @@ class DuplicateRequestTest extends TestCase
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-3333')->count());
 
         $res = $this->post('/portal/requests', $payload);
-        $res->assertSessionHas('portal_notice', self::DUPLICATE_MESSAGE);
+        $res->assertSessionHas('portal_notice', self::ONGOING_MESSAGE);
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-3333')->count());
 
         $jsonRes = $this->postJson('/api/submit-request', $payload);
-        $jsonRes->assertStatus(422)->assertJsonPath('message', self::DUPLICATE_MESSAGE);
+        $jsonRes->assertStatus(422)->assertJsonPath('message', self::ONGOING_MESSAGE);
     }
 
     public function test_duplicate_exit_form_request_is_blocked(): void
@@ -132,11 +151,11 @@ class DuplicateRequestTest extends TestCase
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-4444')->count());
 
         $res = $this->post('/portal/requests', $payload);
-        $res->assertSessionHas('portal_notice', self::DUPLICATE_MESSAGE);
+        $res->assertSessionHas('portal_notice', self::ONGOING_MESSAGE);
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-4444')->count());
 
         $jsonRes = $this->postJson('/api/submit-request', $payload);
-        $jsonRes->assertStatus(422)->assertJsonPath('message', self::DUPLICATE_MESSAGE);
+        $jsonRes->assertStatus(422)->assertJsonPath('message', self::ONGOING_MESSAGE);
     }
 
     public function test_different_services_do_not_block_each_other(): void
@@ -209,24 +228,22 @@ class DuplicateRequestTest extends TestCase
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-9999')->count());
     }
 
-    /**
-     * A student with an ACTIVE request from a PREVIOUS day must be allowed to
-     * submit a new request for the same service — only same-day active
-     * duplicates are blocked.
-     */
-    public function test_active_request_from_previous_day_does_not_block_new_request(): void
+    public function test_previous_day_ongoing_document_request_shows_popup(): void
     {
         $payload = $this->documentPayload('good-moral', '23-SC-1010');
-
-        $this->post('/portal/requests', $payload)->assertSessionHasNoErrors();
-
-        // Back-date the existing request to simulate a prior day
+        $this->postJson('/portal/requests', $payload)->assertCreated();
         ServiceRequest::where('student_number', '23-SC-1010')
-            ->update(['created_at' => now()->subDay()]);
+            ->update(['created_at' => now()->subDay(), 'status' => 'processing']);
 
-        // New same-service request today must succeed
-        $this->post('/portal/requests', $payload)->assertSessionHasNoErrors();
-        $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-1010')->count());
+        $this->from('/portal?service=good-moral')->post('/portal/requests', $payload)
+            ->assertRedirect('/portal?service=good-moral')
+            ->assertSessionHas('ongoing_request_message', self::ONGOING_MESSAGE)
+            ->assertSessionHasInput('student_number', '23-SC-1010');
+        $this->get('/portal?service=good-moral')->assertOk()
+            ->assertSee('id="ongoing-request-dialog"', false)->assertSee(self::ONGOING_MESSAGE);
+        $this->assertDatabaseCount('service_requests', 1);
+        $this->postJson('/portal/requests', $this->documentPayload('exit-form', '23-SC-1010'))
+            ->assertCreated();
     }
 
     /**
@@ -243,7 +260,7 @@ class DuplicateRequestTest extends TestCase
 
         // Second submission TODAY — must be blocked
         $res = $this->post('/portal/requests', $payload);
-        $res->assertSessionHas('portal_notice', self::DUPLICATE_MESSAGE);
+        $res->assertSessionHas('portal_notice', self::ONGOING_MESSAGE);
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-2020')->count());
     }
 

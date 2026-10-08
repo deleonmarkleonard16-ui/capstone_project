@@ -58,9 +58,10 @@ class StudentPortalController extends Controller
                 ]);
             }
             $data['student_number'] = mb_strtoupper(trim((string) $idNum));
-            $data['student_id'] = $data['student_number'];
             $data['year_graduated'] = null;
         }
+        // student_id is a form alias; only student_number exists on the request table.
+        unset($data['student_id']);
 
         if (! empty($data['reason'])) {
             $data['purpose'] = $data['reason'] === 'Others' ? $data['other_reason'] : $data['reason'];

@@ -44,6 +44,22 @@ class DuplicateRequestTest extends TestCase
         ];
     }
 
+    public function test_good_moral_form_student_id_is_saved_as_student_number(): void
+    {
+        $this->withoutExceptionHandling();
+        $payload = $this->documentPayload();
+        unset($payload['student_number']);
+        $payload['student_status'] = 'Currently Enrolled';
+        $payload['student_id'] = '23-sc-4143';
+
+        $this->postJson('/portal/requests', $payload)->assertCreated();
+        $this->assertDatabaseHas('service_requests', [
+            'service' => 'good-moral',
+            'student_number' => '23-SC-4143',
+            'status' => 'approved',
+        ]);
+    }
+
     public function test_duplicate_psychological_request_is_blocked_via_web_and_json(): void
     {
         $payload = $this->testingPayload('psychological', '23-SC-4143');

@@ -143,6 +143,20 @@ class DuplicateRequestTest extends TestCase
         $jsonRes->assertStatus(422)->assertJsonPath('message', self::ONGOING_MESSAGE);
     }
 
+    public function test_expired_pending_document_request_does_not_block_a_new_request(): void
+    {
+        $payload = $this->documentPayload('good-moral', '23-SC-3388');
+
+        $this->post('/portal/requests', $payload)->assertRedirect();
+        $expired = ServiceRequest::where('student_number', '23-SC-3388')->firstOrFail();
+        $expired->update(['expires_at' => now()->subMinute()]);
+
+        $this->post('/portal/requests', $payload)->assertRedirect('/portal?service=good-moral#track');
+
+        $this->assertSame('void', $expired->fresh()->status);
+        $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-3388')->count());
+    }
+
     public function test_duplicate_exit_form_request_is_blocked(): void
     {
         $payload = $this->documentPayload('exit-form', '23-SC-4444');

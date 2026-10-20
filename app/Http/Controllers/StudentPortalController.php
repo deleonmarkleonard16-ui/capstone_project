@@ -87,6 +87,11 @@ class StudentPortalController extends Controller
         }
 
         // ── Check for same-day duplicate active request ─────────────────────────
+        // Clear expired requests before checking the guard. Without visiting a
+        // staff queue or tracking page, an expired pending row could otherwise
+        // continue blocking a legitimate re-request.
+        ServiceRequest::expirePendingRequests();
+
         // Re-requests on a later date are allowed once the prior request has
         // reached a final state (completed, claimed, void, or archived).
         if (! empty($data['student_number'])) {

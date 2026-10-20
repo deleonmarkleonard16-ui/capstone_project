@@ -4,7 +4,21 @@ import {detectAnswers, detectCornerMarkers, projectiveMap} from '../../public/js
 
 const sourceCorners = [[17,17],[1063,17],[1063,473],[17,473]];
 const corners = [[20,160],[1080,160],[1080,620],[20,620]];
-function sheet() { return {width:1100,height:650,data:new Uint8ClampedArray(1100*650*4).fill(255)}; }
+function sheet() {
+    const image={width:1100,height:650,data:new Uint8ClampedArray(1100*650*4).fill(255)};
+    const map=projectiveMap(corners);
+    for(let item=1;item<=80;item++)for(let option=0;option<4;option++){
+        const column=Math.floor((item-1)/20), row=(item-1)%20;
+        const [x,y]=map(40+column*260+85+option*36,54+row*21).map(Math.round);
+        for(let dx=-8;dx<=8;dx++)for(let dy=-8;dy<=8;dy++){
+            const radius=Math.hypot(dx,dy);
+            if(radius<6.5||radius>8)continue;
+            const offset=((y+dy)*image.width+x+dx)*4;
+            image.data[offset]=image.data[offset+1]=image.data[offset+2]=20;
+        }
+    }
+    return image;
+}
 function bubble(image,item,option) {
     const column=Math.floor((item-1)/20), row=(item-1)%20;
     const map=projectiveMap(corners);
@@ -37,16 +51,28 @@ test('all 80 filled bubbles are read in column order',()=>{
     answers.forEach((row,i)=>assert.equal(row.answer,'ABCD'[i%4]));
 });
 test('blank and multiple marks require review',()=>{
-    const image=sheet();bubble(image,2,0);bubble(image,2,1);
+    const image=sheet();
     const answers=detectAnswers(image,corners);
     assert.equal(answers[0].answer,null);assert.match(answers[0].reason,/Blank/);
-    assert.equal(answers[1].answer,null);assert.match(answers[1].reason,/Ambiguous/);
+    bubble(image,2,0);bubble(image,2,1);
+    const multiple=detectAnswers(image,corners);
+    assert.equal(multiple[1].answer,null);assert.match(multiple[1].reason,/Ambiguous/);
 });
 test('lighter pencil shading is detected instead of being classified blank',()=>{
     const image=sheet();pencilBubble(image,1,2);
     const answers=detectAnswers(image,corners);
     assert.equal(answers[0].answer,'C');
     assert.equal(answers[0].reason,'Detected');
+});
+test('filled bubbles remain detectable with small marker alignment error',()=>{
+    const image=sheet();
+    const slightlyMisaligned=corners.map(([x,y])=>[x+3,y-2]);
+    const blank=detectAnswers(image,slightlyMisaligned);
+    assert.ok(blank.every(row=>row.answer===null));
+    bubble(image,1,0);bubble(image,2,2);
+    const answers=detectAnswers(image,slightlyMisaligned);
+    assert.equal(answers[0].answer,'A');
+    assert.equal(answers[1].answer,'C');
 });
 test('perspective transform maps all four marker centers',()=>{
     const target=[[60,30],[1200,80],[1000,640],[30,590]], map=projectiveMap(target);

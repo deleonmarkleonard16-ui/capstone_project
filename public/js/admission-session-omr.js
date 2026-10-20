@@ -1,4 +1,4 @@
-import {detectAnswers, detectCornerMarkers} from './admission-omr.js';
+import {detectAnswers, detectCornerMarkers} from './admission-omr.js?v=3';
 
 const root = document.getElementById('session-omr-scanner');
 

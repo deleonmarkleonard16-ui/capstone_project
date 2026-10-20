@@ -163,26 +163,37 @@ export function detectAnswers(image, corners, totalItems = 80) {
 
         const fills = Array.from({length: 4}, (_, option) => {
             const x = colStartX + 85 + option * 36;  // same as $bubbleX in blade
-            // Sample outside the bubble to compensate for shadows and uneven light.
-            const paper = [gray(x-11,y), gray(x+11,y), gray(x,y-9), gray(x,y+9)].sort((a,b)=>a-b)[2];
+            // Keep the paper reference fixed at the nominal bubble location so
+            // alignment-search offsets do not turn the printed circle outline
+            // into a false shaded answer.
+            const paper = [gray(x-12,y), gray(x+12,y), gray(x,y-12), gray(x,y+12)].sort((a,b)=>a-b)[2];
             if (paper < 90) throw new Error('Image is too dark. Improve lighting and recapture.');
-            // Read most of the bubble interior, not just a tiny center patch.
-            // This is more tolerant of pencil shading and small phone-camera images.
-            let dark = 0, total = 0, brightness = 0;
-            for (let dx=-5;dx<=5;dx++) for (let dy=-5;dy<=5;dy++) {
-                if (dx*dx+dy*dy > 25) continue;
-                const value = gray(x+dx,y+dy);
-                total++;
-                brightness += value;
-                if (value < paper * .78) dark++;
+            const measureAt = (centerX, centerY) => {
+                // Read most of the bubble interior, not just a tiny center patch.
+                let dark = 0, total = 0;
+                for (let dx=-2;dx<=2;dx++) for (let dy=-2;dy<=2;dy++) {
+                    if (dx*dx+dy*dy > 4) continue;
+                    const value = gray(centerX+dx,centerY+dy);
+                    total++;
+                    if (value < paper * .82) dark++;
+                }
+                return dark / total;
+            };
+
+            // Marker centers can be a few pixels off after a phone photo. Search a
+            // small area for the strongest bubble fill instead of sampling one point.
+            let strongest = 0;
+            const offsets = [[0,0],[-3,0],[3,0],[0,-3],[0,3],[-2,-2],[-2,2],[2,-2],[2,2]];
+            for (const [offsetX, offsetY] of offsets) {
+                strongest = Math.max(strongest, measureAt(x + offsetX, y + offsetY));
             }
-            const darkCoverage = dark / total;
-            const contrast = Math.max(0, (paper - brightness / total) / paper);
-            return Math.min(1, Math.max(darkCoverage, contrast * 1.2));
+            return strongest;
         });
         const ranked = fills.map((fill, option)=>({fill,option})).sort((a,b)=>b.fill-a.fill);
-        const certain = ranked[0].fill >= .28 && ranked[1].fill <= .18;
+        // A nearby circle outline can raise every option's baseline slightly;
+        // accept a clear winner while still requiring review for ties.
+        const certain = ranked[0].fill >= .5 && ranked[0].fill - ranked[1].fill >= .25;
         return {item:index+1, answer:certain ? 'ABCD'[ranked[0].option] : null, fills,
-            reason:ranked[0].fill < .12 ? 'Blank — confirm' : certain ? 'Detected' : 'Ambiguous — review'};
+            reason:ranked[0].fill <= .4 ? 'Blank — confirm' : certain ? 'Detected' : 'Ambiguous — review'};
     });
 }

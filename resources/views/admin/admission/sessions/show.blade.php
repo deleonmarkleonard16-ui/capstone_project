@@ -767,7 +767,7 @@
     </div>
 </div>
 
-<script type="module" src="{{ asset('js/admission-session-omr.js') }}"></script>
+<script type="module" src="{{ asset('js/admission-session-omr.js') }}?v={{ filemtime(public_path('js/admission-session-omr.js')) }}"></script>
 
 {{-- ═══════════════════════════════════════════════════════════
      MONITOR JAVASCRIPT: POLLING, FILTERING, & MODALS

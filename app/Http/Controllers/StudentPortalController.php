@@ -29,7 +29,7 @@ class StudentPortalController extends Controller
                 'middle_name' => 'nullable|string|max:100',
                 'last_name' => 'required|string|max:100',
                 'student_status' => ['required', Rule::in(['student', 'alumni', 'Currently Enrolled', 'Alumni'])],
-                'student_id' => 'required_if:student_status,Currently Enrolled|nullable|string',
+                'student_id' => 'required_if:student_status,Currently Enrolled|nullable|string|max:50',
                 'student_number' => 'nullable|string|max:50',
                 'year_graduated' => 'required_if:student_status,Alumni|nullable|digits:4|integer',
                 'course' => \App\Support\CourseCatalog::rule(),

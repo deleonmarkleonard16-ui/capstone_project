@@ -158,6 +158,19 @@ class DuplicateRequestTest extends TestCase
         $this->assertSame(2, ServiceRequest::where('student_number', '23-SC-3388')->count());
     }
 
+    public function test_student_id_is_bounded_to_the_database_identity_column_size(): void
+    {
+        $payload = $this->documentPayload();
+        unset($payload['student_number']);
+        $payload['student_status'] = 'Currently Enrolled';
+        $payload['student_id'] = str_repeat('1', 51);
+
+        $this->post('/portal/requests', $payload)
+            ->assertRedirect()
+            ->assertSessionHasErrors('student_id');
+        $this->assertDatabaseCount('service_requests', 0);
+    }
+
     public function test_duplicate_exit_form_request_is_blocked(): void
     {
         $payload = $this->documentPayload('exit-form', '23-SC-4444');

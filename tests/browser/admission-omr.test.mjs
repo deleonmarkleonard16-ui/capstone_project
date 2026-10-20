@@ -14,6 +14,15 @@ function bubble(image,item,option) {
         image.data[offset]=image.data[offset+1]=image.data[offset+2]=0;
     }
 }
+function pencilBubble(image,item,option) {
+    const column=Math.floor((item-1)/20), row=(item-1)%20;
+    const map=projectiveMap(corners);
+    const [x,y]=map(40+column*260+85+option*36,54+row*21).map(Math.round);
+    for(let dx=-3;dx<=3;dx++)for(let dy=-3;dy<=3;dy++)if(dx*dx+dy*dy<=9){
+        const offset=((y+dy)*image.width+x+dx)*4;
+        image.data[offset]=image.data[offset+1]=image.data[offset+2]=130;
+    }
+}
 function square(image, centerX, centerY, side=14) {
     const startX = Math.round(centerX - side / 2), startY = Math.round(centerY - side / 2);
     for (let y=startY;y<startY+side;y++) for (let x=startX;x<startX+side;x++) {
@@ -32,6 +41,12 @@ test('blank and multiple marks require review',()=>{
     const answers=detectAnswers(image,corners);
     assert.equal(answers[0].answer,null);assert.match(answers[0].reason,/Blank/);
     assert.equal(answers[1].answer,null);assert.match(answers[1].reason,/Ambiguous/);
+});
+test('lighter pencil shading is detected instead of being classified blank',()=>{
+    const image=sheet();pencilBubble(image,1,2);
+    const answers=detectAnswers(image,corners);
+    assert.equal(answers[0].answer,'C');
+    assert.equal(answers[0].reason,'Detected');
 });
 test('perspective transform maps all four marker centers',()=>{
     const target=[[60,30],[1200,80],[1000,640],[30,590]], map=projectiveMap(target);

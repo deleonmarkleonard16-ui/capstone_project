@@ -163,19 +163,26 @@ export function detectAnswers(image, corners, totalItems = 80) {
 
         const fills = Array.from({length: 4}, (_, option) => {
             const x = colStartX + 85 + option * 36;  // same as $bubbleX in blade
-            // Local paper brightness compensates for smooth lighting gradients.
+            // Sample outside the bubble to compensate for shadows and uneven light.
             const paper = [gray(x-11,y), gray(x+11,y), gray(x,y-9), gray(x,y+9)].sort((a,b)=>a-b)[2];
             if (paper < 90) throw new Error('Image is too dark. Improve lighting and recapture.');
-            let dark = 0, total = 0;
-            for (let dx=-4;dx<=4;dx++) for (let dy=-4;dy<=4;dy++) {
-                if (dx*dx+dy*dy > 16) continue;
-                total++; if (gray(x+dx,y+dy) < paper*.68) dark++;
+            // Read most of the bubble interior, not just a tiny center patch.
+            // This is more tolerant of pencil shading and small phone-camera images.
+            let dark = 0, total = 0, brightness = 0;
+            for (let dx=-5;dx<=5;dx++) for (let dy=-5;dy<=5;dy++) {
+                if (dx*dx+dy*dy > 25) continue;
+                const value = gray(x+dx,y+dy);
+                total++;
+                brightness += value;
+                if (value < paper * .78) dark++;
             }
-            return dark/total;
+            const darkCoverage = dark / total;
+            const contrast = Math.max(0, (paper - brightness / total) / paper);
+            return Math.min(1, Math.max(darkCoverage, contrast * 1.2));
         });
         const ranked = fills.map((fill, option)=>({fill,option})).sort((a,b)=>b.fill-a.fill);
-        const certain = ranked[0].fill >= .6 && ranked[1].fill <= .2;
+        const certain = ranked[0].fill >= .28 && ranked[1].fill <= .18;
         return {item:index+1, answer:certain ? 'ABCD'[ranked[0].option] : null, fills,
-            reason:ranked[0].fill < .25 ? 'Blank — confirm' : certain ? 'Detected' : 'Ambiguous — review'};
+            reason:ranked[0].fill < .12 ? 'Blank — confirm' : certain ? 'Detected' : 'Ambiguous — review'};
     });
 }

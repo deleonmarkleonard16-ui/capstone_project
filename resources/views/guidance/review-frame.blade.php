@@ -161,7 +161,7 @@
                     <i class="bi bi-download me-1"></i>Download Assessment
                 </a>
             @elseif($appointment->test_category === 'career')
-                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.career.report', $appointment) }}" target="_blank" rel="noopener">
+                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}" target="_blank" rel="noopener">
                     <i class="bi bi-download me-1"></i>Download Career Report
                 </a>
             @else

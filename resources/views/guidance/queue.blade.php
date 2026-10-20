@@ -45,8 +45,10 @@
             <a class="btn btn-sm btn-success mb-2" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Result</a><br>
             @if($appointment->test_category === 'psychological')
                 <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}" target="_blank" rel="noopener"><i class="bi bi-download me-1"></i>Download Assessment</a>
+            @elseif($appointment->test_category === 'personality' || $appointment->test_type === 'bfpi')
+                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}"><i class="bi bi-download me-1"></i>Download Assessment</a>
             @elseif($appointment->test_category === 'career')
-                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}" target="_blank" rel="noopener"><i class="bi bi-download me-1"></i>Download Report</a>
+                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}"><i class="bi bi-download me-1"></i>Download Assessment</a>
             @else
                 <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.personality.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
             @endif

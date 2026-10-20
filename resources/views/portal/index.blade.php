@@ -18,6 +18,17 @@
 </div>
 @endif
 
+@if($errors->any())
+<div class="notice notice-warn" role="alert" style="background:#fff8e1;border-left:4px solid #f0a500;">
+    <strong>Please correct the following before continuing:</strong>
+    <ul style="margin:.5rem 0 0;padding-left:1.25rem">
+        @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
 @if(session('ongoing_request_message'))
 <dialog id="ongoing-request-dialog" class="review-dialog" aria-labelledby="ongoing-request-title">
     <h2 id="ongoing-request-title">You have an ongoing request</h2>

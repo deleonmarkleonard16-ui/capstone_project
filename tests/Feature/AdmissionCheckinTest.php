@@ -615,7 +615,7 @@ class AdmissionCheckinTest extends TestCase
         $this->assertSame($sessionA->id, AdmissionApplicant::orderBy('id')->skip(9)->first()->admission_session_id);
     }
 
-    public function test_ending_a_live_session_submits_all_unfinished_examinees(): void
+    public function test_ending_a_live_session_submits_checked_in_examinees_but_keeps_absentees_absent(): void
     {
         $this->login('admin');
         $cycle = AdmissionCycle::create([
@@ -637,6 +637,11 @@ class AdmissionCheckinTest extends TestCase
             'application_number' => 'CAT-FORCED-2', 'first_name' => 'Blank', 'last_name' => 'Exam',
             'course_choice' => 'BSIT', 'attendance_status' => 'Ready',
         ]);
+        $absent = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
+            'application_number' => 'CAT-FORCED-3', 'first_name' => 'Absent', 'last_name' => 'Exam',
+            'course_choice' => 'BSIT', 'attendance_status' => 'Absent',
+        ]);
 
         $this->post(route('admin.admission.sessions.complete', $session))
             ->assertSessionHas('success');
@@ -644,12 +649,16 @@ class AdmissionCheckinTest extends TestCase
         $session->refresh();
         $pending->refresh();
         $blank->refresh();
+        $absent->refresh();
         $this->assertSame(AdmissionSession::STATUS_COMPLETED, $session->status);
         $this->assertNotNull($session->ended_at);
         $this->assertNotNull($pending->submitted_at);
         $this->assertNotNull($blank->submitted_at);
         $this->assertSame('Submitted', $pending->attendance_status);
         $this->assertSame('Submitted', $blank->attendance_status);
+        $this->assertNull($absent->submitted_at);
+        $this->assertSame('Absent', $absent->attendance_status);
+        $this->assertSame('Absent', $absent->computed_attendance_status);
     }
 
     public function test_launching_a_session_records_the_roster_monitor_timer_start(): void

@@ -239,8 +239,8 @@
             <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-shield-exclamation {{ $violationsCount > 0 ? 'text-danger' : 'text-primary' }} fs-5"></i>
                 <h2 class="h6 mb-0 fw-bold">Live Prohibited Rules &amp; Security Violations Monitor</h2>
-                <span id="badge-incident-count" class="badge {{ $violationsCount > 0 ? 'bg-danger' : 'bg-secondary' }}">
-                    {{ $violationsCount }} Incident(s) Logged
+                <span id="badge-incident-count" class="badge {{ $incidentCount > 0 ? 'bg-danger' : 'bg-secondary' }}">
+                    {{ $incidentCount }} Incident(s) Logged
                 </span>
             </div>
             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#securityFeedCollapse" aria-expanded="{{ $violationsCount > 0 ? 'true' : 'false' }}">
@@ -274,12 +274,16 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge {{ $incident->strike_number >= 3 ? 'bg-danger' : 'bg-warning text-dark' }}">
-                                            Strike {{ $incident->strike_number }}
-                                        </span>
+                                        @if((int) $incident->strike_number === 0)
+                                            <span class="badge bg-info text-dark">Admin Unlock</span>
+                                        @else
+                                            <span class="badge {{ $incident->strike_number >= 3 ? 'bg-danger' : 'bg-warning text-dark' }}">Strike {{ $incident->strike_number }}</span>
+                                        @endif
                                     </td>
                                     <td class="pe-3 text-end">
-                                        @if($incident->strike_number >= 3)
+                                        @if((int) $incident->strike_number === 0)
+                                            <span class="text-primary fw-semibold small"><i class="bi bi-unlock me-1"></i>Unlocked / Re-entry Granted</span>
+                                        @elseif($incident->strike_number >= 3)
                                             <span class="text-danger fw-bold small"><i class="bi bi-slash-circle me-1"></i>Auto-Terminated</span>
                                         @else
                                             <span class="text-warning fw-semibold small"><i class="bi bi-flag-fill me-1"></i>Warned</span>
@@ -338,6 +342,7 @@
                             @php
                                 $status = $applicant->computed_attendance_status;
                                 $strikeCount = (int) $applicant->strike_count;
+                                $historicalStrikeCount = $applicant->securityLogs->where('strike_number', '>', 0)->count();
                             @endphp
                             <tr id="applicant-row-{{ $applicant->id }}"
                                 data-applicant-id="{{ $applicant->id }}"
@@ -391,11 +396,11 @@
 
                                 {{-- 2. PROHIBITED RULES & STRIKES --}}
                                 <td class="js-strikes-cell">
-                                    @if($strikeCount > 0)
+                                    @if($historicalStrikeCount > 0)
                                         <button type="button" class="btn btn-sm btn-danger px-2 py-0 fw-semibold"
-                                                onclick="openIncidentModal({{ $applicant->id }}, '{{ addslashes($applicant->full_name) }}', '{{ $applicant->application_number }}')"
+                                                onclick="openIncidentModal({{ $applicant->id }}, '{{ addslashes($applicant->full_name) }}', '{{ $applicant->application_number }}', {{ $strikeCount }})"
                                                 title="View Prohibited Rule Violations">
-                                            <i class="bi bi-shield-exclamation me-1"></i> {{ $strikeCount }} Strike(s)
+                                            <i class="bi bi-shield-exclamation me-1"></i> {{ $historicalStrikeCount }} Strike(s)
                                         </button>
                                     @else
                                         <span class="badge bg-light text-success border border-success-subtle px-2 py-1">
@@ -692,9 +697,6 @@
                 </div>
             </div>
             <div class="modal-footer bg-light border-top d-flex justify-content-between">
-                <button type="button" class="btn btn-warning text-dark btn-sm fw-bold shadow-sm" id="btn-sec-modal-unterminate" style="display:none;" onclick="unterminateCurrentApplicant()">
-                    <i class="bi bi-unlock-fill me-1"></i> Unlock & Resume Exam
-                </button>
                 <button type="button" class="btn btn-secondary btn-sm ms-auto" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -803,12 +805,13 @@
     // Examinee Security Violations Modal Trigger
     const examineeSecurityLogs = {
         @foreach($applicants as $app)
-            @if($app->strike_count > 0)
+            @if($app->securityLogs->isNotEmpty())
                 "{{ $app->id }}": [
                     @foreach($app->securityLogs as $log)
                         {
                             strike: {{ $log->strike_number }},
-                            violation: @json(\App\Support\AdmissionSecurityIncident::label($log->incident_type)),
+                            unlocked: {{ (int) $log->strike_number === 0 ? 'true' : 'false' }},
+                            violation: @json((int) $log->strike_number === 0 ? 'Unlocked after 3 consecutive strikes; re-entry granted by admin' : \App\Support\AdmissionSecurityIncident::label($log->incident_type)),
                             time: "{{ $log->created_at?->format('h:i:s A') ?: '—' }}"
                         },
                     @endforeach
@@ -819,7 +822,7 @@
 
     let currentSecurityApplicantId = null;
 
-    function openIncidentModal(applicantId, applicantName, applicationNumber) {
+    function openIncidentModal(applicantId, applicantName, applicationNumber, currentStrikeCount = 0) {
         currentSecurityApplicantId = applicantId;
         document.getElementById('sec-modal-name').textContent = applicantName;
         document.getElementById('sec-modal-app').textContent = applicationNumber;
@@ -833,7 +836,7 @@
             logs.forEach(l => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><span class="badge ${l.strike >= 3 ? 'bg-danger' : 'bg-warning text-dark'}">Strike ${l.strike}</span></td>
+                    <td><span class="badge ${l.unlocked ? 'bg-info text-dark' : (l.strike >= 3 ? 'bg-danger' : 'bg-warning text-dark')}">${l.unlocked ? 'Admin Unlock' : `Strike ${l.strike}`}</span></td>
                     <td class="text-danger fw-semibold">${l.violation}</td>
                     <td class="text-muted font-monospace">${l.time}</td>
                 `;
@@ -841,11 +844,9 @@
             });
         }
 
-        const isTerminated = logs.some(l => l.strike >= 3) || logs.length >= 3;
+        const isTerminated = Number(currentStrikeCount) >= 3;
         const alertEl = document.getElementById('sec-modal-terminated-alert');
         if (alertEl) alertEl.style.display = isTerminated ? 'block' : 'none';
-        const footerBtn = document.getElementById('btn-sec-modal-unterminate');
-        if (footerBtn) footerBtn.style.display = isTerminated ? 'inline-block' : 'none';
 
         const modal = new bootstrap.Modal(document.getElementById('applicantSecurityModal'));
         modal.show();
@@ -957,7 +958,7 @@
             // 2. Update Incident Table
             if (data.recent_incidents) {
                 const badgeInc = document.getElementById('badge-incident-count');
-                if (badgeInc) badgeInc.textContent = `${data.recent_incidents.length} Incident(s) Logged`;
+                if (badgeInc) badgeInc.textContent = `${data.incident_count ?? data.recent_incidents.length} Incident(s) Logged`;
 
                 const tbody = document.getElementById('security-incidents-tbody');
                 if (tbody && data.recent_incidents.length > 0) {
@@ -974,14 +975,16 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge ${inc.strike_number >= 3 ? 'bg-danger' : 'bg-warning text-dark'}">
-                                    Strike ${inc.strike_number}
-                                </span>
+                                ${Number(inc.strike_number) === 0
+                                    ? '<span class="badge bg-info text-dark">Admin Unlock</span>'
+                                    : `<span class="badge ${inc.strike_number >= 3 ? 'bg-danger' : 'bg-warning text-dark'}">Strike ${inc.strike_number}</span>`}
                             </td>
                             <td class="pe-3 text-end">
-                                ${inc.strike_number >= 3
-                                    ? '<span class="text-danger fw-bold small"><i class="bi bi-slash-circle me-1"></i>Auto-Terminated</span>'
-                                    : '<span class="text-warning fw-semibold small"><i class="bi bi-flag-fill me-1"></i>Warned</span>'}
+                                ${Number(inc.strike_number) === 0
+                                    ? '<span class="text-primary fw-semibold small"><i class="bi bi-unlock me-1"></i>Unlocked / Re-entry Granted</span>'
+                                    : inc.strike_number >= 3
+                                        ? '<span class="text-danger fw-bold small"><i class="bi bi-slash-circle me-1"></i>Auto-Terminated</span>'
+                                        : '<span class="text-warning fw-semibold small"><i class="bi bi-flag-fill me-1"></i>Warned</span>'}
                             </td>
                         `;
                         tbody.appendChild(tr);
@@ -1030,11 +1033,12 @@
                     // Update Strikes Cell
                     const strikeCell = row.querySelector('.js-strikes-cell');
                     if (strikeCell) {
-                        if (app.strike_count > 0) {
+                        const historicalStrikes = (app.security_incidents || []).filter(i => !i.unlocked && i.strike > 0).length;
+                        if (historicalStrikes > 0) {
                             strikeCell.innerHTML = `
                                 <button type="button" class="btn btn-sm btn-danger px-2 py-0 fw-semibold"
-                                        onclick="openIncidentModal(${app.id}, '${app.full_name.replace(/'/g, "\\'")}', '${app.application_number}')">
-                                    <i class="bi bi-shield-exclamation me-1"></i> ${app.strike_count} Strike(s)
+                                        onclick="openIncidentModal(${app.id}, '${app.full_name.replace(/'/g, "\\'")}', '${app.application_number}', ${app.strike_count})">
+                                    <i class="bi bi-shield-exclamation me-1"></i> ${historicalStrikes} Strike(s)
                                 </button>
                             `;
                             // Update cache
@@ -1042,7 +1046,8 @@
                                 examineeSecurityLogs[app.id] = app.security_incidents.map(i => ({
                                     strike: i.strike,
                                     violation: i.type,
-                                    time: i.time
+                                    time: i.time,
+                                    unlocked: i.unlocked
                                 }));
                             }
                         }

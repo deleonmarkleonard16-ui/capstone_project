@@ -214,7 +214,10 @@ class AdmissionSessionController extends Controller
         $inProgressCount = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'In-Progress')->count();
         $readyCount      = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Ready')->count();
         $absentCount     = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Absent')->count();
-        $violationsCount = (int) $applicants->sum('strike_count');
+        $violationsCount = GuidanceTestSecurityLog::whereIn('applicant_id', $applicants->pluck('id'))
+            ->where('strike_number', '>', 0)
+            ->count();
+        $incidentCount = $violationsCount;
         $avgScore        = $submittedCount > 0 ? round((float) $applicants->whereNotNull('exam_score')->avg('exam_score'), 2) : 0;
 
         // Recent prohibited rules / security logs for this session
@@ -235,6 +238,7 @@ class AdmissionSessionController extends Controller
             'readyCount',
             'absentCount',
             'violationsCount',
+            'incidentCount',
             'avgScore',
             'recentIncidents'
         ));
@@ -571,7 +575,13 @@ class AdmissionSessionController extends Controller
         $cycle = $session->cycle;
         abort_if(!$cycle || $cycle->isCompleted(), 422, 'Cannot complete session on an archived cycle.');
 
-        $unfinished = $session->applicants()->whereNull('submitted_at')->get();
+        $unfinished = $session->applicants()
+            ->whereNull('submitted_at')
+            ->where(function ($query) {
+                $query->whereNotNull('checked_in_at')
+                    ->orWhereIn('attendance_status', ['Ready', 'In-Progress']);
+            })
+            ->get();
         foreach ($unfinished as $applicant) {
             // Save the answers already entered by the examinee, if any. A
             // blank sheet is still a final submitted sheet when the admin
@@ -585,7 +595,8 @@ class AdmissionSessionController extends Controller
         ]);
         Cache::flush();
 
-        return back()->with('success', "Session '{$session->session_name}' has been ended. {$unfinished->count()} unfinished applicant(s) were automatically submitted and marked as Completed.");
+        $absentCount = $session->applicants()->whereNull('submitted_at')->count();
+        return back()->with('success', "Session '{$session->session_name}' has been ended. {$unfinished->count()} checked-in applicant(s) were finalized; {$absentCount} absent applicant(s) remain marked absent.");
     }
 
     // ── Live Monitor Polling ───────────────────────────────────────────────────
@@ -606,7 +617,9 @@ class AdmissionSessionController extends Controller
         $inProgressCount = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'In-Progress')->count();
         $readyCount      = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Ready')->count();
         $absentCount     = $applicants->filter(fn ($a) => $a->computed_attendance_status === 'Absent')->count();
-        $violationsCount = (int) $applicants->sum('strike_count');
+        $violationsCount = GuidanceTestSecurityLog::whereIn('applicant_id', $applicants->pluck('id'))
+            ->where('strike_number', '>', 0)
+            ->count();
         $avgScore        = $submittedCount > 0 ? round((float) $applicants->whereNotNull('exam_score')->avg('exam_score'), 2) : 0;
 
         $recentIncidents = GuidanceTestSecurityLog::whereIn('applicant_id', $applicants->pluck('id'))
@@ -639,10 +652,13 @@ class AdmissionSessionController extends Controller
                 'stanine_score' => $a->stanine_score,
                 'total_items' => (int) ($cycle?->total_items ?: 80),
                 'strike_count' => (int) $a->strike_count,
-                'security_incidents' => $a->securityLogs->take(5)->map(fn ($l) => [
-                    'type' => \App\Support\AdmissionSecurityIncident::label($l->incident_type),
+                'security_incidents' => $a->securityLogs->map(fn ($l) => [
+                    'type' => (int) $l->strike_number === 0
+                        ? 'Unlocked after 3 consecutive strikes; re-entry granted by admin'
+                        : \App\Support\AdmissionSecurityIncident::label($l->incident_type),
                     'strike' => $l->strike_number,
                     'time' => $l->created_at?->format('h:i A'),
+                    'unlocked' => (int) $l->strike_number === 0,
                 ]),
             ];
         });
@@ -671,6 +687,7 @@ class AdmissionSessionController extends Controller
             ],
             'applicants' => $applicantRows,
             'recent_incidents' => $recentIncidents,
+            'incident_count' => $violationsCount,
         ]);
     }
 

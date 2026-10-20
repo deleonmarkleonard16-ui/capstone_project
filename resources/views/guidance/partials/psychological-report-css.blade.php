@@ -20,6 +20,15 @@ table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .field { border-bottom: 1px solid #555; overflow-wrap: break-word; }
 .matrix th, .matrix td { border: 1px solid #222; padding: 3px 3px; vertical-align: middle; }
 .matrix .scale { width: 43%; text-align: left; }
+.career-matrix thead th:nth-child(1) { width: 14%; }
+.career-matrix thead th:nth-child(2) { width: 34%; }
+.career-matrix thead th:nth-child(n+3):nth-child(-n+7) { width: 5%; }
+.career-matrix thead th:nth-child(8) { width: 27%; }
+.career-matrix .scale { width: 14%; }
+.career-matrix .career-description, .career-matrix .career-interpretation { font-size: 7px; }
+.career-matrix .mark { font-size: 10px; padding: 2px 1px; }
+.top-code { margin: 0 0 1mm; }
+.legend { margin: 1mm 0 0; font-size: 7px; }
 .matrix thead .scale { text-align: center; }
 .matrix th { font-weight: bold; }
 .description { display: block; font-weight: normal; font-size: 7px; }

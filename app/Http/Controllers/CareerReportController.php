@@ -3,59 +3,46 @@
 namespace App\Http\Controllers;
 
 use App\Models\GuidanceAppointment;
-use App\Models\GuidanceSetting;
+use App\Services\CareerAssessmentReportService;
+use App\Services\DocumentExportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CareerReportController extends Controller
 {
     public function __invoke(Request $request, GuidanceAppointment $appointment)
     {
         abort_unless(in_array($appointment->status, ['Completed', 'Under review']) && $appointment->test_category === 'career', 404);
-        $request->validate(['format' => 'nullable|in:html,pdf,docx,csv']);
-        if (in_array($request->input('format'), ['pdf', 'docx', 'csv'], true)) {
+        $format = $request->validate(['format' => 'nullable|in:html,pdf,docx,csv'])['format'] ?? 'html';
+        if ($format === 'csv') {
             $request->merge(['type' => 'individual', 'appointment_id' => $appointment->getKey()]);
 
             return app(DocumentExportController::class)->export($request, 'career');
         }
-        $appointment->load(['applicant', 'response', 'serviceRequest', 'batch', 'sourceBatch']);
+        $fallback = route($request->user()->role.'.exports.index');
+        try {
+            $document = app(CareerAssessmentReportService::class)->build($appointment);
+            if (! collect($document['rows'])->contains(fn (array $row): bool => $row['selected'] !== null)) {
+                return redirect($fallback)->with('error', 'A scored career assessment is required.');
+            }
+            $document['format'] = $format;
+            $document['autoPrint'] = $format === 'html' && $request->boolean('auto_print');
+            $bytes = app(DocumentExportService::class)->render($document, $format);
+            $contentType = match ($format) {
+                'pdf' => 'application/pdf',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                default => 'text/html; charset=UTF-8',
+            };
+            $headers = ['Content-Type' => $contentType, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'];
+            if ($format !== 'html') {
+                $headers['Content-Disposition'] = 'attachment; filename="DMSGTA-Career-Assessment-'.$appointment->getKey().'.'.$format.'"';
+            }
 
-        $summary = $appointment->response?->testSummaries()['career'] ?? null;
-        $records = collect($summary['scores'] ?? []);
-        if ($records->isEmpty() || $records->count() < 3) {
-            return redirect()->route($request->user()->role.'.exports.index')->with('error', 'A scored career assessment is required.');
+            return response($bytes, 200, $headers);
+        } catch (\Throwable $exception) {
+            Log::error('Career assessment report generation failed', ['appointment_id' => $appointment->getKey(), 'format' => $format, 'exception' => $exception]);
+
+            return redirect($fallback)->with('error', 'Unable to generate the document. Please contact the system administrator or try another format.');
         }
-
-        $scores = $summary['scores'];
-        arsort($scores, SORT_NUMERIC);
-        $traits = array_slice(array_keys($scores), 0, 3);
-
-        $maxScore = max($scores);
-        $interestLevel = match (true) {
-            $maxScore >= 18 => 'Highly Interested / Strong Affinity',
-            $maxScore >= 12 => 'Moderately Interested',
-            default => 'Mildly Interested',
-        };
-
-        $skills = [
-            'Realistic' => 'Hands-on problem solving, mechanical operations, and field execution',
-            'Investigative' => 'Analytical research, critical thinking, and empirical problem investigation',
-            'Artistic' => 'Creative expression, innovative design, and original concept formulation',
-            'Social' => 'Interpersonal communication, educational mentoring, and empathic guidance',
-            'Enterprising' => 'Strategic leadership, organizational persuasion, and venture management',
-            'Conventional' => 'Systematic documentation, accurate data processing, and logistical coordination',
-        ];
-
-        $counselorName = GuidanceSetting::valueOf('counselor_name') ?: 'Ms. Noemi C. Carlos';
-
-        $html = view('guidance.career-report', compact(
-            'appointment',
-            'summary',
-            'traits',
-            'skills',
-            'interestLevel',
-            'counselorName'
-        ))->render();
-
-        return response($html)->header('Cache-Control', 'no-store, private');
     }
 }

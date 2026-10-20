@@ -59,6 +59,16 @@ class DocumentExportService
 
             return $this->wordBytes($word);
         }
+        if (($document['view'] ?? null) === 'guidance.career-assessment-report') {
+            app(CareerAssessmentReportDocxWriter::class)->write($word, $document);
+
+            return $this->wordBytes($word);
+        }
+        if (! empty($document['certificates']) && ! empty($document['certificateBrand'])) {
+            app(DocumentCertificateDocxWriter::class)->write($word, $document);
+
+            return $this->wordBytes($word);
+        }
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(10);
         $section = $word->addSection(['orientation' => $document['orientation'], 'marginTop' => 720, 'marginBottom' => 720, 'marginLeft' => 720, 'marginRight' => 720]);

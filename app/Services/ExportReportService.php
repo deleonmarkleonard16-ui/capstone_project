@@ -6,6 +6,7 @@ use App\Models\AdmissionApplicant;
 use App\Models\AdmissionCycle;
 use App\Models\AdmissionSession;
 use App\Models\GuidanceAppointment;
+use App\Models\GuidanceSetting;
 use App\Models\GuidanceTestSubmission;
 use App\Models\ServiceRequest;
 
@@ -155,6 +156,7 @@ class ExportReportService
             $records = $records->filter(fn (ServiceRequest $record) => $record->hasReceipt())->values();
         }
         $certificates = [];
+        $issuedAt = now()->timezone('Asia/Manila');
         if ($certificate) {
             foreach ($records as $r) {
                 $certificates[] = [
@@ -162,15 +164,44 @@ class ExportReportService
                     'student_number' => $r->student_number ?: 'N/A',
                     'course' => $r->courseLabel(),
                     'purpose' => $r->purpose ?: 'Not provided',
-                    'issued_at' => now()->timezone('Asia/Manila')->format('F j, Y'),
+                    'issued_at' => $issuedAt->format('F j, Y'),
+                    'issued_day' => $issuedAt->format('jS'),
+                    'issued_month_year' => $issuedAt->format('F, Y'),
+                    'or_number' => $r->or_number ?: '___________________',
+                    'or_date' => $r->or_date?->timezone('Asia/Manila')->format('m-d-Y') ?? '___________________',
+                    'student_status' => $r->student_status,
                     'statement' => $module === 'good-moral'
-                        ? 'has been issued a certificate of good moral character.'
-                        : 'has completed the Exit Form clearance process.',
+                        ? ($r->student_status === 'alumni' ? 'is a graduate of this University, with a degree in ' : 'is currently enrolled at this University in ').$r->courseLabel().'.'
+                        : 'has completed the Exit Form clearance process and fulfilled the applicable clearance requirements of this University.',
                 ];
             }
         }
 
-        return ['title' => $certificate ? ($module === 'good-moral' ? 'Certificate of Good Moral Character' : 'Exit Form Clearance Certificate') : 'Document Request Queue Summary', 'records' => $records, 'certificates' => $certificates, 'orientation' => $certificate ? 'portrait' : 'landscape', 'columns' => $certificate ? [] : ['Reference', 'Name', 'Student Number', 'Course', 'Batch', 'Document', 'Purpose', 'Status', 'Requested'], 'rows' => $certificate ? collect() : $records->map(fn ($r) => [$r->reference ?? '-', $this->name($r), $r->student_number ?: '-', $r->courseLabel(), $r->batch?->batch_name ?? '-', ServiceRequest::SERVICES[$r->service] ?? 'Document', $r->purpose ?: '-', $r->status ?? '-', $r->created_at?->format('Y-m-d') ?? '-'])];
+        $certificateBrand = [];
+        if ($certificate) {
+            $assets = [
+                'seal' => ['path' => public_path('images/psu-logo.png'), 'mime' => 'image/png'],
+                'universityTitle' => ['path' => public_path('images/psu-template/psu_title_gothic.png'), 'mime' => 'image/png'],
+                'bagongPilipinas' => ['path' => public_path('images/psu-template/bagong_pilipinas.png'), 'mime' => 'image/png'],
+                'footer' => ['path' => public_path('images/psu-template/image8.jpg'), 'mime' => 'image/jpeg'],
+            ];
+            foreach ($assets as $key => $asset) {
+                $certificateBrand[$key.'Path'] = is_file($asset['path']) ? $asset['path'] : null;
+                $certificateBrand[$key] = is_file($asset['path'])
+                    ? 'data:'.$asset['mime'].';base64,'.base64_encode((string) file_get_contents($asset['path']))
+                    : '';
+            }
+            $certificateBrand += [
+                'campus' => 'SAN CARLOS CITY CAMPUS',
+                'address' => 'Roxas Blvd., San Carlos City, Pangasinan 2420',
+                'website' => 'www.psu.edu.ph',
+                'telephone' => '(075) 206 0802',
+                'telefax' => '(075) 522 4201 / 4057',
+                'counselor' => GuidanceSetting::valueOf('counselor_name') ?: 'NOEMI C. CARLOS, RGC',
+            ];
+        }
+
+        return ['title' => $certificate ? ($module === 'good-moral' ? 'Certificate of Good Moral Character' : 'Exit Form Clearance Certificate') : 'Document Request Queue Summary', 'records' => $records, 'certificates' => $certificates, 'certificateBrand' => $certificateBrand, 'orientation' => $certificate ? 'portrait' : 'landscape', 'columns' => $certificate ? [] : ['Reference', 'Name', 'Student Number', 'Course', 'Batch', 'Document', 'Purpose', 'Status', 'Requested'], 'rows' => $certificate ? collect() : $records->map(fn ($r) => [$r->reference ?? '-', $this->name($r), $r->student_number ?: '-', $r->courseLabel(), $r->batch?->batch_name ?? '-', ServiceRequest::SERVICES[$r->service] ?? 'Document', $r->purpose ?: '-', $r->status ?? '-', $r->created_at?->format('Y-m-d') ?? '-'])];
     }
 
     private function name($record): string

@@ -255,11 +255,11 @@ class DocumentRequestController extends Controller
                 $entry->update([...$receipt, 'proof_path' => null, 'status' => 'proof_review']);
             }, 3);
 
-        $message = 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.';
+        $message = 'Receipt uploaded successfully. It is now in Receipt Review by Guidance Staff.';
         if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'status' => 'Receipt Uploaded / Pending Verification',
+                'status' => 'Receipt Review',
                 'message' => $message,
             ]);
         }

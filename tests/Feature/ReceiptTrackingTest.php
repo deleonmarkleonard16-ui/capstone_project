@@ -29,8 +29,8 @@ class ReceiptTrackingTest extends TestCase
             ])->assertOk();
             $response->assertJson([
                 'success' => true,
-                'status' => 'Receipt Uploaded / Pending Verification',
-                'message' => 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.',
+                'status' => 'Receipt Review',
+                'message' => 'Receipt uploaded successfully. Your request is now in Receipt Review.',
             ]);
             $entry->refresh();
             $this->assertSame('OR-001234', $entry->or_number);

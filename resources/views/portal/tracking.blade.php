@@ -3,10 +3,10 @@
 @include('portal.stub', ['tracking' => true])
 @php($statusLabels = [
     'pending' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Waiting for Receipt' : 'Awaiting payment / paid stub',
-    'approved' => $entry->hasReceipt() ? 'Receipt Uploaded / Pending Verification' : (in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Waiting for Receipt' : 'Approved — Paid/stamped stub required'),
-    'proof_review' => 'Receipt Uploaded / Pending Verification',
+    'approved' => $entry->hasReceipt() ? 'Receipt Review' : (in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Waiting for Receipt' : 'Approved — Paid/stamped stub required'),
+    'proof_review' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Receipt Review' : 'Receipt Uploaded / Pending Verification',
     'processing' => 'Payment verified — processing document',
-    'ready' => 'Ready for pick-up at Guidance Office',
+    'ready' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Approved / Ready for Pickup' : 'Ready for pick-up at Guidance Office',
     'scheduled' => 'Verified — scheduled for testing',
     'completed' => 'Completed',
     'declined' => 'Declined',

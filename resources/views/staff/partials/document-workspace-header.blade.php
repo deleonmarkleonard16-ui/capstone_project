@@ -3,7 +3,7 @@
     $summaryCards = [
         ['Awaiting Receipt', (int) ($queueCounts['pending'] ?? 0), 'primary', 'bi-hourglass-split'],
         ['Receipt Review', (int) ($queueCounts['proof_review'] ?? 0), 'warning', 'bi-receipt'],
-        ['Ready for Pickup', (int) ($queueCounts['ready'] ?? 0), 'success', 'bi-box-seam'],
+        ['Approved / Ready for Pickup', (int) ($queueCounts['ready'] ?? 0), 'success', 'bi-box-seam'],
         ['Completed', (int) ($queueCounts['completed'] ?? 0), 'secondary', 'bi-check2-circle'],
     ];
 @endphp

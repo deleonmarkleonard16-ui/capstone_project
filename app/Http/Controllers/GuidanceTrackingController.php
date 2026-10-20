@@ -26,11 +26,11 @@ class GuidanceTrackingController extends Controller
         if ($appointments->isEmpty()) {
             $entry->checkAndApplyExpiration();
             $statusLabel = match ($entry->status) {
-                'proof_review' => 'Receipt Uploaded / Pending Verification',
-                'pending' => 'Awaiting payment / paid stub',
-                'approved' => 'Approved — Paid/stamped stub required',
+                'proof_review' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Receipt Review' : 'Receipt Uploaded / Pending Verification',
+                'pending' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Waiting for Receipt' : 'Awaiting payment / paid stub',
+                'approved' => $entry->hasReceipt() ? (in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Receipt Review' : 'Approved — Paid/stamped stub required') : (in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Waiting for Receipt' : 'Approved — Paid/stamped stub required'),
                 'processing' => 'Payment verified — processing document',
-                'ready' => 'Ready for pick-up at Guidance Office',
+                'ready' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Approved / Ready for Pickup' : 'Ready for pick-up at Guidance Office',
                 'scheduled' => 'Verified — scheduled for testing',
                 'completed' => 'Completed',
                 'declined' => 'Declined',
@@ -40,7 +40,7 @@ class GuidanceTrackingController extends Controller
             };
             return response()->json([
                 'success' => true,
-                'status' => ucfirst($entry->status),
+                'status' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? $statusLabel : ucfirst($entry->status),
                 'display_status' => $statusLabel,
                 'raw_status' => $entry->status,
                 'passes' => [],

@@ -245,11 +245,15 @@ class PsychologicalRequestController extends Controller
             ]);
         });
         $request->session()->put('portal_request_reference', $data['reference']);
-        $message = 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.';
+        $entry = ServiceRequest::where('reference', $data['reference'])->firstOrFail();
+        $isDocumentRequest = in_array($entry->service, ['good-moral', 'exit-form'], true);
+        $message = $isDocumentRequest
+            ? 'Receipt uploaded successfully. Your request is now in Receipt Review.'
+            : 'Receipt uploaded successfully! Your payment is now pending verification by Guidance Staff.';
         if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'status' => 'Receipt Uploaded / Pending Verification',
+                'status' => $isDocumentRequest ? 'Receipt Review' : 'Receipt Uploaded / Pending Verification',
                 'message' => $message,
             ]);
         }

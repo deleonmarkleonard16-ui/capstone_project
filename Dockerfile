@@ -33,6 +33,7 @@ RUN composer install --no-dev --optimize-autoloader
 
 # Nginx Configuration
 COPY nginx.conf /etc/nginx/sites-available/default
+COPY nginx-log-format.conf /etc/nginx/conf.d/00-render-log-format.conf
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache

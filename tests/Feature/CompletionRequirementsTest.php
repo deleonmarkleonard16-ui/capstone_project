@@ -52,7 +52,6 @@ class CompletionRequirementsTest extends TestCase
 
         $this->post(route('admin.admission.applicants.import'), [
             'cycle_id' => $cycle->id,
-            'batch_group' => 'Batch 1',
             'file' => UploadedFile::fake()->createWithContent('applicants.csv', $csv),
         ])->assertSessionHasNoErrors();
 
@@ -61,27 +60,26 @@ class CompletionRequirementsTest extends TestCase
             'last_name' => 'Cruz',
             'first_name' => 'Ana',
             'middle_name' => 'Maria',
-            'batch_group' => 'Batch 1',
+            'batch_group' => null,
             'course_choice_1' => 'BSIT',
             'course_choice_2' => 'BSED-SOC',
             'gwa' => 91.5,
         ]);
     }
 
-    public function test_encoding_sheet_has_dynamic_batch_controls_without_open_batch_button(): void
+    public function test_encoding_sheet_has_no_batch_controls(): void
     {
         $this->login();
         $cycle = $this->cycle();
 
         $this->get(route('admin.admission.encoding-sheet', ['cycle_id' => $cycle->id]))
             ->assertOk()
-            ->assertSee('All batches')
-            ->assertSee('Batch 1')
-            ->assertSee('Batch 2')
-            ->assertSee('+ Add Batch')
-            ->assertDontSee('Open Batch')
-            ->assertDontSee('Batch 3')
-            ->assertDontSee('Walk-in');
+            ->assertSee('added to this admission cycle')
+            ->assertDontSee('Select batch group')
+            ->assertDontSee('All batches')
+            ->assertDontSee('+ Add Batch')
+            ->assertDontSee('Batch Group')
+            ->assertDontSee('Open Batch');
     }
 
     public function test_paper_answers_require_exact_item_keys_and_cannot_be_submitted_twice(): void

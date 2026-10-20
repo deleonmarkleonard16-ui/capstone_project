@@ -369,13 +369,9 @@ class AdmissionPipelineController extends Controller
             return $this->gatekeeperRedirect();
         }
 
-        $batchGroup = trim((string) $request->query('batch_group', ''));
         $sort = $request->query('sort');
 
         $query = $cycle->applicants();
-        if ($batchGroup !== '' && $batchGroup !== '__all__') {
-            $query->where('batch_group', $batchGroup);
-        }
 
         if ($sort === 'course_gwa') {
             $query->orderBy('course_choice')->orderByDesc('gwa');
@@ -385,21 +381,12 @@ class AdmissionPipelineController extends Controller
 
         $rows = $query->get();
 
-        $batchGroups = array_values(array_unique(array_merge(
-            ['Batch 1', 'Batch 2'],
-            $cycle->applicants()->whereNotNull('batch_group')->distinct()->pluck('batch_group')->filter()->values()->all()
-        )));
-        if ($batchGroup !== '' && $batchGroup !== '__all__' && ! in_array($batchGroup, $batchGroups, true)) {
-            $batchGroups[] = $batchGroup;
-        }
-
         $isLocked = $cycle->isCompleted();
 
         return view('admin.admission.encoding-sheet', [
             'cycle' => $cycle,
             'isLocked' => $isLocked,
             'rows' => $rows,
-            'batchGroups' => $batchGroups,
             'courses' => CourseCatalog::activeOptions(),
         ]);
     }

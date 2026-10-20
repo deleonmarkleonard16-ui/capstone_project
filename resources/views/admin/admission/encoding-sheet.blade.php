@@ -35,7 +35,7 @@
             <div class="card-body p-4">
                 <h2 class="h5 section-title mb-1">Import Applicants From Excel / CSV</h2>
                 <p class="text-muted small mb-2">
-                    Upload a CSV/XLSX using the 2-Choice degree program format. Imported applicants will be assigned to the selected batch group and evaluated immediately.
+                    Upload a CSV/XLSX using the 2-Choice degree program format. Imported applicants will be added to this admission cycle and evaluated immediately.
                 </p>
                 @if($isLocked)
                     <div class="alert alert-secondary py-2 small mb-0">
@@ -51,16 +51,7 @@
                         <code class="d-block p-2 bg-light rounded border small">
                             last_name, first_name, middle_name, course_choice_1, course_choice_2, sex, 4ps_osy_ip_pwd_sp, cmfl, gwa
                         </code>
-                        <div class="d-flex gap-2">
-                            <select class="form-select" name="batch_group" id="import-batch-group-select" style="flex:1">
-                                <option value="">Select batch group</option>
-                                @foreach($batchGroups as $bg)
-                                    <option value="{{ $bg }}">{{ $bg }}</option>
-                                @endforeach
-                            </select>
-                            <button class="btn btn-outline-primary text-nowrap" type="button" onclick="addBatchGroup('import-batch-group-select')">+ Add Batch</button>
-                            <input type="file" name="file" accept=".csv,.xlsx,.txt" class="form-control" style="flex:1" required>
-                        </div>
+                        <input type="file" name="file" accept=".csv,.xlsx,.txt" class="form-control" required>
                         <button class="btn btn-primary btn-sm">
                             <i class="bi bi-upload me-1"></i> Import Applicants
                         </button>
@@ -100,25 +91,10 @@
             </div>
         </div>
 
-        {{-- Batch group selector --}}
-        <div class="px-4 py-2 border-bottom d-flex gap-3 align-items-center bg-light flex-wrap">
-            <label class="fw-semibold small mb-0">Batch Group</label>
-            <select class="form-select form-select-sm" id="batch-group-select" style="max-width:260px"
-                    onchange="loadBatchGroup(this.value)">
-                <option value="__all__" @selected(request('batch_group') === '__all__')>All batches</option>
-                @foreach($batchGroups as $bg)
-                    <option value="{{ $bg }}" @selected(request('batch_group') === $bg)>{{ $bg }}</option>
-                @endforeach
-            </select>
-            @unless($isLocked)<button class="btn btn-outline-primary btn-sm" type="button" onclick="addBatchGroup('batch-group-select', true)">+ Add Batch</button>@endunless
-            <span class="text-muted small">Select a batch to load its applicants automatically.</span>
-        </div>
-
         {{-- Spreadsheet grid --}}
         <form id="encoding-form" method="post" action="{{ route('admin.admission.encoding-sheet.save') }}">
             @csrf
             <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
-            <input type="hidden" name="batch_group" value="{{ request('batch_group') ?: '__all__' }}">
             <input type="hidden" name="sort_after_save" value="1">
 
             <div class="table-responsive" style="max-height: 62vh; overflow-y: auto;">
@@ -344,30 +320,6 @@
 {{-- ── JAVASCRIPT GRID CONTROLLER ── --}}
 @push('scripts')
 <script>
-function loadBatchGroup(value) {
-    if (!value) return;
-    const url = new URL(window.location.href);
-    url.searchParams.set('batch_group', value);
-    window.location.href = url.toString();
-}
-
-function addBatchGroup(sourceId, openAfterAdd = false) {
-    const name = window.prompt('Enter the new batch name (for example, Morning Group):');
-    if (!name || !name.trim()) return;
-    const cleanName = name.trim();
-    ['import-batch-group-select', 'batch-group-select'].forEach(function (id) {
-        const select = document.getElementById(id);
-        if (!select) return;
-        let option = Array.from(select.options).find(item => item.value.toLowerCase() === cleanName.toLowerCase());
-        if (!option) {
-            option = new Option(cleanName, cleanName);
-            select.add(option);
-        }
-        if (id === sourceId) select.value = option.value;
-    });
-    if (openAfterAdd) loadBatchGroup(cleanName);
-}
-
 (function () {
     const grid = document.getElementById('encoding-grid');
     const form = document.getElementById('encoding-form');

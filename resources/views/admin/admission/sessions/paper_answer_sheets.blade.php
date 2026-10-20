@@ -21,13 +21,7 @@
         .qr-box img { display: block; width: 82px; height: 82px; margin: 0 auto; border: 1px solid #222; padding: 2px; background: #fff; }
         .qr-box small { display: block; margin-top: 3px; font-size: 8px; font-weight: 700; word-break: break-all; }
         .notice { margin: 8px 0; padding: 5px 8px; font-size: 10px; line-height: 1.3; background: #f4f4f4; border-left: 3px solid #0f3f97; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 12px; border: 1px solid #b8c1cd; padding: 8px 10px; }
-        .column { min-width: 0; }
-        .choice-header, .question { display: grid; grid-template-columns: 32px repeat(4, 1fr); align-items: center; text-align: center; }
-        .choice-header { height: 22px; font-size: 10px; font-weight: 700; border-bottom: 1px solid #b8c1cd; }
-        .question { height: 20px; font-size: 10px; }
-        .question-number { text-align: right; padding-right: 6px; font-weight: 700; }
-        .bubble { width: 13px; height: 13px; margin: auto; border: 1.2px solid #111; border-radius: 50%; box-sizing: border-box; }
+        .omr-grid { display: block; width: 100%; height: auto; margin: 0 auto; }
         .footer { display: flex; justify-content: space-between; margin-top: 7px; padding-top: 4px; border-top: 1px solid #999; font-size: 9px; color: #444; }
         @media print { body { background: #fff; } .toolbar { display: none; } .sheet { margin: 0 auto; } }
     </style>
@@ -41,6 +35,8 @@
     @foreach ($applicants as $applicant)
         @php
             $itemsPerColumn = (int) ceil($totalItems / 4);
+            $omrSvgHeight = max(54 + ($itemsPerColumn * 21) + 16, 480);
+            $markerBottom = $omrSvgHeight - 24;
         @endphp
         <section class="sheet">
             <header class="header">
@@ -59,20 +55,37 @@
             </header>
             <div class="notice"><strong>NOTICE TO PROCTOR:</strong> Verify the examinee's identity before issuing this sheet. Use a dark pencil or pen and shade one answer only for each item.</div>
 
-            <div class="grid" aria-label="{{ $totalItems }}-item OMR answer grid">
+            <svg class="omr-grid" viewBox="0 0 1080 {{ $omrSvgHeight }}" xmlns="http://www.w3.org/2000/svg" aria-label="{{ $totalItems }}-item OMR answer grid">
+                <rect width="1080" height="{{ $omrSvgHeight }}" fill="#fff"/>
+                <rect x="10" y="10" width="14" height="14" fill="#000"/>
+                <rect x="1056" y="10" width="14" height="14" fill="#000"/>
+                <rect x="1056" y="{{ $markerBottom }}" width="14" height="14" fill="#000"/>
+                <rect x="10" y="{{ $markerBottom }}" width="14" height="14" fill="#000"/>
                 @for ($column = 0; $column < 4; $column++)
-                    <div class="column">
-                        <div class="choice-header"><span>No.</span><span>A</span><span>B</span><span>C</span><span>D</span></div>
-                        @for ($row = 1; $row <= $itemsPerColumn; $row++)
-                            @php $item = ($column * $itemsPerColumn) + $row; @endphp
-                            @if ($item <= $totalItems)
-                                <div class="question"><span class="question-number">{{ $item }}.</span><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span></div>
-                            @endif
-                        @endfor
-                    </div>
+                    @php $columnStart = 40 + ($column * 260); @endphp
+                    <g font-family="Arial" font-size="11" font-weight="bold" fill="#333" text-anchor="middle">
+                        @foreach (['A', 'B', 'C', 'D'] as $option => $letter)
+                            <text x="{{ $columnStart + 85 + ($option * 36) }}" y="32">{{ $letter }}</text>
+                        @endforeach
+                    </g>
+                    @for ($row = 0; $row < $itemsPerColumn; $row++)
+                        @php
+                            $item = ($column * $itemsPerColumn) + $row + 1;
+                            $rowY = 54 + ($row * 21);
+                        @endphp
+                        @if ($item <= $totalItems)
+                            <text x="{{ $columnStart + 10 }}" y="{{ $rowY + 4 }}" font-family="Arial" font-size="11" font-weight="bold" fill="#111">{{ str_pad($item, 2, ' ', STR_PAD_LEFT) }}.</text>
+                            @foreach (['A', 'B', 'C', 'D'] as $option => $letter)
+                                <circle cx="{{ $columnStart + 85 + ($option * 36) }}" cy="{{ $rowY }}" r="7.5" fill="#fff" stroke="#111" stroke-width="1.2"/>
+                            @endforeach
+                        @endif
+                    @endfor
+                    @if ($column < 3)
+                        <line x1="{{ $columnStart + 248 }}" y1="20" x2="{{ $columnStart + 248 }}" y2="{{ $markerBottom + 10 }}" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3"/>
+                    @endif
                 @endfor
-            </div>
-            <footer class="footer"><span>OMR Engine v2.0 · PSU San Carlos Campus Guidance Office</span><span>{{ $totalItems }}-Item Sheet · Form No. GC-CAT-01</span></footer>
+            </svg>
+            <footer class="footer"><span>OMR Engine v2.0 · PSU San Carlos Campus Guidance Office</span><span>{{ $totalItems }}-Item Sheet · Keep all 4 black corner markers visible · Form No. GC-CAT-01</span></footer>
         </section>
     @endforeach
 </body>

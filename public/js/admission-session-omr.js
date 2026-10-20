@@ -1,4 +1,4 @@
-import {detectAnswers} from './admission-omr.js';
+import {detectAnswers, detectCornerMarkers} from './admission-omr.js';
 
 const root = document.getElementById('session-omr-scanner');
 
@@ -131,6 +131,28 @@ if (root) {
         imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         canvas.classList.remove('d-none');
         resetPoints();
+        autoAlignMarkers();
+    }
+
+    function autoAlignMarkers() {
+        try {
+            points = detectCornerMarkers(imageData);
+            context.putImageData(imageData, 0, 0);
+            context.fillStyle = '#198754';
+            for (const [x, y] of points) {
+                context.beginPath();
+                context.arc(x, y, Math.max(6, canvas.width / 180), 0, Math.PI * 2);
+                context.fill();
+            }
+            const results = detectAnswers(imageData, points, totalItems);
+            renderReview(results);
+            const ambiguous = results.filter(result => !result.answer).length;
+            setMessage(`Automatically aligned all four markers. ${totalItems - ambiguous} answers detected; ${ambiguous} blank or ambiguous item(s) require review.`, ambiguous ? 'warning' : 'success');
+        } catch (error) {
+            points = [];
+            context.putImageData(imageData, 0, 0);
+            setMessage(`${error.message} You can still click the markers in order: top-left, top-right, bottom-right, bottom-left.`, 'warning');
+        }
     }
 
     function resetPoints() {
@@ -140,7 +162,7 @@ if (root) {
         submit.disabled = true;
         if (imageData) context.putImageData(imageData, 0, 0);
         setMessage(imageData
-            ? 'Select markers in order: top-left, top-right, bottom-right, bottom-left.'
+            ? 'Markers are detected automatically. If auto-alignment fails, click top-left, top-right, bottom-right, then bottom-left.'
             : 'Capture or upload the complete horizontal answer sheet.');
     }
 

@@ -81,13 +81,14 @@ class AdmissionCheckinTest extends TestCase
             ->assertSeeInOrder(['CAT-001', 'CAT-002'])
             ->assertSee('window.print()');
 
-        $this->get(route('admin.admission.sessions.print-paper-answer-sheets', $session))
+        $paperSheets = $this->get(route('admin.admission.sessions.print-paper-answer-sheets', $session))
             ->assertOk()
             ->assertSee('Print all 2 paper answer sheet(s)')
             ->assertSeeInOrder(['CAT-001', 'CAT-002'])
             ->assertSee('Applicant QR code for CAT-001')
             ->assertSee('Applicant QR code for CAT-002')
             ->assertSee('window.print()');
+        $this->assertSame(8, substr_count($paperSheets->getContent(), 'fill="#000"'));
     }
 
     public function test_session_omr_scan_scores_enrolled_examinee_and_rejects_other_session(): void

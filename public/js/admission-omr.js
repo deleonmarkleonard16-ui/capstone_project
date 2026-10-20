@@ -38,6 +38,91 @@ export function projectiveMap(corners, totalItems = 80) {
     };
 }
 
+/** Find the four isolated, solid black square alignment markers on a photo. */
+export function detectCornerMarkers(image) {
+    if (!image?.data || !image.width || !image.height) throw new Error('Capture a clear answer-sheet photo first.');
+
+    const scale = Math.max(1, Math.ceil(Math.max(image.width, image.height) / 1600));
+    const width = Math.ceil(image.width / scale);
+    const height = Math.ceil(image.height / scale);
+    const size = width * height;
+    const dark = new Uint8Array(size);
+    for (let y = 0; y < height; y++) {
+        const sourceY = Math.min(image.height - 1, y * scale);
+        for (let x = 0; x < width; x++) {
+            const sourceX = Math.min(image.width - 1, x * scale);
+            const offset = (sourceY * image.width + sourceX) * 4;
+            const gray = .299 * image.data[offset] + .587 * image.data[offset + 1] + .114 * image.data[offset + 2];
+            if (gray < 75) dark[y * width + x] = 1;
+        }
+    }
+
+    const queue = new Int32Array(size);
+    const candidates = [];
+    for (let start = 0; start < size; start++) {
+        if (!dark[start]) continue;
+        let head = 0, tail = 0;
+        queue[tail++] = start;
+        dark[start] = 0;
+        let minX = width, minY = height, maxX = -1, maxY = -1;
+        while (head < tail) {
+            const index = queue[head++];
+            const x = index % width, y = Math.floor(index / width);
+            minX = Math.min(minX, x); minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+            const neighbors = [index - 1, index + 1, index - width, index + width];
+            for (const next of neighbors) {
+                if (next < 0 || next >= size || !dark[next]) continue;
+                // Prevent horizontal wrap between the last and first pixel of adjacent rows.
+                if ((next === index - 1 && x === 0) || (next === index + 1 && x === width - 1)) continue;
+                dark[next] = 0;
+                queue[tail++] = next;
+            }
+            if (tail > 12000) break;
+        }
+
+        const boxWidth = maxX - minX + 1;
+        const boxHeight = maxY - minY + 1;
+        const area = boxWidth * boxHeight;
+        const ratio = boxWidth / boxHeight;
+        if (tail < 70 || boxWidth < 8 || boxHeight < 8 || boxWidth > width * .08 || boxHeight > height * .08
+            || ratio < .68 || ratio > 1.47 || tail / area < .66) continue;
+        candidates.push({
+            x: ((minX + maxX) / 2) * scale,
+            y: ((minY + maxY) / 2) * scale,
+            area: tail * scale * scale,
+        });
+    }
+
+    function bestPair(side) {
+        const sideCandidates = candidates.filter(point => side === 'left'
+            ? point.x < image.width * .36
+            : point.x > image.width * .64);
+        let best = null;
+        for (const top of sideCandidates) {
+            if (top.y > image.height * .78) continue;
+            for (const bottom of sideCandidates) {
+                const verticalGap = bottom.y - top.y;
+                const horizontalDrift = Math.abs(bottom.x - top.x);
+                if (verticalGap < image.height * .2 || horizontalDrift > image.width * .14 || bottom.y < image.height * .42) continue;
+                const score = Math.min(top.area, bottom.area) * 5 + verticalGap - horizontalDrift * 2;
+                if (!best || score > best.score) best = {top, bottom, score};
+            }
+        }
+        return best;
+    }
+
+    const left = bestPair('left');
+    const right = bestPair('right');
+    if (!left || !right
+        || Math.abs(left.top.y - right.top.y) > image.height * .18
+        || Math.abs(left.bottom.y - right.bottom.y) > image.height * .18) {
+        throw new Error('Could not find all four black corner markers. Keep the complete grid in frame, improve lighting, or align the four markers manually.');
+    }
+
+    return [left.top, right.top, right.bottom, left.bottom].map(point => [point.x, point.y]);
+}
+
 /**
  * Detect shaded bubble answers from a captured image.
  *

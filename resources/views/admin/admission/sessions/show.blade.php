@@ -750,7 +750,7 @@
                         <div class="card">
                             <div class="card-header fw-semibold">Frame 2 — Optical Bubble Grid</div>
                             <div class="card-body">
-                                <p class="small text-muted">Capture the full grid, then select the four black markers: top-left, top-right, bottom-right, bottom-left.</p>
+                                <p class="small text-muted">Capture or upload the complete answer sheet. The scanner automatically finds the four black corner markers; manual alignment remains available if the photo is unclear.</p>
                                 <div id="session-omr-review" class="row g-2 overflow-auto" style="max-height:310px"></div>
                                 <div id="session-omr-message" class="alert alert-info py-2 small mt-3 mb-2" role="status">Waiting to start.</div>
                                 <button type="button" id="session-omr-submit" class="btn btn-success w-100 fw-semibold" disabled>

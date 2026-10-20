@@ -26,9 +26,12 @@ class DocumentRequestController extends Controller
     {
         ServiceRequest::expirePendingRequests();
         $module = $this->module($request);
-        $filters = \App\Support\TableFilters::validate($request, ['pending', 'approved', 'proof_review', 'ready', 'completed', 'void', 'declined']);
         $archived = $request->route('mode') === 'archive';
+        $filters = \App\Support\TableFilters::validate($request, $archived
+            ? ['void', 'completed']
+            : ['pending', 'approved', 'proof_review', 'ready', 'completed', 'void', 'declined']);
         $query = ServiceRequest::where('service', $module)->whereNull('batch_id');
+        if ($archived) $query->whereIn('status', ['void', 'completed']);
         if ($filters['course'] ?? null) $query->where('course', $filters['course']);
         if ($filters['status'] ?? null) $query->where('status', $filters['status']);
         \App\Support\TableFilters::dates($query, $filters);

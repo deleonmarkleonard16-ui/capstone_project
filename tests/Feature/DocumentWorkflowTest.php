@@ -111,6 +111,30 @@ class DocumentWorkflowTest extends TestCase
                 'claimed_at' => now(),
                 'archived_at' => now(),
             ]);
+            $void = ServiceRequest::create([
+                'service' => $module,
+                'reference' => ServiceRequest::newReference($module),
+                'first_name' => 'Ben',
+                'last_name' => 'Santos',
+                'student_status' => 'student',
+                'student_number' => '26-SC-2222',
+                'course' => 'BSIT',
+                'purpose' => 'Graduation',
+                'status' => 'void',
+                'archived_at' => now(),
+            ]);
+            $declined = ServiceRequest::create([
+                'service' => $module,
+                'reference' => ServiceRequest::newReference($module),
+                'first_name' => 'Cal',
+                'last_name' => 'Reyes',
+                'student_status' => 'student',
+                'student_number' => '26-SC-3333',
+                'course' => 'BSIT',
+                'purpose' => 'Graduation',
+                'status' => 'declined',
+                'archived_at' => now(),
+            ]);
 
             $queue = $this->get(route('staff.'.$module))->assertOk();
             $this->assertSame(1, (int) $queue->viewData('queueCounts')['completed']);
@@ -118,7 +142,12 @@ class DocumentWorkflowTest extends TestCase
             $this->get(route('staff.'.$module.'.archive'))
                 ->assertOk()
                 ->assertSee($entry->reference)
-                ->assertSee('Completed');
+                ->assertSee('Claimed / Completed')
+                ->assertSee($void->reference)
+                ->assertSee('Void')
+                ->assertDontSee($declined->reference)
+                ->assertDontSee('Proof review')
+                ->assertDontSee('Pending');
         }
     }
 }

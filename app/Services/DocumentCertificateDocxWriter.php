@@ -23,7 +23,7 @@ class DocumentCertificateDocxWriter
             $center = $header->addCell(6800, ['bgColor' => 'F2D83D', 'valign' => 'center']);
             $center->addText('Republic of the Philippines', ['size' => 7], ['alignment' => 'center', 'spaceAfter' => 0]);
             if (! empty($brand['universityTitlePath'])) {
-                $center->addImage($brand['universityTitlePath'], ['width' => 295, 'height' => 30, 'alignment' => 'center']);
+                $center->addImage($brand['universityTitlePath'], ['width' => 295, 'height' => 29.7, 'alignment' => 'center']);
             } else {
                 $center->addText('Pangasinan State University', ['bold' => true, 'size' => 17, 'color' => '17305F'], ['alignment' => 'center']);
             }
@@ -31,7 +31,7 @@ class DocumentCertificateDocxWriter
             $center->addText($brand['address'] ?? 'Roxas Blvd., San Carlos City, Pangasinan 2420', ['size' => 7], ['alignment' => 'center', 'spaceAfter' => 0]);
             $center->addText('Website: '.($brand['website'] ?? 'www.psu.edu.ph').'   Tel. '.($brand['telephone'] ?? '(075) 206 0802').'   Telefax: '.($brand['telefax'] ?? '(075) 522 4201 / 4057'), ['size' => 6], ['alignment' => 'center', 'spaceAfter' => 0]);
             $bagong = $header->addCell(1800, ['bgColor' => 'F2D83D', 'valign' => 'center']);
-            if (! empty($brand['bagongPilipinasPath'])) $bagong->addImage($brand['bagongPilipinasPath'], ['width' => 60, 'height' => 60, 'alignment' => 'center']);
+            if (! empty($brand['bagongPilipinasPath'])) $bagong->addImage($brand['bagongPilipinasPath'], ['width' => 60, 'height' => 56.3, 'alignment' => 'center']);
 
             $section->addText(strtoupper($document['title']), ['bold' => true, 'size' => 15], ['alignment' => 'center', 'spaceBefore' => 480, 'spaceAfter' => 520, 'borderBottomSize' => 4, 'borderBottomColor' => '777777']);
             $section->addText('This is to certify that '.$certificate['name'].' '.$certificate['statement'], [], ['alignment' => 'both', 'indentation' => ['firstLine' => 500], 'spaceAfter' => 260]);
@@ -49,7 +49,7 @@ class DocumentCertificateDocxWriter
             $section->addText('*Not valid without University Seal', ['italic' => true, 'size' => 8], ['spaceAfter' => 50]);
             $section->addText('O.R. #: '.$certificate['or_number'].'    Date: '.$certificate['or_date'], ['size' => 8], ['spaceAfter' => 50]);
             $section->addText('Doc. Stamp Tax Paid', ['size' => 8], ['spaceAfter' => 100]);
-            if (! empty($brand['footerPath'])) $section->addImage($brand['footerPath'], ['width' => 480, 'height' => 40, 'alignment' => 'center']);
+            if (! empty($brand['footerPath'])) $section->addImage($brand['footerPath'], ['width' => 695, 'height' => 73, 'alignment' => 'center']);
         }
     }
 }

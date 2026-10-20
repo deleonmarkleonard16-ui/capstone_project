@@ -5,7 +5,7 @@ body { font-family: 'DejaVu Sans', Arial, sans-serif; color: #111; font-size: 9p
 .letterhead-copy { display: table-cell; width: 86%; text-align: center; vertical-align: middle; }
 .letterhead-copy span, .letterhead-copy strong { display: block; }
 .letterhead-copy .republic { font-size: 8px; margin-bottom: 1mm; }
-.university-title { display: block; width: 77mm; height: 9mm; object-fit: contain; margin: 0 auto 1mm; }
+.university-title { display: block; width: 77mm; max-height: 9mm; height: auto; object-fit: contain; margin: 0 auto 1mm; }
 .university-name { color: #17305f; font-family: Georgia, serif; font-size: 18px; margin: 0 0 1mm; }
 .letterhead-copy strong { font-size: 9px; }
 .letterhead-copy span:last-child { font-size: 7px; margin-top: 1mm; }

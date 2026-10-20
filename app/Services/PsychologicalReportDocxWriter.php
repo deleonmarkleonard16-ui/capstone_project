@@ -18,7 +18,7 @@ class PsychologicalReportDocxWriter
         $brandCell = $letterhead->addCell(12000, ['bgColor' => 'F6DC4B', 'valign' => 'center']);
         $brandCell->addText('Republic of the Philippines', ['size' => 8], ['alignment' => 'center', 'spaceAfter' => 0]);
         if (! empty($brand['universityTitlePath'])) {
-            $brandCell->addImage($brand['universityTitlePath'], ['width' => 330, 'height' => 25, 'alignment' => 'center']);
+            $brandCell->addImage($brand['universityTitlePath'], ['width' => 330, 'height' => 33.3, 'alignment' => 'center']);
         } else {
             $brandCell->addText('Pangasinan State University', ['bold' => true, 'size' => 18, 'color' => '17305F'], ['alignment' => 'center']);
         }

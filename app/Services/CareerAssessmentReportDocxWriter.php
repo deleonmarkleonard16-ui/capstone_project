@@ -19,7 +19,7 @@ class CareerAssessmentReportDocxWriter
         $brandCell = $letterhead->addCell(8800, ['bgColor' => 'F6DC4B', 'valign' => 'center']);
         $brandCell->addText('Republic of the Philippines', ['size' => 7], ['alignment' => 'center', 'spaceAfter' => 0]);
         if (! empty($brand['universityTitlePath'])) {
-            $brandCell->addImage($brand['universityTitlePath'], ['width' => 310, 'height' => 24, 'alignment' => 'center']);
+            $brandCell->addImage($brand['universityTitlePath'], ['width' => 310, 'height' => 31.2, 'alignment' => 'center']);
         } else {
             $brandCell->addText('Pangasinan State University', ['bold' => true, 'size' => 17, 'color' => '17305F'], ['alignment' => 'center']);
         }

@@ -20,9 +20,9 @@
         .certificate-brand table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
         .certificate-brand td { border: 0; padding: 2mm; text-align: center; vertical-align: middle; }
         .certificate-brand .seal-cell, .certificate-brand .bagong-cell { width: 18%; }
-        .certificate-brand .seal-cell img { width: 25mm; height: 25mm; }
-        .certificate-brand .bagong-cell img { width: 24mm; height: 24mm; }
-        .certificate-brand .university-title { display: block; width: 77mm; height: 10mm; margin: 1mm auto; }
+        .certificate-brand .seal-cell img { width: 25mm; height: auto; max-height: 25mm; }
+        .certificate-brand .bagong-cell img { width: 24mm; height: auto; max-height: 24mm; }
+        .certificate-brand .university-title { display: block; width: 77mm; height: auto; max-height: 10mm; margin: 1mm auto; }
         .certificate-brand .university-name { color: #17305f; font-size: 19px; margin: 1mm 0; }
         .certificate-brand .republic, .certificate-brand .address, .certificate-brand .contacts { display: block; font-size: 7px; line-height: 1.2; }
         .certificate-brand .campus { display: block; font-size: 9px; font-weight: bold; }
@@ -35,8 +35,8 @@
         .certificate-signature .name { font-weight: bold; text-decoration: underline; }
         .certificate-bottom { width: 88%; margin: 16mm auto 0; font-size: 10px; line-height: 1.35; }
         .certificate-bottom p { margin: 0 0 2mm; }
-        .certificate-footer { width: 100%; height: 17mm; margin-top: 5mm; }
-        .certificate-footer img { width: 100%; height: 17mm; }
+        .certificate-footer { width: 100%; margin-top: 5mm; }
+        .certificate-footer img { display: block; width: 100%; height: auto; }
         .no-print { margin: 15px 0; }
         @media print {
             .no-print, nav, .sidebar, .app-sidebar, .app-header, header:not(.document-header):not(.certificate-brand) { display: none !important; }

@@ -11,9 +11,25 @@ class PsychologicalReportDocxWriter
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(9);
         $word->setDefaultParagraphStyle(['spaceAfter' => 60]);
-        $section = $word->addSection(['paperSize' => 'A4', 'marginTop' => 794, 'marginBottom' => 794, 'marginLeft' => 907, 'marginRight' => 907]);
-        $section->addText('OFFICE OF ADMISSION AND GUIDANCE SERVICES', ['bold' => true, 'size' => 11], ['alignment' => 'center']);
-        $section->addText('PSYCHOLOGICAL ASSESSMENT', ['bold' => true, 'size' => 11], ['alignment' => 'center', 'spaceAfter' => 180]);
+        $section = $word->addSection(['paperSize' => 'A4', 'marginTop' => 480, 'marginBottom' => 480, 'marginLeft' => 737, 'marginRight' => 737]);
+        $brand = $document['brand'] ?? [];
+        $letterhead = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'borderBottomSize' => 14, 'borderBottomColor' => '17305F']);
+        $letterhead->addRow(null, ['cantSplit' => true]);
+        $brandCell = $letterhead->addCell(12000, ['bgColor' => 'F6DC4B', 'valign' => 'center']);
+        $brandCell->addText('Republic of the Philippines', ['size' => 8], ['alignment' => 'center', 'spaceAfter' => 0]);
+        if (! empty($brand['universityTitlePath'])) {
+            $brandCell->addImage($brand['universityTitlePath'], ['width' => 330, 'height' => 25, 'alignment' => 'center']);
+        } else {
+            $brandCell->addText('Pangasinan State University', ['bold' => true, 'size' => 18, 'color' => '17305F'], ['alignment' => 'center']);
+        }
+        $brandCell->addText($brand['campus'] ?? 'San Carlos City, Pangasinan', ['bold' => true, 'size' => 9], ['alignment' => 'center', 'spaceAfter' => 0]);
+        $brandCell->addText('Website: '.($brand['website'] ?? 'www.psu.edu.ph').'    Telephone: '.($brand['telephone'] ?? '(075) 206 0802').'    Telefax: '.($brand['telefax'] ?? '(075) 522 4201 / 4057'), ['size' => 7], ['alignment' => 'center', 'spaceAfter' => 0]);
+        $sealCell = $letterhead->addCell(1800, ['bgColor' => 'F6DC4B', 'valign' => 'center']);
+        if (! empty($brand['sealPath'])) {
+            $sealCell->addImage($brand['sealPath'], ['width' => 55, 'height' => 55, 'alignment' => 'center']);
+        }
+        $section->addText('OFFICE OF ADMISSION AND GUIDANCE SERVICES', ['bold' => true, 'size' => 10, 'underline' => 'single'], ['alignment' => 'center', 'spaceBefore' => 90, 'spaceAfter' => 40]);
+        $section->addText('PSYCHOLOGICAL ASSESSMENT', ['bold' => true, 'size' => 11], ['alignment' => 'center', 'spaceAfter' => 120]);
         $profile = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct']);
         foreach (array_chunk($document['fields'], 2, true) as $pair) {
             $profile->addRow(null, ['cantSplit' => true]);
@@ -69,7 +85,10 @@ class PsychologicalReportDocxWriter
         $reviewed->addText('Reviewed and certified by:');
         $reviewed->addText($document['counselor'] ?: '____________________________', [], ['spaceBefore' => 180]);
         $reviewed->addText('Guidance Counselor');
-        $section->addText('*NOT VALID WITHOUT UNIVERSITY SEAL', ['bold' => true, 'size' => 8], ['spaceBefore' => 180]);
+        $section->addText('*NOT VALID WITHOUT UNIVERSITY SEAL', ['bold' => true, 'size' => 8], ['spaceBefore' => 100]);
         $section->addText('O.R. #: '.$document['orNumber'].'    Date: '.$document['orDate'].'    Doc. Stamp Tax Paid', ['size' => 8]);
+        $footer = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 0]);
+        $footer->addRow();
+        $footer->addCell(13800, ['bgColor' => 'F6DC4B'])->addText('Pangasinan State University · San Carlos Campus', ['bold' => true, 'size' => 8, 'color' => '17305F'], ['alignment' => 'center']);
     }
 }

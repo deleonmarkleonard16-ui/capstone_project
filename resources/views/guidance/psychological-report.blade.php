@@ -16,7 +16,23 @@
         </nav>
     @endif
     <article class="assessment-report">
-        <header><h1>OFFICE OF ADMISSION AND GUIDANCE SERVICES</h1><h2>PSYCHOLOGICAL ASSESSMENT</h2></header>
+        <header class="letterhead">
+            <div class="letterhead-copy">
+                <span class="republic">Republic of the Philippines</span>
+                @if($brand['universityTitle'])
+                    <img class="university-title" src="{{ $brand['universityTitle'] }}" alt="Pangasinan State University">
+                @else
+                    <h1 class="university-name">Pangasinan State University</h1>
+                @endif
+                <strong>{{ $brand['campus'] }}</strong>
+                <span>Website: {{ $brand['website'] }} &nbsp; Telephone: {{ $brand['telephone'] }} &nbsp; Telefax: {{ $brand['telefax'] }}</span>
+            </div>
+            @if($brand['seal'])<img class="university-seal" src="{{ $brand['seal'] }}" alt="Pangasinan State University seal">@endif
+        </header>
+        <div class="office-heading">
+            <h2>OFFICE OF ADMISSION AND GUIDANCE SERVICES</h2>
+            <h3>PSYCHOLOGICAL ASSESSMENT</h3>
+        </div>
         <table class="profile" aria-label="Student profile">
             @foreach(array_chunk($fields, 2, true) as $pair)
                 <tr>@foreach($pair as $label => $value)<td><strong>{{ $label }}:</strong> <span class="field">{{ $value }}</span></td>@endforeach</tr>
@@ -63,7 +79,7 @@
             <td>Administered and interpreted by:<div class="signature-line">&nbsp;</div><div class="signature-line">(Position)</div></td>
             <td>Reviewed and certified by:<div class="signature-line">{{ $counselor }}</div><div>Guidance Counselor</div></td>
         </tr></table>
-        <footer><strong>*NOT VALID WITHOUT UNIVERSITY SEAL</strong><p>O.R. #: {{ $orNumber }} &nbsp; Date: {{ $orDate }} &nbsp; Doc. Stamp Tax Paid</p></footer>
+        <footer><strong>*NOT VALID WITHOUT UNIVERSITY SEAL</strong><p>O.R. #: {{ $orNumber }} &nbsp; Date: {{ $orDate }} &nbsp; Doc. Stamp Tax Paid</p><div class="footer-accent">Pangasinan State University · San Carlos Campus</div></footer>
     </article>
     @if($autoPrint && $format === 'html')<script>window.onload = function() { window.print(); };</script>@endif
 </body>

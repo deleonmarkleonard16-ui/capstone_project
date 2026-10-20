@@ -42,11 +42,28 @@ class PsychologicalReportService
         $batch = $appointment->batch ?? $appointment->sourceBatch;
         $section = $appointment->origin_section ?? $batch?->year_section ?? $request?->year_section;
         $blank = '____________________';
+        $sealPath = public_path('images/psu-logo.png');
+        $titlePath = public_path('images/psu-template/psu_title_gothic.png');
+        $imageDataUri = static function (string $path): string {
+            if (! is_file($path)) return '';
+
+            return 'data:image/png;base64,'.base64_encode((string) file_get_contents($path));
+        };
 
         return [
             'view' => 'guidance.psychological-report', 'orientation' => 'portrait',
             'appointment' => $appointment,
             'title' => 'Psychological Assessment Report',
+            'brand' => [
+                'seal' => $imageDataUri($sealPath),
+                'universityTitle' => $imageDataUri($titlePath),
+                'sealPath' => is_file($sealPath) ? $sealPath : null,
+                'universityTitlePath' => is_file($titlePath) ? $titlePath : null,
+                'campus' => 'San Carlos City, Pangasinan',
+                'website' => 'www.psu.edu.ph',
+                'telephone' => '(075) 206 0802',
+                'telefax' => '(075) 522 4201 / 4057',
+            ],
             'fields' => [
                 'Name' => trim(implode(' ', array_filter([$appointment->first_name, $appointment->middle_name, $appointment->last_name]))) ?: $blank,
                 'Sex' => $appointment->applicant?->gender ?: ($request?->gender ?: $blank),

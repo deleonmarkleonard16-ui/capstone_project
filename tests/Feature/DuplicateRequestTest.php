@@ -75,7 +75,7 @@ class DuplicateRequestTest extends TestCase
         $this->assertDatabaseHas('service_requests', [
             'service' => 'good-moral',
             'student_number' => '23-SC-4143',
-            'status' => 'approved',
+            'status' => 'pending',
         ]);
     }
 

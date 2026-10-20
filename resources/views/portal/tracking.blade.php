@@ -2,8 +2,8 @@
 @section('content')
 @include('portal.stub', ['tracking' => true])
 @php($statusLabels = [
-    'pending' => 'Awaiting payment / paid stub',
-    'approved' => 'Approved — Paid/stamped stub required',
+    'pending' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Waiting for Receipt' : 'Awaiting payment / paid stub',
+    'approved' => $entry->hasReceipt() ? 'Receipt Uploaded / Pending Verification' : (in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Waiting for Receipt' : 'Approved — Paid/stamped stub required'),
     'proof_review' => 'Receipt Uploaded / Pending Verification',
     'processing' => 'Payment verified — processing document',
     'ready' => 'Ready for pick-up at Guidance Office',

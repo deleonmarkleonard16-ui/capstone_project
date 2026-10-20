@@ -115,14 +115,32 @@ class DocumentExportTest extends TestCase
     public function test_certificate_eligibility_is_enforced_on_the_server(): void
     {
         $this->login('staff');
-        foreach ([['good-moral', 'pending', false], ['good-moral', 'approved', true], ['exit-form', 'ready', false], ['exit-form', 'completed', true]] as [$module, $status, $eligible]) {
-            $record = $this->requestRecord($module, ['status' => $status]);
+        foreach ([['good-moral', 'pending', false], ['good-moral', 'approved', false], ['good-moral', 'ready', false], ['good-moral', 'ready', true], ['exit-form', 'ready', false], ['exit-form', 'completed', false], ['exit-form', 'completed', true]] as [$module, $status, $eligible]) {
+            $record = $this->requestRecord($module, ['status' => $status, ...($eligible ? ['receipt_data' => base64_encode('receipt')] : [])]);
             $response = $this->get('/staff/'.$module.'/export?type=certificate&request_id='.$record->id);
             if ($eligible) $response->assertOk()->assertSee('MARIA SANTOS')->assertSee('Guidance Counselor')->assertSee('border: 4px double #222', false);
             else $response->assertRedirect('/staff/exports')->assertSessionHas('error');
         }
         $goodMoral = $this->requestRecord();
         $this->get('/staff/exit-form/export?type=certificate&request_id='.$goodMoral->id)->assertRedirect('/staff/exports');
+    }
+
+    public function test_document_queue_shows_legacy_approved_without_receipt_as_waiting_and_hides_certificate_actions(): void
+    {
+        $this->login('staff');
+        $record = $this->requestRecord('good-moral', ['status' => 'approved']);
+
+        $this->get('/staff/good-moral')
+            ->assertOk()
+            ->assertSee('Waiting for Receipt')
+            ->assertSee('Not uploaded')
+            ->assertDontSee('Print Certificate')
+            ->assertDontSee('>PDF</a>', false)
+            ->assertDontSee('>DOCX</a>', false);
+
+        $this->get('/staff/good-moral/export?type=certificate&request_id='.$record->id)
+            ->assertRedirect('/staff/exports')
+            ->assertSessionHas('error');
     }
 
     public function test_document_batch_filter_never_includes_testing_requests(): void
@@ -162,7 +180,7 @@ class DocumentExportTest extends TestCase
     public function test_generation_failure_redirects_without_exposing_exception_details(): void
     {
         $this->login();
-        $record = $this->requestRecord();
+        $record = $this->requestRecord('good-moral', ['status' => 'ready', 'receipt_data' => base64_encode('receipt')]);
         $this->mock(DocumentExportService::class, fn ($mock) => $mock->shouldReceive('render')->once()->andThrow(new \Error('Sensitive server path')));
         $this->get('/admin/good-moral/export?type=certificate&request_id='.$record->id.'&format=docx')->assertRedirect('/admin/exports')->assertSessionHas('error', 'Unable to generate the document. Please contact the system administrator or try another format.');
     }
@@ -185,7 +203,7 @@ class DocumentExportTest extends TestCase
     public function test_legacy_report_links_produce_printable_html_and_certificate_files(): void
     {
         $this->login();
-        $record = $this->requestRecord();
+        $record = $this->requestRecord('good-moral', ['status' => 'ready', 'receipt_data' => base64_encode('receipt')]);
         $this->get('/admin/documents/report?module=good-moral')->assertOk()->assertSee($record->reference)->assertSee('Document Request Queue Summary');
         foreach (['pdf', 'docx'] as $format) {
             $response = $this->get('/admin/good-moral/export?type=certificate&request_id='.$record->id.'&format='.$format)->assertOk();

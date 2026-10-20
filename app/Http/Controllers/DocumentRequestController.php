@@ -26,7 +26,7 @@ class DocumentRequestController extends Controller
     {
         ServiceRequest::expirePendingRequests();
         $module = $this->module($request);
-        $filters = \App\Support\TableFilters::validate($request, ['pending', 'proof_review', 'ready', 'completed', 'void', 'declined']);
+        $filters = \App\Support\TableFilters::validate($request, ['pending', 'approved', 'proof_review', 'ready', 'completed', 'void', 'declined']);
         $archived = $request->route('mode') === 'archive';
         $query = ServiceRequest::where('service', $module)->whereNull('batch_id');
         if ($filters['course'] ?? null) $query->where('course', $filters['course']);
@@ -43,6 +43,10 @@ class DocumentRequestController extends Controller
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
+        $legacyApproved = ServiceRequest::where('service', $module)->whereNull('batch_id')->whereNull('archived_at')
+            ->where('status', 'approved')->get(['id', 'receipt_data', 'proof_path']);
+        $queueCounts['pending'] = (int) ($queueCounts['pending'] ?? 0) + $legacyApproved->filter(fn ($entry) => ! $entry->hasReceipt())->count();
+        $queueCounts['proof_review'] = (int) ($queueCounts['proof_review'] ?? 0) + $legacyApproved->filter(fn ($entry) => $entry->hasReceipt())->count();
 
         return view($module === 'good-moral' ? 'staff.good-moral' : 'staff.exit-form', [
             'requests' => $query->latest()->paginate(15)->withQueryString(), 'moduleKey' => $module,
@@ -155,7 +159,7 @@ class DocumentRequestController extends Controller
                     return;
                 }
 
-                abort_unless($entry->status === 'proof_review' && $entry->hasReceipt(), 409, 'A submitted receipt is required for verification.');
+                abort_unless(in_array($entry->status, ['proof_review', 'approved'], true) && $entry->hasReceipt(), 409, 'A submitted receipt is required for verification.');
                 $entry->update(['status' => 'ready', 'staff_message' => $data['staff_message'] ?? 'Approved / Ready for Pickup']);
             } else {
                 // Guard: If already claimed/completed, treat as idempotent success

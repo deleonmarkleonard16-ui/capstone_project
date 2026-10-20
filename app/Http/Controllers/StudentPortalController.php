@@ -136,7 +136,7 @@ class StudentPortalController extends Controller
                 ? app(\App\Services\GuidancePortalService::class)->create($data)
                 : \Illuminate\Support\Facades\DB::transaction(fn () => ServiceRequest::create($data + [
                     'reference' => ServiceRequest::newReference($data['service']),
-                    'status' => 'approved',
+                    'status' => 'pending',
                     'expires_at' => now()->addDays(5),
                 ]));
         } catch (UniqueConstraintViolationException $exception) {
@@ -158,7 +158,7 @@ class StudentPortalController extends Controller
             $request->session()->flash('tracking_reference', $entry->reference);
             $request->session()->flash('request_reference', $entry->reference);
             return response()->json(['request_code' => $entry->reference,
-                'status' => $entry->service === 'testing' ? 'Pending Payment' : ucfirst($entry->status),
+                'status' => $entry->service === 'testing' ? 'Pending Payment' : ($entry->status === 'pending' ? 'Waiting for Receipt' : ucfirst($entry->status)),
                 'redirect_url' => route('portal.index', ['service' => $entry->service]).'#track'], 201);
         }
 

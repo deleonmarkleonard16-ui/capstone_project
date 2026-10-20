@@ -149,8 +149,11 @@ class ExportReportService
             ->when($f['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($f['batch_id'] ?? null, fn ($q, $id) => $q->where('batch_id', $id))
             ->when($f['batch_name'] ?? null, fn ($q, $name) => $q->whereHas('batch', fn ($b) => $b->where('batch_name', $name)))
-            ->when($certificate, fn ($q) => $q->whereIn('status', $module === 'good-moral' ? ['approved', 'processing', 'ready', 'completed'] : ['completed']))
+            ->when($certificate, fn ($q) => $q->whereIn('status', $module === 'good-moral' ? ['ready', 'completed'] : ['completed']))
             ->orderBy('last_name')->orderBy('first_name')->get();
+        if ($certificate) {
+            $records = $records->filter(fn (ServiceRequest $record) => $record->hasReceipt())->values();
+        }
         $certificates = [];
         if ($certificate) {
             foreach ($records as $r) {

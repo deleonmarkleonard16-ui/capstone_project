@@ -1,4 +1,4 @@
-﻿@if($entry->status === 'proof_review')
+﻿@if($entry->status === 'proof_review' || ($entry->status === 'approved' && $entry->hasReceipt()))
     <div class="btn-group btn-group-sm">
         <button type="button" class="btn btn-outline-primary"
                 data-receipt="{{ route(auth()->user()->role.'.documents.proof', $entry) }}" data-or-number="{{ $entry->or_number }}" data-or-date="{{ $entry->or_date ? \Illuminate\Support\Carbon::parse($entry->or_date)->format('M d, Y') : '' }}">

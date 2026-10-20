@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\ServiceRequest;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class StudentPortalController extends Controller
 {
@@ -20,24 +22,33 @@ class StudentPortalController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'service' => ['required', Rule::in(array_keys(ServiceRequest::SERVICES))],
-            'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'last_name' => 'required|string|max:100',
-            'student_status' => ['required', Rule::in(['student', 'alumni', 'Currently Enrolled', 'Alumni'])],
-            'student_id' => 'required_if:student_status,Currently Enrolled|nullable|string',
-            'student_number' => 'nullable|string|max:50',
-            'year_graduated' => 'required_if:student_status,Alumni|nullable|digits:4|integer',
-            'course' => \App\Support\CourseCatalog::rule(),
-            'purpose' => 'exclude_if:service,testing|required_without:reason|nullable|string|max:2000',
-            'reason' => ['required_if:service,testing', 'required_without:purpose', 'nullable', Rule::in(['OJT', 'FIELD STUDY', 'Others'])],
-            'other_reason' => 'exclude_unless:reason,Others|required|string|max:2000',
-            'tests' => 'exclude_unless:service,testing|required|array|min:1|max:3',
-            'tests.*' => ['required', 'distinct', Rule::in(['psychological', 'personality', 'career'])],
-            'copies' => 'exclude_unless:service,good-moral,exit-form|required|integer|min:1|max:10',
-            'consent' => 'accepted',
-        ]);
+        try {
+            $data = $request->validate([
+                'service' => ['required', Rule::in(array_keys(ServiceRequest::SERVICES))],
+                'first_name' => 'required|string|max:100',
+                'middle_name' => 'nullable|string|max:100',
+                'last_name' => 'required|string|max:100',
+                'student_status' => ['required', Rule::in(['student', 'alumni', 'Currently Enrolled', 'Alumni'])],
+                'student_id' => 'required_if:student_status,Currently Enrolled|nullable|string',
+                'student_number' => 'nullable|string|max:50',
+                'year_graduated' => 'required_if:student_status,Alumni|nullable|digits:4|integer',
+                'course' => \App\Support\CourseCatalog::rule(),
+                'purpose' => 'exclude_if:service,testing|required_without:reason|nullable|string|max:2000',
+                'reason' => ['required_if:service,testing', 'required_without:purpose', 'nullable', Rule::in(['OJT', 'FIELD STUDY', 'Others'])],
+                'other_reason' => 'exclude_unless:reason,Others|required|string|max:2000',
+                'tests' => 'exclude_unless:service,testing|required|array|min:1|max:3',
+                'tests.*' => ['required', 'distinct', Rule::in(['psychological', 'personality', 'career'])],
+                'copies' => 'exclude_unless:service,good-moral,exit-form|required|integer|min:1|max:10',
+                'consent' => 'accepted',
+            ]);
+        } catch (ValidationException $exception) {
+            Log::notice('Portal request rejected by validation', [
+                'request_id' => $request->header('X-Request-ID'),
+                'service' => $request->input('service'),
+                'failed_fields' => array_keys($exception->errors()),
+            ]);
+            throw $exception;
+        }
         unset($data['consent']);
 
         $isAlumni = in_array($data['student_status'], ['alumni', 'Alumni'], true);
@@ -113,6 +124,10 @@ class StudentPortalController extends Controller
             }
 
             if ($hasActive) {
+                Log::notice('Portal request blocked by active-request guard', [
+                    'request_id' => $request->header('X-Request-ID'),
+                    'service' => $data['service'],
+                ]);
                 $message = $data['service'] === 'testing'
                     ? 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.'
                     : 'You still have an ongoing request for this service. Please complete it before submitting another request for the same service.';
@@ -145,6 +160,11 @@ class StudentPortalController extends Controller
                 throw $exception;
             }
 
+            Log::notice('Portal request blocked by database uniqueness guard', [
+                'request_id' => $request->header('X-Request-ID'),
+                'service' => $data['service'],
+            ]);
+
             $message = 'You still have an ongoing request for this service. Please complete it before submitting another request for the same service.';
             if (! $request->expectsJson()) {
                 return back()->with('ongoing_request_message', $message)
@@ -152,6 +172,10 @@ class StudentPortalController extends Controller
             }
             throw \Illuminate\Validation\ValidationException::withMessages(['service' => $message]);
         }
+        Log::info('Portal request created', [
+            'request_id' => $request->header('X-Request-ID'),
+            'service' => $entry->service,
+        ]);
         $request->session()->put('portal_request_reference', $entry->reference);
 
         if ($request->expectsJson()) {

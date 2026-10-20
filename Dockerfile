@@ -25,6 +25,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
+# Send Laravel runtime errors to the container log stream (Render captures stderr).
+ENV LOG_CHANNEL=stderr
+
 # Copy existing application directory
 COPY . /var/www
 

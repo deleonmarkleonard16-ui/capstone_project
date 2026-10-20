@@ -43,6 +43,47 @@ class CompletionRequirementsTest extends TestCase
         $this->postJson(route('admin.admission.scan-paper.lookup'), ['code'=>'APP-26'])->assertForbidden();
     }
 
+    public function test_quoted_utf8_bom_csv_headers_import_successfully(): void
+    {
+        $this->login();
+        $cycle = $this->cycle();
+        $csv = "\xEF\xBB\xBF\"last_name\",\"first_name\",\"middle_name\",\"course_choice_1\",\"course_choice_2\",\"sex\",\"4ps_osy_ip_pwd_sp\",\"cmfl\",\"gwa\"\r\n"
+            .'"Cruz","Ana","Maria","Bachelor of Science in Information Technology","Bachelor of Secondary Education major in Social Studies","Female","N/A","N/A","91.50"';
+
+        $this->post(route('admin.admission.applicants.import'), [
+            'cycle_id' => $cycle->id,
+            'batch_group' => 'Batch 1',
+            'file' => UploadedFile::fake()->createWithContent('applicants.csv', $csv),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('admission_applicants', [
+            'admission_cycle_id' => $cycle->id,
+            'last_name' => 'Cruz',
+            'first_name' => 'Ana',
+            'middle_name' => 'Maria',
+            'batch_group' => 'Batch 1',
+            'course_choice_1' => 'BSIT',
+            'course_choice_2' => 'BSED-SOC',
+            'gwa' => 91.5,
+        ]);
+    }
+
+    public function test_encoding_sheet_has_dynamic_batch_controls_without_open_batch_button(): void
+    {
+        $this->login();
+        $cycle = $this->cycle();
+
+        $this->get(route('admin.admission.encoding-sheet', ['cycle_id' => $cycle->id]))
+            ->assertOk()
+            ->assertSee('All batches')
+            ->assertSee('Batch 1')
+            ->assertSee('Batch 2')
+            ->assertSee('+ Add Batch')
+            ->assertDontSee('Open Batch')
+            ->assertDontSee('Batch 3')
+            ->assertDontSee('Walk-in');
+    }
+
     public function test_paper_answers_require_exact_item_keys_and_cannot_be_submitted_twice(): void
     {
         Event::fake([AdmissionSubmissionRecorded::class]);

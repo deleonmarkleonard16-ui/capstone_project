@@ -11,6 +11,9 @@ class AdmissionSpreadsheetReader
     {
         if ($extension === 'csv' || $extension === 'txt') {
             $handle = fopen($path, 'r');
+            if ($handle === false) throw new RuntimeException('Unable to read the uploaded CSV file.');
+            $prefix = fread($handle, 3);
+            if ($prefix !== "\xEF\xBB\xBF") rewind($handle);
             $rows = [];
             try {
                 while (($row = fgetcsv($handle)) !== false) {

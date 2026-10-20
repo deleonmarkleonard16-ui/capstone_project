@@ -52,12 +52,13 @@
                             last_name, first_name, middle_name, course_choice_1, course_choice_2, sex, 4ps_osy_ip_pwd_sp, cmfl, gwa
                         </code>
                         <div class="d-flex gap-2">
-                            <select class="form-select" name="batch_group" style="flex:1">
+                            <select class="form-select" name="batch_group" id="import-batch-group-select" style="flex:1">
                                 <option value="">Select batch group</option>
                                 @foreach($batchGroups as $bg)
                                     <option value="{{ $bg }}">{{ $bg }}</option>
                                 @endforeach
                             </select>
+                            <button class="btn btn-outline-primary text-nowrap" type="button" onclick="addBatchGroup('import-batch-group-select')">+ Add Batch</button>
                             <input type="file" name="file" accept=".csv,.xlsx,.txt" class="form-control" style="flex:1" required>
                         </div>
                         <button class="btn btn-primary btn-sm">
@@ -104,25 +105,20 @@
             <label class="fw-semibold small mb-0">Batch Group</label>
             <select class="form-select form-select-sm" id="batch-group-select" style="max-width:260px"
                     onchange="loadBatchGroup(this.value)">
-                <option value="">Select batch group</option>
+                <option value="__all__" @selected(request('batch_group') === '__all__')>All batches</option>
                 @foreach($batchGroups as $bg)
                     <option value="{{ $bg }}" @selected(request('batch_group') === $bg)>{{ $bg }}</option>
                 @endforeach
-                <option value="__all__" @selected(request('batch_group') === '__all__')>All batch groups</option>
             </select>
-            <button class="btn btn-outline-primary btn-sm" onclick="loadBatchGroup(document.getElementById('batch-group-select').value)">
-                Open Batch
-            </button>
-            <span class="text-muted small">
-                Click 'Open Batch' after choosing a batch group, or choose 'All batch groups' to load the full cycle list.
-            </span>
+            @unless($isLocked)<button class="btn btn-outline-primary btn-sm" type="button" onclick="addBatchGroup('batch-group-select', true)">+ Add Batch</button>@endunless
+            <span class="text-muted small">Select a batch to load its applicants automatically.</span>
         </div>
 
         {{-- Spreadsheet grid --}}
         <form id="encoding-form" method="post" action="{{ route('admin.admission.encoding-sheet.save') }}">
             @csrf
             <input type="hidden" name="cycle_id" value="{{ $cycle->id }}">
-            <input type="hidden" name="batch_group" value="{{ request('batch_group') }}">
+            <input type="hidden" name="batch_group" value="{{ request('batch_group') ?: '__all__' }}">
             <input type="hidden" name="sort_after_save" value="1">
 
             <div class="table-responsive" style="max-height: 62vh; overflow-y: auto;">
@@ -353,6 +349,23 @@ function loadBatchGroup(value) {
     const url = new URL(window.location.href);
     url.searchParams.set('batch_group', value);
     window.location.href = url.toString();
+}
+
+function addBatchGroup(sourceId, openAfterAdd = false) {
+    const name = window.prompt('Enter the new batch name (for example, Morning Group):');
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    ['import-batch-group-select', 'batch-group-select'].forEach(function (id) {
+        const select = document.getElementById(id);
+        if (!select) return;
+        let option = Array.from(select.options).find(item => item.value.toLowerCase() === cleanName.toLowerCase());
+        if (!option) {
+            option = new Option(cleanName, cleanName);
+            select.add(option);
+        }
+        if (id === sourceId) select.value = option.value;
+    });
+    if (openAfterAdd) loadBatchGroup(cleanName);
 }
 
 (function () {

@@ -320,10 +320,10 @@ class AdmissionPipelineController extends Controller
         $applicants = $query->paginate(25)->withQueryString();
 
         // Batch groups and session options
-        $batchGroups = $cycle->applicants()->whereNotNull('batch_group')->distinct()->pluck('batch_group')->filter()->values()->all();
-        if (empty($batchGroups)) {
-            $batchGroups = ['Batch 1', 'Batch 2', 'Batch 3', 'Walk-in'];
-        }
+        $batchGroups = array_values(array_unique(array_merge(
+            ['Batch 1', 'Batch 2'],
+            $cycle->applicants()->whereNotNull('batch_group')->distinct()->pluck('batch_group')->filter()->values()->all()
+        )));
 
         $sessionOptions = $cycle->applicants()->whereNotNull('session_label')->distinct()->pluck('session_label')->filter()->values()->all();
         if (empty($sessionOptions)) {
@@ -385,9 +385,12 @@ class AdmissionPipelineController extends Controller
 
         $rows = $query->get();
 
-        $batchGroups = $cycle->applicants()->whereNotNull('batch_group')->distinct()->pluck('batch_group')->filter()->values()->all();
-        if (empty($batchGroups)) {
-            $batchGroups = ['Batch 1', 'Batch 2', 'Batch 3', 'Walk-in'];
+        $batchGroups = array_values(array_unique(array_merge(
+            ['Batch 1', 'Batch 2'],
+            $cycle->applicants()->whereNotNull('batch_group')->distinct()->pluck('batch_group')->filter()->values()->all()
+        )));
+        if ($batchGroup !== '' && $batchGroup !== '__all__' && ! in_array($batchGroup, $batchGroups, true)) {
+            $batchGroups[] = $batchGroup;
         }
 
         $isLocked = $cycle->isCompleted();

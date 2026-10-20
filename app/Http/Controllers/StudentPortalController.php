@@ -96,6 +96,7 @@ class StudentPortalController extends Controller
         // reached a final state (completed, claimed, void, or archived).
         if (! empty($data['student_number'])) {
             $hasActive = false;
+            $blockingRequest = null;
             $today = now()->toDateString();
 
             if ($data['service'] === 'testing') {
@@ -125,13 +126,23 @@ class StudentPortalController extends Controller
                         ->exists();
                 }
             } else {
-                $hasActive = ServiceRequest::hasActiveRequest($data['student_number'], $data['service']);
+                $blockingRequest = ServiceRequest::where('student_number', $data['student_number'])
+                    ->where('service', $data['service'])
+                    ->whereIn('status', ServiceRequest::ACTIVE_STATUSES)
+                    ->whereNull('archived_at')
+                    ->first(['id', 'status', 'created_at', 'expires_at', 'batch_id']);
+                $hasActive = $blockingRequest !== null;
             }
 
             if ($hasActive) {
                 Log::notice('Portal request blocked by active-request guard', [
                     'request_id' => $request->header('X-Request-ID'),
                     'service' => $data['service'],
+                    'blocking_request_id' => $blockingRequest?->id,
+                    'blocking_request_status' => $blockingRequest?->status,
+                    'blocking_request_batch_id' => $blockingRequest?->batch_id,
+                    'blocking_request_created_at' => $blockingRequest?->created_at?->toIso8601String(),
+                    'blocking_request_expires_at' => $blockingRequest?->expires_at?->toIso8601String(),
                 ]);
                 $message = $data['service'] === 'testing'
                     ? 'You already submitted a request for this service today. Please track your existing request using your Tracking Reference code.'

@@ -89,6 +89,7 @@ class DuplicateRequestTest extends TestCase
 
         // Duplicate submission via web request is blocked with flash message and error
         $webResponse = $this->post('/portal/requests', $payload);
+        $webResponse->assertStatus(302);
         $webResponse->assertSessionHas('portal_notice', self::DUPLICATE_MESSAGE);
         $webResponse->assertSessionHasErrors(['service' => self::DUPLICATE_MESSAGE]);
         $this->assertSame(1, ServiceRequest::where('student_number', '23-SC-4143')->count());

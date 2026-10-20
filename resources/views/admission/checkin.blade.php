@@ -73,7 +73,7 @@
                 @endif
 
                 {{-- Verification Form (matches Image 1 & 2) --}}
-                <form method="POST" action="{{ route('admission.checkin.verify', $session->qr_token) }}">
+                <form id="admission-checkin-form" method="POST" action="{{ route('admission.checkin.verify', $session->qr_token) }}">
                     @csrf
 
                     <div class="mb-3">
@@ -135,4 +135,16 @@
         </div>
     </div>
 </div>
+@include('admission.kiosk-gate')
+@push('scripts')
+<script>
+document.getElementById('admission-checkin-form')?.addEventListener('submit', function (event) {
+    if (typeof window.admissionKioskIsReady !== 'function' || !window.admissionKioskIsReady()) {
+        event.preventDefault();
+        document.getElementById('admission-kiosk-gate').hidden = false;
+        document.documentElement.classList.add('admission-kiosk-locked');
+    }
+});
+</script>
+@endpush
 @endsection

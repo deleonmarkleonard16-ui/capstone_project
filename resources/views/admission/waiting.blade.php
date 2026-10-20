@@ -77,7 +77,7 @@
     const stateUrl = @json(route('admission.waiting.state', $session->qr_token));
     let redirecting = false;
     async function awaitLaunch() {
-        if (redirecting) return;
+        if (redirecting || typeof window.admissionKioskIsReady !== 'function' || !window.admissionKioskIsReady()) return;
         try {
             const response = await fetch(stateUrl, { headers: { Accept: 'application/json' }, cache: 'no-store' });
             if (response.ok) {
@@ -91,6 +91,13 @@
     }
     awaitLaunch();
     setInterval(awaitLaunch, 2500);
+</script>
+@endpush
+
+@include('admission.kiosk-gate')
+@push('scripts')
+<script>
+window.addEventListener('admission:kiosk-ready', awaitLaunch);
 </script>
 @endpush
 @endsection

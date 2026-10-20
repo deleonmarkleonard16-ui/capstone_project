@@ -16,7 +16,7 @@
 
 <dl class="notification-request-details mb-4">
     <dt>Student</dt><dd>{{ trim($entry->first_name.' '.($entry->middle_name ? $entry->middle_name.' ' : '').$entry->last_name) }}</dd>
-    <dt>Student ID</dt><dd>{{ $entry->student_number ?: 'Not provided' }}</dd>
+    <dt>{{ $entry->student_status === 'alumni' ? 'Alumni / Graduation Reference' : 'Student ID' }}</dt><dd>{{ $entry->identity_display }}</dd>
     <dt>Module</dt><dd>{{ match($moduleType) { 'psychological' => 'Psychological Assessment', 'personality' => 'Personality Test', 'career' => 'Career Test', 'good-moral' => 'Good Moral', default => 'Exit Form' } }}</dd>
     <dt>Reference</dt><dd>{{ $entry->reference }}</dd>
     <dt>Program</dt><dd>{{ $entry->courseLabel() }}</dd>

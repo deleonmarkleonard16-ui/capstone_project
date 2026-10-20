@@ -171,6 +171,51 @@ class DuplicateRequestTest extends TestCase
         $this->assertDatabaseCount('service_requests', 0);
     }
 
+    public function test_alumni_from_same_year_are_not_treated_as_the_same_student(): void
+    {
+        $first = $this->documentPayload('good-moral', '');
+        unset($first['student_number']);
+        $first['student_status'] = 'Alumni';
+        $first['year_graduated'] = '2023';
+        $first['first_name'] = 'Juan';
+        $first['last_name'] = 'Santos';
+
+        $second = array_replace($first, ['first_name' => 'Maria', 'last_name' => 'Reyes']);
+
+        $this->post('/portal/requests', $first)->assertRedirect('/portal?service=good-moral#track');
+        $this->post('/portal/requests', $second)->assertRedirect('/portal?service=good-moral#track');
+
+        $records = ServiceRequest::where('service', 'good-moral')->get();
+        $this->assertCount(2, $records);
+        $this->assertNotSame($records[0]->student_number, $records[1]->student_number);
+    }
+
+    public function test_legacy_alumni_year_key_only_blocks_the_same_person(): void
+    {
+        ServiceRequest::create([
+            'service' => 'good-moral', 'reference' => 'GM-LEGACY1', 'status' => 'pending',
+            'first_name' => 'JUAN', 'middle_name' => '', 'last_name' => 'SANTOS',
+            'student_status' => 'alumni', 'student_number' => 'GRAD-2023',
+            'year_graduated' => '2023', 'course' => 'BSIT', 'purpose' => 'Employment',
+            'copies' => 1, 'expires_at' => now()->addDays(5),
+        ]);
+        $samePerson = $this->documentPayload('good-moral', '');
+        unset($samePerson['student_number']);
+        $samePerson['student_status'] = 'Alumni';
+        $samePerson['year_graduated'] = '2023';
+        $samePerson['first_name'] = 'Juan';
+        $samePerson['last_name'] = 'Santos';
+
+        $this->post('/portal/requests', $samePerson)
+            ->assertSessionHas('portal_notice', self::ONGOING_MESSAGE);
+        $this->assertSame(1, ServiceRequest::where('service', 'good-moral')->count());
+
+        $differentPerson = array_replace($samePerson, ['first_name' => 'Maria', 'last_name' => 'Reyes']);
+        $this->post('/portal/requests', $differentPerson)
+            ->assertRedirect('/portal?service=good-moral#track');
+        $this->assertSame(2, ServiceRequest::where('service', 'good-moral')->count());
+    }
+
     public function test_duplicate_exit_form_request_is_blocked(): void
     {
         $payload = $this->documentPayload('exit-form', '23-SC-4444');

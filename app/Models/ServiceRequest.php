@@ -59,6 +59,30 @@ class ServiceRequest extends Model
             ->exists();
     }
 
+    /** Build a stable, person-specific key when the portal only has an alumni year. */
+    public static function alumniIdentityNumber(string $year, string $firstName, ?string $middleName, string $lastName, ?string $course): string
+    {
+        $identity = array_map(static function (?string $value): string {
+            $normalized = mb_strtolower(trim((string) $value));
+            return preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+        }, [$firstName, $middleName, $lastName, $course]);
+
+        return 'GRAD-'.trim($year).'-'.strtoupper(substr(hash('sha256', implode('|', $identity)), 0, 12));
+    }
+
+    public function getIdentityDisplayAttribute(): string
+    {
+        $number = trim((string) $this->student_number);
+        $year = trim((string) $this->year_graduated);
+
+        if ($this->student_status === 'alumni' && $year !== ''
+            && $number === static::alumniIdentityNumber($year, $this->first_name, $this->middle_name, $this->last_name, $this->course)) {
+            return 'GRAD-'.$year;
+        }
+
+        return $number !== '' ? $number : 'Alumni';
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $model): void {

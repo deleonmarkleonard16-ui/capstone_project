@@ -53,14 +53,20 @@ class StudentPortalController extends Controller
 
         $isAlumni = in_array($data['student_status'], ['alumni', 'Alumni'], true);
         $data['student_status'] = $isAlumni ? 'alumni' : 'student';
+        $legacyAlumniNumber = null;
 
         if ($isAlumni) {
             $yearGrad = $data['year_graduated'] ?? null;
             $data['year_graduated'] = $yearGrad;
-            // Preserve student_number from the payload if submitted; otherwise derive from year_graduated.
-            $data['student_number'] = $data['student_number']
-                ?? $data['student_id']
-                ?? ($yearGrad ? 'GRAD-' . $yearGrad : '');
+            $providedStudentNumber = trim((string) ($data['student_number'] ?? ''));
+            $legacyAlumniNumber = $yearGrad ? 'GRAD-'.$yearGrad : null;
+            // Preserve a supplied real alumni ID. When the form only provides a
+            // graduation year, assign a stable identity based on the person's
+            // name and course below; the year alone is shared by a whole class.
+            $data['student_number'] = $providedStudentNumber !== ''
+                && ! in_array(mb_strtoupper($providedStudentNumber), [mb_strtoupper((string) $yearGrad), mb_strtoupper((string) $legacyAlumniNumber)], true)
+                    ? mb_strtoupper($providedStudentNumber)
+                    : ($legacyAlumniNumber ?? '');
             unset($data['student_id']);
         } else {
             $idNum = $data['student_number'] ?? $data['student_id'] ?? $request->input('student_number') ?? $request->input('student_id') ?? '';
@@ -84,6 +90,15 @@ class StudentPortalController extends Controller
             if (isset($data[$field])) {
                 $data[$field] = mb_strtoupper(trim($data[$field]));
             }
+        }
+        if ($isAlumni && $legacyAlumniNumber !== null && $data['student_number'] === $legacyAlumniNumber) {
+            $data['student_number'] = ServiceRequest::alumniIdentityNumber(
+                (string) $data['year_graduated'],
+                $data['first_name'],
+                $data['middle_name'] ?? null,
+                $data['last_name'],
+                $data['course'] ?? null,
+            );
         }
 
         // ── Check for same-day duplicate active request ─────────────────────────
@@ -126,10 +141,29 @@ class StudentPortalController extends Controller
                         ->exists();
                 }
             } else {
-                $blockingRequest = ServiceRequest::where('student_number', $data['student_number'])
-                    ->where('service', $data['service'])
+                $blockingQuery = ServiceRequest::where('service', $data['service'])
                     ->whereIn('status', ServiceRequest::ACTIVE_STATUSES)
                     ->whereNull('archived_at')
+                    ->where(function ($identity) use ($data, $isAlumni, $legacyAlumniNumber) {
+                        $identity->where('student_number', $data['student_number']);
+                        if (! $isAlumni || ! $legacyAlumniNumber) return;
+
+                        $identity->orWhere(function ($legacy) use ($data, $legacyAlumniNumber) {
+                            $legacy->where('student_number', $legacyAlumniNumber)
+                                ->where('first_name', $data['first_name'])
+                                ->where('last_name', $data['last_name'])
+                                ->where('course', $data['course'])
+                                ->where(function ($middle) use ($data) {
+                                    $middleName = trim((string) ($data['middle_name'] ?? ''));
+                                    if ($middleName === '') {
+                                        $middle->whereNull('middle_name')->orWhere('middle_name', '');
+                                    } else {
+                                        $middle->where('middle_name', $middleName);
+                                    }
+                                });
+                        });
+                    });
+                $blockingRequest = $blockingQuery
                     ->first(['id', 'status', 'created_at', 'expires_at', 'batch_id']);
                 $hasActive = $blockingRequest !== null;
             }

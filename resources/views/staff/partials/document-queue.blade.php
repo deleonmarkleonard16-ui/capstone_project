@@ -5,7 +5,7 @@
         <tbody>
         @forelse($requests as $entry)
             <tr data-request-id="{{ $entry->id }}">
-                <td><span class="badge text-bg-primary mb-2">{{ $entry->reference }}</span><br><strong>{{ mb_strtoupper(trim($entry->first_name.' '.($entry->middle_name ? $entry->middle_name.' ' : '').$entry->last_name)) }}</strong><div class="small text-muted">{{ $entry->student_number ?: 'Alumni' }} Â· {{ $entry->created_at->timezone('Asia/Manila')->format('M d, Y') }}</div></td>
+                <td><span class="badge text-bg-primary mb-2">{{ $entry->reference }}</span><br><strong>{{ mb_strtoupper(trim($entry->first_name.' '.($entry->middle_name ? $entry->middle_name.' ' : '').$entry->last_name)) }}</strong><div class="small text-muted">{{ $entry->identity_display }} Â· {{ $entry->created_at->timezone('Asia/Manila')->format('M d, Y') }}</div></td>
                 <td>{{ $entry->courseLabel() }}</td>
                 <td>{{ $entry->purpose ?: 'Not provided' }}@if($entry->copies)<div class="small text-muted">{{ $entry->copies }} {{ \Illuminate\Support\Str::plural('copy', $entry->copies) }}</div>@endif</td>
                 <td>@include('staff.partials.document-status')@if($entry->or_number)<div class="small">OR {{ $entry->or_number }} / {{ $entry->or_date?->format('Y-m-d') }}</div>@endif</td>

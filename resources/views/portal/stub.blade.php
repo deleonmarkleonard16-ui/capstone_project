@@ -12,7 +12,7 @@
         <div><label>Date Requested</label>{{ $entry->created_at->timezone('Asia/Manila')->format('M d, Y') }}</div>
         <div><label>Action Deadline (5 Days)</label><strong style="color:{{ $entry->isVoid() ? '#dc2626' : ($entry->expires_at && now()->greaterThan($entry->expires_at) ? '#dc2626' : '#2563eb') }}">{{ $entry->expires_at ? $entry->expires_at->timezone('Asia/Manila')->format('M d, Y g:i A') : 'N/A' }} ({{ $entry->timeRemainingText() }})</strong></div>
         <div><label>Student / Alumni Name</label><strong>{{ strtoupper(trim($entry->first_name.' '.$entry->middle_name.' '.$entry->last_name)) }}</strong></div>
-        <div><label>Student ID Number</label>{{ $entry->student_number ?: 'NOT PROVIDED' }}</div>
+        <div><label>{{ $entry->student_status === 'alumni' ? 'Alumni / Graduation Reference' : 'Student ID Number' }}</label>{{ $entry->identity_display }}</div>
         <div><label>Student Status</label>{{ $entry->student_status === 'student' ? 'CURRENTLY ENROLLED' : 'ALUMNI' }}</div>
         <div><label>Course</label>{{ $entry->courseLabel() }}</div>
         <div><label>Amount Paid / Amount Due</label><strong style="color:#16a34a;font-size:1.1em">{{ $entry->official_fee_formatted ?? '₱60.00' }}</strong></div>

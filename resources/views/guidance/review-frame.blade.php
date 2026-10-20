@@ -165,7 +165,7 @@
                     <i class="bi bi-download me-1"></i>Download Career Report
                 </a>
             @else
-                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.certificate', ['appointment' => $appointment->getKey(), 'certificate_type' => $appointment->test_category]) }}" target="_blank" rel="noopener">
+                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.personality.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener">
                     <i class="bi bi-award me-1"></i>Print Certificate
                 </a>
             @endif

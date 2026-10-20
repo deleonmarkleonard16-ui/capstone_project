@@ -40,7 +40,7 @@
                     @elseif($appointment->test_category === 'career')
                         <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}" target="_blank" rel="noopener"><i class="bi bi-download me-1"></i>Download Report</a>
                     @else
-                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.certificate', ['appointment' => $appointment->getKey(), 'certificate_type' => $appointment->test_category]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
+                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.'.$moduleKey.'.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
                     @endif
                 </div>
             </td>

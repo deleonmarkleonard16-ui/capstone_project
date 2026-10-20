@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\Applicant;
+use App\Models\GuidanceAppointment;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -227,5 +229,31 @@ class TestingModuleParityTest extends TestCase
                 $page->assertDontSee(strtoupper($other).'-ARCHIVE');
             }
         }
+    }
+
+    public function test_personality_archive_includes_legacy_bfpi_appointments_without_category(): void
+    {
+        $this->staff();
+        $applicant = Applicant::create([
+            'application_number' => 'LEGACY-BFPI-001',
+            'first_name' => 'Legacy',
+            'last_name' => 'Personality',
+        ]);
+        GuidanceAppointment::create([
+            'applicant_id' => $applicant->id,
+            'request_code' => 'G-BFPIOLD1',
+            'test_type' => 'bfpi',
+            'test_category' => null,
+            'status' => 'Completed',
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
+
+        $this->get(route('staff.personality.archive'))
+            ->assertOk()
+            ->assertSee('G-BFPIOLD1');
+        $this->get(route('staff.career.archive'))
+            ->assertOk()
+            ->assertDontSee('G-BFPIOLD1');
     }
 }

@@ -35,13 +35,13 @@
             border-bottom: 1px solid rgba(15,63,151,.08); height: 64px;
             display: flex; align-items: center;
         }
-        .top-brand.guest { background: rgba(255,255,255,.22); border-bottom-color: rgba(255,255,255,.15); }
+        .top-brand.guest { background: rgba(255,255,255,.96); border-bottom-color: rgba(15,63,151,.12); }
         .brand-logo { width: 42px; height: 42px; object-fit: contain; background: transparent; }
         .brand-copy { line-height: 1.15; }
         .brand-copy .main { font-weight: 700; font-size: .95rem; color: var(--psu-blue-deep); }
         .brand-copy .sub  { font-size: .72rem; color: var(--ink-soft); }
-        .top-brand.guest .brand-copy .main,
-        .top-brand.guest .brand-copy .sub { color: #fff; }
+        .top-brand.guest .brand-copy .main { color: var(--psu-blue-deep); }
+        .top-brand.guest .brand-copy .sub { color: var(--ink-soft); }
 
         /* ── Sidebar ── */
         .app-sidebar {

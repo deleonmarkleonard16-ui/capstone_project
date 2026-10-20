@@ -87,7 +87,8 @@
                     <div class="badge bg-success mb-1">Currently Active Cycle</div>
                     <h2 class="h5 mb-0 fw-bold">{{ $active->displayName }} ({{ $active->academic_year }})</h2>
                     <div class="small text-muted">
-                        Passing Stanine: <strong>{{ $active->passing_stanine }}</strong> &nbsp;·&nbsp;
+                        Non-board passing stanine = <strong>{{ $active->getNonBoardCutoff() }}</strong> &nbsp;·&nbsp;
+                        Board passing stanine = <strong>{{ $active->getBoardCutoff() }}</strong> &nbsp;·&nbsp;
                         Exam: {{ $active->exam_weight }}% / GWA: {{ $active->gwa_weight }}% / Interview: {{ $active->interview_weight }}%
                     </div>
                 </div>

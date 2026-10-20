@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AdmissionApplicant;
 use App\Models\AdmissionCycle;
+use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -98,6 +99,44 @@ class AdmissionPipelineTest extends TestCase
         $this->assertNotNull($applicant->fresh()->total_score);
         $this->get('/admin/admission/report?type=qualified&format=pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->get('/admin/admission/report?type=qualified&format=docx')->assertOk()->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    }
+
+    public function test_stanine_three_does_not_qualify_for_board_second_choice_and_cycle_cutoffs_are_displayed(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => '2031-2032',
+            'academic_year' => '2031-2032',
+            'is_active' => true,
+            'passing_stanine' => 4,
+            'stanine_cutoff_non_board' => 3,
+            'stanine_cutoff_board' => 4,
+        ]);
+
+        // Reproduce a stale database flag for the legacy BSED-SS code.
+        Course::updateOrCreate(
+            ['code' => 'BSED-SS'],
+            ['name' => 'Bachelor of Secondary Education major in Social Studies', 'is_active' => true, 'is_board_program' => false],
+        );
+
+        $applicant = AdmissionApplicant::create([
+            'admission_cycle_id' => $cycle->id,
+            'application_number' => 'BOARD-003',
+            'first_name' => 'Ana',
+            'last_name' => 'Reyes',
+            'course_choice_1' => 'BSED-FIL',
+            'course_choice_2' => 'BSED-SS',
+        ]);
+        $applicant->forceFill(['stanine_score' => 3, 'submitted_at' => now()])->save();
+
+        $evaluation = $applicant->qualification_evaluation;
+        $this->assertSame('Failed', $evaluation['status']);
+        $this->assertSame('not_qualified', $evaluation['c2_status']);
+
+        $this->get(route('admin.admission.masterlist', ['cycle_id' => $cycle->id]))
+            ->assertOk()
+            ->assertSee('Non-board passing stanine =')
+            ->assertSee('Board passing stanine =');
     }
 
     public function test_encoding_sheet_exports_applicants_as_an_excel_workbook(): void

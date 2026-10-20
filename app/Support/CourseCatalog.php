@@ -28,6 +28,17 @@ final class CourseCatalog
         }
         $code = strtoupper(trim($code));
 
+        // Canonical teacher-education codes are board programs even when an
+        // older courses row has a stale false flag (for example BSED-SS,
+        // which predates the BSED-SOC catalog code).
+        $boardPrograms = ['BEED', 'BSED-FIL', 'BSED-SOC', 'BSED-SS', 'BTLED', 'BSED'];
+        if (in_array($code, $boardPrograms, true)
+            || str_starts_with($code, 'BSED')
+            || str_starts_with($code, 'BEED')
+            || str_starts_with($code, 'BTLED')) {
+            return true;
+        }
+
         try {
             if (Schema::hasTable('courses') && Schema::hasColumn('courses', 'is_board_program')) {
                 $dbVal = Course::where('code', $code)->value('is_board_program');
@@ -39,11 +50,7 @@ final class CourseCatalog
             // Fallback to static list
         }
 
-        $boardPrograms = ['BEED', 'BSED-FIL', 'BSED-SOC', 'BTLED', 'BSED'];
-        if (in_array($code, $boardPrograms, true)) {
-            return true;
-        }
-        return str_starts_with($code, 'BSED') || str_starts_with($code, 'BEED') || str_starts_with($code, 'BTLED');
+        return false;
     }
 
     public static function rule(): array

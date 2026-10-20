@@ -18,7 +18,8 @@
         </h1>
         <p class="text-muted mb-0 small">
             Academic Year: <strong>{{ $cycle->academic_year }}</strong> &nbsp;·&nbsp;
-            Passing Stanine: <strong>{{ $cycle->passing_stanine }}</strong> &nbsp;·&nbsp;
+            Non-board passing stanine = <strong>{{ $cycle->getNonBoardCutoff() }}</strong> &nbsp;·&nbsp;
+            Board passing stanine = <strong>{{ $cycle->getBoardCutoff() }}</strong> &nbsp;·&nbsp;
             Exam / GWA / Interview: {{ $cycle->exam_weight }}% / {{ $cycle->gwa_weight }}% / {{ $cycle->interview_weight }}%
             @if($isLocked)
                 <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-2"><i class="bi bi-lock-fill me-1"></i>Archived / Read-Only</span>

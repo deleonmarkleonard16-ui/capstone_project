@@ -156,14 +156,14 @@
                             <tbody>
                                 <tr>
                                     <td class="ps-3 fw-semibold">
-                                        <span class="badge bg-success me-2">Qualified</span> Passing Stanine &ge; {{ $cycle->passing_stanine }}
+                                        <span class="badge bg-success me-2">Qualified</span> Non-board passing stanine = {{ $cycle->getNonBoardCutoff() }}; board passing stanine = {{ $cycle->getBoardCutoff() }}
                                     </td>
                                     <td class="text-center fw-bold">{{ number_format($qualified) }}</td>
                                     <td class="pe-3 text-end fw-semibold text-success">{{ $total > 0 ? round(($qualified / $total) * 100, 1) : 0 }}%</td>
                                 </tr>
                                 <tr>
                                     <td class="ps-3 fw-semibold">
-                                        <span class="badge bg-danger me-2">Not Qualified</span> Below Passing Stanine
+                                        <span class="badge bg-danger me-2">Not Qualified</span> Below the applicable program cutoff
                                     </td>
                                     <td class="text-center fw-bold">{{ number_format($notQualified) }}</td>
                                     <td class="pe-3 text-end fw-semibold text-danger">{{ $total > 0 ? round(($notQualified / $total) * 100, 1) : 0 }}%</td>

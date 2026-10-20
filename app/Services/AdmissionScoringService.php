@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AdmissionApplicant;
 use App\Models\AdmissionCycle;
+use App\Support\CourseCatalog;
 use Illuminate\Support\Facades\DB;
 
 class AdmissionScoringService
@@ -126,9 +127,11 @@ class AdmissionScoringService
         $itemCount = max(1, (int) ($cycle->total_items ?: (DB::table('admission_answer_keys')->where('admission_cycle_id', $cycle->id)->count() ?: 80)));
 
         foreach ($cycle->applicants()->get()->groupBy('course_choice') as $course => $group) {
-            $boardProgram = in_array($course, ['BEED', 'BSED-FIL', 'BSED-SOC', 'BTLEd'], true);
+            $stanineCutoff = CourseCatalog::isBoardProgram($course)
+                ? $cycle->getBoardCutoff()
+                : $cycle->getNonBoardCutoff();
             $invited = $group->filter(fn (AdmissionApplicant $a) => $a->stanine_score !== null
-                && (!$boardProgram || $a->stanine_score >= 4))
+                && $a->stanine_score >= $stanineCutoff)
                 ->sort(function (AdmissionApplicant $a, AdmissionApplicant $b): int {
                     foreach (['exam_score', 'stanine_score', 'gwa'] as $field) {
                         $comparison = ($b->{$field} ?? -1) <=> ($a->{$field} ?? -1);

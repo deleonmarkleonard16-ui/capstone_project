@@ -380,8 +380,14 @@ function showStrikeModal(strikeNum, type) {
         document.getElementById('strike-continue').textContent = 'View Lockout Status';
     }
 
-    if (type === 'focus_loss') {
-        body.textContent = 'Possible Screenshot / Screen Overlay: The answer sheet lost focus. A screenshot preview, notification panel, or another application may have taken focus. This focus-loss incident has been reported to the admin. ' + body.textContent;
+    if (['focus_loss', 'tab_switch', 'page_exit', 'page_backgrounded'].includes(type)) {
+        const focusReason = {
+            focus_loss: 'The browser window lost focus.',
+            tab_switch: 'The exam page became hidden.',
+            page_exit: 'The exam page is being closed or left.',
+            page_backgrounded: 'The browser moved the exam page to the background.',
+        }[type];
+        body.textContent = `Focus loss detected: ${focusReason} The exam screen was hidden and this event was reported to the proctor. An app switch, incoming call, chat head or notification, or screenshot overlay may cause this. Chrome does not tell the page which one occurred. ` + body.textContent;
     }
     if (type === 'restricted_gesture') {
         body.textContent = 'Restricted Multi-touch / Possible Screenshot: A gesture using three or more fingers was detected and reported to the admin. Use one finger to answer or scroll. ' + body.textContent;

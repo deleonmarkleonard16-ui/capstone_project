@@ -2,7 +2,7 @@
     'pending' => ['Waiting for Receipt', 'primary'],
     'approved' => $entry->hasReceipt() ? ['Receipt Review', 'warning'] : ['Waiting for Receipt', 'primary'],
     'ready' => ['Approved / Ready for Pickup', 'success'],
-    'completed' => ['Claimed / Completed', 'success'],
+    'completed' => ['Completed', 'success'],
     'proof_review' => ['Receipt Review', 'warning'],
     'void' => ['Void', 'danger'],
     'declined' => ['Declined', 'secondary'],

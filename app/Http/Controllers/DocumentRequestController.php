@@ -43,6 +43,7 @@ class DocumentRequestController extends Controller
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
+        $queueCounts['completed'] = ServiceRequest::where('service', $module)->where('status', 'completed')->count();
         $legacyApproved = ServiceRequest::where('service', $module)->whereNull('batch_id')->whereNull('archived_at')
             ->where('status', 'approved')->get(['id', 'receipt_data', 'proof_path']);
         $queueCounts['pending'] = (int) ($queueCounts['pending'] ?? 0) + $legacyApproved->filter(fn ($entry) => ! $entry->hasReceipt())->count();

@@ -93,4 +93,32 @@ class DocumentWorkflowTest extends TestCase
         $this->post(route('staff.good-moral.batches.store'), $payload('REPEAT'))->assertSessionHasNoErrors();
         $this->assertDatabaseCount('guidance_test_batches', 3);
     }
+
+    public function test_completed_document_requests_are_counted_and_labeled_in_archives(): void
+    {
+        $this->staff();
+        foreach (['good-moral', 'exit-form'] as $module) {
+            $entry = ServiceRequest::create([
+                'service' => $module,
+                'reference' => ServiceRequest::newReference($module),
+                'first_name' => 'Ana',
+                'last_name' => 'Cruz',
+                'student_status' => 'student',
+                'student_number' => '26-SC-1111',
+                'course' => 'BSIT',
+                'purpose' => 'Graduation',
+                'status' => 'completed',
+                'claimed_at' => now(),
+                'archived_at' => now(),
+            ]);
+
+            $queue = $this->get(route('staff.'.$module))->assertOk();
+            $this->assertSame(1, (int) $queue->viewData('queueCounts')['completed']);
+
+            $this->get(route('staff.'.$module.'.archive'))
+                ->assertOk()
+                ->assertSee($entry->reference)
+                ->assertSee('Completed');
+        }
+    }
 }

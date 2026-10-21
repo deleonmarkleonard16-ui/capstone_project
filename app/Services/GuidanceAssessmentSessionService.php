@@ -54,6 +54,14 @@ class GuidanceAssessmentSessionService
         }, 3);
     }
 
+    public function endByStaff(GuidanceAppointment $appointment): array
+    {
+        return $this->mutate($appointment, function ($locked) {
+            abort_unless($locked->status === 'In-Progress', 409, 'This assessment is no longer active.');
+            return $this->finish($locked, $locked->draft_answers ?? [], false, 'Under review');
+        }, true);
+    }
+
     public function terminateForViolation(GuidanceAppointment $appointment, string $reason = 'Terminated - Violation'): array
     {
         if ($appointment->status === 'Completed') {
@@ -258,8 +266,15 @@ class GuidanceAssessmentSessionService
 
         $appointment->qrCode()->update(['is_active' => false]);
         if ($appointment->service_request_id) {
-            $entry = ServiceRequest::findOrFail($appointment->service_request_id);
-            $entry->update(['status' => 'processing', 'archived_at' => null]);
+            $entry = ServiceRequest::lockForUpdate()->findOrFail($appointment->service_request_id);
+            $otherAssessmentsActive = $entry->guidanceAppointments()
+                ->where('guidance_appointment_id', '!=', $appointment->getKey())
+                ->whereNotIn('status', ['Under review', 'Completed'])
+                ->exists();
+            $entry->update([
+                'status' => $finalStatus === 'Under review' && !$otherAssessmentsActive ? 'under_review' : 'processing',
+                'archived_at' => null,
+            ]);
         }
         return [
             'status' => $finalStatus,

@@ -110,6 +110,16 @@ class GuidanceReviewTest extends TestCase
         $this->assertStringContainsString('<template data-review-deferred>', $review->json('html'));
         $this->assertStringContainsString('Extremely Severe', $review->json('html'));
         $this->assertStringContainsString('Used QR pass (inactive)', $review->json('html'));
+        $this->assertSame('under_review', $entry->fresh()->status);
+        $this->postJson(route('api.track-request'), ['reference' => $entry->reference])
+            ->assertOk()->assertJsonPath('status', 'Under review');
+
+        // Repair preexisting requests that completed before parent status sync.
+        $entry->update(['status' => 'processing']);
+        $this->get(route('staff.psychological.index'))->assertOk()->assertDontSee('MARIA SANTOS');
+        $this->assertSame('under_review', $entry->fresh()->status);
+        $this->get(route('staff.psychological.index', ['status' => 'Under review']))
+            ->assertOk()->assertSee('MARIA SANTOS')->assertSee('Under review');
     }
 
     public function test_career_six_item_ranking_and_personality_pending_configuration(): void

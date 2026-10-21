@@ -171,6 +171,15 @@ class AdminGuidanceController extends Controller
                 abort_unless($locked->status === 'Terminated', 409, 'Only a terminated assessment can be moved to Under Review.');
                 $update['status'] = 'Under review';
                 $locked->update($update);
+                if ($locked->service_request_id) {
+                    $serviceRequest = \App\Models\ServiceRequest::lockForUpdate()->find($locked->service_request_id);
+                    if ($serviceRequest && !$serviceRequest->guidanceAppointments()
+                        ->where('guidance_appointment_id', '!=', $locked->getKey())
+                        ->whereNotIn('status', ['Under review', 'Completed'])
+                        ->exists()) {
+                        $serviceRequest->update(['status' => 'under_review', 'archived_at' => null]);
+                    }
+                }
             } elseif (in_array($data['action'], ['archive', 'complete_and_archive'], true)) {
                 $update['status'] = 'Completed';
                 $update['is_archived'] = true;

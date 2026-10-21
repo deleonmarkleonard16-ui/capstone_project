@@ -32,6 +32,7 @@ class GuidanceTrackingController extends Controller
                 'processing' => 'Payment verified — processing document',
                 'ready' => in_array($entry->service, ['good-moral', 'exit-form'], true) ? 'Approved / Ready for Pickup' : 'Ready for pick-up at Guidance Office',
                 'scheduled' => 'Verified — scheduled for testing',
+                'under_review' => 'Assessment submitted; awaiting counselor review',
                 'completed' => 'Completed',
                 'declined' => 'Declined',
                 'cancelled' => 'Cancelled',
@@ -58,9 +59,10 @@ class GuidanceTrackingController extends Controller
         });
         $statuses = $appointments->pluck('status');
         $status = $statuses->every(fn ($status) => $status === 'Completed') ? 'Completed'
-            : ($statuses->contains('In-Progress') || $statuses->contains('Completed') ? 'In-Progress'
-                : ($statuses->every(fn ($status) => $status === 'Approved') ? 'Approved'
-                    : ($statuses->contains('Receipt Uploaded') ? 'Receipt Uploaded' : 'Pending Payment')));
+            : ($statuses->contains('Under review') && $statuses->every(fn ($status) => in_array($status, ['Under review', 'Completed'], true)) ? 'Under review'
+                : ($statuses->contains('In-Progress') || $statuses->contains('Completed') ? 'In-Progress'
+                    : ($statuses->every(fn ($status) => $status === 'Approved') ? 'Approved'
+                        : ($statuses->contains('Receipt Uploaded') ? 'Receipt Uploaded' : 'Pending Payment'))));
         return response()->json([
             'success' => true,
             'status' => $status,

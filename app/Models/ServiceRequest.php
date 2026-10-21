@@ -27,13 +27,13 @@ class ServiceRequest extends Model
     }
 
     public const SERVICES = ['testing' => 'Testing Request', 'good-moral' => 'Good Moral Request', 'exit-form' => 'Exit Form'];
-    public const STATUSES = ['pending', 'approved', 'proof_review', 'processing', 'ready', 'scheduled', 'completed', 'declined', 'cancelled', 'void'];
+    public const STATUSES = ['pending', 'approved', 'proof_review', 'processing', 'under_review', 'ready', 'scheduled', 'completed', 'declined', 'cancelled', 'void'];
 
     /**
      * Statuses that represent an in-flight / active request for analytics and
      * general "is this request still open?" checks.
      */
-    public const ACTIVE_STATUSES = ['pending', 'receipt-uploaded', 'proof_review', 'approved', 'processing', 'in-progress', 'ready', 'scheduled'];
+    public const ACTIVE_STATUSES = ['pending', 'receipt-uploaded', 'proof_review', 'approved', 'processing', 'under_review', 'in-progress', 'ready', 'scheduled'];
 
     /**
      * Statuses that trigger the SAME-DAY duplicate submission block.
@@ -43,7 +43,7 @@ class ServiceRequest extends Model
      * archived).  We only block when a request submitted TODAY is still
      * pending processing.
      */
-    public const SAME_DAY_BLOCK_STATUSES = ['pending', 'receipt-uploaded', 'approved', 'in-progress'];
+    public const SAME_DAY_BLOCK_STATUSES = ['pending', 'receipt-uploaded', 'approved', 'processing', 'under_review', 'in-progress'];
 
     /** Check for an ongoing request for this student and service, regardless of date. */
     public static function hasActiveRequest(string $studentNumber, string $service): bool

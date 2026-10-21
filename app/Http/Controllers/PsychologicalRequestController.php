@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class PsychologicalRequestController extends Controller
 {
-    public const STATUSES = ['pending', 'approved', 'proof_review', 'processing', 'ready', 'scheduled', 'completed', 'declined', 'cancelled', 'void'];
+    public const STATUSES = ['pending', 'approved', 'proof_review', 'processing', 'under_review', 'ready', 'scheduled', 'completed', 'declined', 'cancelled', 'void'];
 
     public const MODULES = [
         'psychological' => [
@@ -54,6 +54,7 @@ class PsychologicalRequestController extends Controller
             $moduleKey = 'psychological';
         }
         $module = self::MODULES[$moduleKey];
+        $mode = $request->route('mode', 'queue');
 
         $filters = $request->validate([
             'q' => 'nullable|string|max:100',
@@ -64,19 +65,31 @@ class PsychologicalRequestController extends Controller
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
         ]);
         $base = ServiceRequest::where('service', 'testing')->whereJsonContains('tests', $moduleKey);
+        // Repair older requests whose appointment finished before the parent
+        // request was synchronized to its counselor-review status.
+        $staleReviewRequests = clone $base;
+        $staleReviewRequests
+            ->where('status', 'processing')
+            ->whereHas('guidanceAppointments', fn ($appointments) => $appointments->where('status', 'Under review'))
+            ->whereDoesntHave('guidanceAppointments', fn ($appointments) => $appointments->whereNotIn('status', ['Under review', 'Completed']))
+            ->update(['status' => 'under_review', 'archived_at' => null]);
         $counts = (clone $base)->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
         $stats = [
             'Total requests' => (clone $base)->count(),
             'Pending review' => $counts['pending'] ?? 0,
             'Proof review' => $counts['proof_review'] ?? 0,
             'Approved / Active' => $counts['approved'] ?? 0,
+            'Under review' => $counts['under_review'] ?? 0,
             'Scheduled' => $counts['scheduled'] ?? 0,
             'Completed' => $counts['completed'] ?? 0,
             'Void / Expired' => $counts['void'] ?? 0,
             'Archived' => (clone $base)->whereNotNull('archived_at')->count(),
         ];
-        $mode = $request->route('mode', 'queue');
         $query = clone $base;
+
+        if ($mode === 'queue' && empty($filters['status'])) {
+            $query->where('status', '!=', 'under_review');
+        }
 
         if ($mode === 'archive') {
             $query->whereNotNull('archived_at');

@@ -85,6 +85,9 @@ class PsychologicalRequestController extends Controller
             'Void / Expired' => $counts['void'] ?? 0,
             'Archived' => (clone $base)->whereNotNull('archived_at')->count(),
         ];
+        if ($mode === 'archive') {
+            unset($stats['Proof review'], $stats['Approved / Active'], $stats['Scheduled']);
+        }
         $query = clone $base;
 
         if ($mode === 'queue' && empty($filters['status'])) {

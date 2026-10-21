@@ -68,13 +68,24 @@ class PsychologicalRequestTest extends TestCase
         $this->get('/staff/psychological')->assertRedirect('/login');
     }
 
+    public function test_archive_hides_active_workflow_stat_cards(): void
+    {
+        $this->staff();
+        $archive = $this->get('/staff/psychological/archive')->assertOk();
+        $this->assertSame(6, substr_count($archive->getContent(), 'class="card stat-card h-100"'));
+        $archive->assertSee('Total requests')->assertSee('Pending review')
+            ->assertSee('Under review')->assertSee('Completed')->assertSee('Archived');
+        $this->get('/staff/psychological')->assertOk()
+            ->assertSee('Proof review')->assertSee('Approved / Active')->assertSee('Scheduled');
+    }
+
     public function test_generic_update_cannot_bypass_workflow_and_search_excludes_other_tests(): void
     {
         $entry=$this->submit();$this->staff();
         $this->patch('/staff/requests/'.$entry->id,['status'=>'completed'])->assertSessionHasErrors('status');
         $other=$entry->replicate();$other->reference=(string)\Illuminate\Support\Str::uuid();$other->tests=['career'];$other->first_name='CareerOnly';$other->save();
         $this->get('/staff/psychological?q=Ana')->assertOk()->assertSee('ANA SAMPLE')->assertDontSee('CareerOnly');
-        $this->get('/staff/psychological?status=scheduled')->assertOk()->assertDontSee('Ana Sample');
+        $this->get('/staff/psychological?status=proof_review')->assertOk()->assertDontSee('Ana Sample');
         $this->patch('/staff/psychological/'.$other->id,['status'=>'approved'])->assertSessionHasNoErrors();
     }
 

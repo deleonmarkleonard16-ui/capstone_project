@@ -206,7 +206,32 @@ class GuidanceBatchService
                 ->whereNull('started_at')
                 ->whereIn('attendance_status', ['Pending Scan', 'Ready'])
                 ->update(['attendance_status' => 'Absent']);
-            $locked->update(['status' => 'Completed', 'archived_at' => now()]);
+            // Closing the test starts a counselor-review phase. The batch is
+            // archived only after staff explicitly finishes evaluating it.
+            $locked->update(['status' => 'Under review', 'archived_at' => null]);
+        }, 3);
+    }
+
+    public function finishReview(GuidanceTestBatch $batch): void
+    {
+        DB::transaction(function () use ($batch) {
+            $locked = GuidanceTestBatch::whereKey($batch->getKey())->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'Under review', 409, 'The batch is not waiting for review.');
+
+            $pendingReviews = $locked->appointments()->whereHas('response')->whereNull('reviewed_at')->exists()
+                || $locked->makeupAppointments()->whereHas('response')->whereNull('reviewed_at')->exists();
+            abort_unless(!$pendingReviews, 409, 'Review and evaluate every submitted assessment before archiving this batch.');
+
+            $archivedAt = now();
+            $locked->appointments()->whereHas('response')->update([
+                'status' => 'Completed', 'attendance_status' => 'Completed',
+                'is_archived' => true, 'archived_at' => $archivedAt,
+            ]);
+            $locked->makeupAppointments()->whereHas('response')->update([
+                'status' => 'Completed', 'attendance_status' => 'Completed',
+                'is_archived' => true, 'archived_at' => $archivedAt,
+            ]);
+            $locked->update(['status' => 'Completed', 'archived_at' => $archivedAt]);
         }, 3);
     }
 
@@ -235,6 +260,7 @@ class GuidanceBatchService
         DB::transaction(function () use ($batch, $action, $id) {
             $batch = GuidanceTestBatch::whereKey($batch->getKey())->lockForUpdate()->firstOrFail();
             if ($action === 'archive') {
+                abort_unless($batch->status === 'Pending Registration', 409, 'A batch can only be archived directly before assessment starts.');
                 abort_if($batch->appointments()->where('status', 'In-Progress')->exists(), 409, 'Wait for running assessments to finish before archiving.');
                 $batch->appointments()->whereNotIn('attendance_status', ['Completed', 'Absent'])->update(['attendance_status' => 'Absent']);
                 $batch->update(['status' => 'Completed', 'archived_at' => now()]);
@@ -255,9 +281,10 @@ class GuidanceBatchService
     // Call only inside a transaction that holds the batch lock.
     public function completeIfDone(GuidanceTestBatch $batch): void
     {
+        if ($batch->status !== 'In-Progress') return;
         if (!$batch->appointments()->whereNotIn('attendance_status', ['Completed', 'Absent'])->exists()
             && !$batch->appointments()->whereIn('status', ['Terminated', 'Under review'])->exists()) {
-            $batch->update(['status' => 'Completed', 'archived_at' => now()]);
+            $batch->update(['status' => 'Under review', 'archived_at' => null]);
         }
     }
 }

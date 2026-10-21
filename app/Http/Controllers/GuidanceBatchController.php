@@ -15,7 +15,7 @@ class GuidanceBatchController extends Controller
     {
         app(\App\Services\GuidanceAssessmentSessionService::class)->expireDue();
         $archived = $request->boolean('archived');
-        $query = GuidanceTestBatch::with(['appointments.applicant', 'appointments.securityIncidents', 'makeupAppointments.applicant', 'makeupAppointments.securityIncidents', 'makeupAppointments.response'])->where('status', $archived ? '=' : '!=', 'Completed');
+        $query = GuidanceTestBatch::with(['appointments.applicant', 'appointments.response', 'appointments.securityIncidents', 'makeupAppointments.applicant', 'makeupAppointments.securityIncidents', 'makeupAppointments.response'])->where('status', $archived ? '=' : '!=', 'Completed');
         $category = $request->route('module') ?? $request->query('category');
         $filters = \App\Support\TableFilters::validate($request, array_keys(\App\Models\ServiceRequest::TESTING_QUEUE_STATUSES));
         if ($filters['course'] ?? null) $query->where('course', $filters['course']);
@@ -81,9 +81,10 @@ class GuidanceBatchController extends Controller
     }
     public function action(Request $request, GuidanceTestBatch $batch, GuidanceBatchService $service)
     {
-        $data = $request->validate(['action' => ['required', Rule::in(['start', 'end', 'start-student', 'absent', 'convert', 'archive'])], 'appointment_id' => 'required_if:action,absent,convert,start-student|nullable|integer']);
+        $data = $request->validate(['action' => ['required', Rule::in(['start', 'end', 'finish-review', 'start-student', 'absent', 'convert', 'archive'])], 'appointment_id' => 'required_if:action,absent,convert,start-student|nullable|integer']);
         if ($data['action'] === 'start') $service->start($batch, $request->user()->id);
         elseif ($data['action'] === 'end') $service->endBatch($batch);
+        elseif ($data['action'] === 'finish-review') $service->finishReview($batch);
         elseif ($data['action'] === 'start-student') $service->startLateStudent($batch, (int) $data['appointment_id'], $request->user()->id);
         else $service->action($batch, $data['action'], $data['appointment_id'] ?? null);
         return back()->with('success', 'Batch updated.');

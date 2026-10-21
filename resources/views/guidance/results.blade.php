@@ -38,13 +38,9 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route(auth()->user()->role.'.guidance-appointments.completed') }}" class="btn btn-outline-secondary">← Completed List</a>
-        @if(auth()->user()->role === 'admin')
-            <a href="{{ route('admin.'.$certificateModule.'.certificate', $appointment) }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
-                <i class="bi bi-file-earmark-check me-1" aria-hidden="true"></i> Print Certificate
-            </a>
-        @else
-            <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ Print Report</button>
-        @endif
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="bi bi-printer me-1" aria-hidden="true"></i> Print Assessment Result
+        </button>
     </div>
 </div>
 

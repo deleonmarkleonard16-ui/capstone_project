@@ -164,8 +164,11 @@ class AdminGuidanceController extends Controller
                 'remarks' => $data['remarks'] ?? $locked->remarks,
                 'recommendations' => $data['recommendations'] ?? $locked->recommendations,
                 'reviewed_by' => $request->user()->id,
-                'reviewed_at' => now(),
             ];
+            if ($data['action'] !== 'move_to_review') $update['reviewed_at'] = now();
+
+            abort_if($locked->batch_id && in_array($data['action'], ['archive', 'complete_and_archive'], true), 409,
+                'Batch assessments are archived together after staff completes the batch review.');
 
             if ($data['action'] === 'move_to_review') {
                 abort_unless($locked->status === 'Terminated', 409, 'Only a terminated assessment can be moved to Under Review.');

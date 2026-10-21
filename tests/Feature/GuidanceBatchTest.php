@@ -161,8 +161,8 @@ class GuidanceBatchTest extends TestCase
 
         $this->actingAs($staff)->post(route('staff.guidance-batches.action', $batch), ['action' => 'end'])->assertRedirect();
 
-        $this->assertSame('Completed', $batch->fresh()->status);
-        $this->assertNotNull($batch->fresh()->archived_at);
+        $this->assertSame('Under review', $batch->fresh()->status);
+        $this->assertNull($batch->fresh()->archived_at);
         $this->assertSame('Under review', $active->fresh()->status);
         $this->assertSame('Completed', $active->fresh()->attendance_status);
         $this->assertSame(3, $active->fresh()->response->answers['dass21'][1]);
@@ -171,7 +171,51 @@ class GuidanceBatchTest extends TestCase
         $this->assertSame('Absent', $appointments[1]->fresh()->attendance_status);
     }
 
-    public function test_section_deadlines_catch_up_preserve_drafts_and_auto_archive_batch(): void
+    public function test_batch_stays_under_review_until_staff_finishes_evaluation_then_archives_with_result_actions(): void
+    {
+        Storage::fake('local');
+        $batch = $this->batch();
+        $this->ready($batch);
+        $staff = $this->staff();
+        app(GuidanceBatchService::class)->start($batch, $staff->id);
+        app(GuidanceBatchService::class)->endBatch($batch);
+
+        $this->assertSame('Under review', $batch->fresh()->status);
+        $this->assertNull($batch->fresh()->archived_at);
+
+        $this->actingAs($staff);
+        $appointments = $batch->appointments()->with('response')->get();
+        $this->postJson(route('staff.guidance-batches.action', $batch), ['action' => 'finish-review'])->assertConflict();
+        $this->postJson(route('staff.guidance-appointments.evaluate', $appointments->first()), [
+            'action' => 'complete_and_archive', 'remarks' => 'Cannot individually archive a batch result.',
+        ])->assertConflict();
+        foreach ($appointments as $appointment) {
+            $reviewUrl = route('staff.guidance-appointments.review', $appointment);
+            $html = $this->getJson($reviewUrl)->assertOk()->json('html');
+            $this->assertStringContainsString('Save Remarks &amp; Recommendation', $html);
+            $this->assertStringNotContainsString('Save &amp; Move to Archive', $html);
+            $this->postJson(route('staff.guidance-appointments.evaluate', $appointment), [
+                'action' => 'save',
+                'remarks' => 'Reviewed for batch archive.',
+                'recommendations' => 'Fit for deployment',
+            ])->assertOk()->assertJsonPath('is_archived', false);
+        }
+
+        $url = route('staff.guidance-batches.action', $batch);
+        $this->post($url, ['action' => 'finish-review'])->assertRedirect();
+        $this->assertSame('Completed', $batch->fresh()->status);
+        $this->assertNotNull($batch->fresh()->archived_at);
+        foreach ($appointments as $appointment) {
+            $this->assertSame('Completed', $appointment->fresh()->status);
+            $this->assertTrue($appointment->fresh()->is_archived);
+        }
+
+        $archive = $this->get(route('staff.guidance-batches.index', ['archived' => 1]))->assertOk();
+        $archive->assertSee('Review Result')->assertSee('Download Assessment')
+            ->assertDontSee('Review &amp; Evaluate')->assertDontSee('View Scores')->assertDontSee('Review Submission');
+    }
+
+    public function test_section_deadlines_catch_up_preserve_drafts_without_archiving_before_review(): void
     {
         $this->travelTo(now()->startOfSecond());
         $batch = $this->batch(); $this->ready($batch);
@@ -185,14 +229,17 @@ class GuidanceBatchTest extends TestCase
         $this->postJson(route('guidance.progress', $token), ['answers' => ['gad7' => [1 => 1]], 'section_index' => 1])->assertUnprocessable();
         $this->travel(20)->minutes();
         app(GuidanceAssessmentSessionService::class)->expireDue();
-        $this->assertSame('Completed', $batch->fresh()->status);
-        $this->assertNotNull($batch->fresh()->archived_at);
+        $this->assertSame('In-Progress', $batch->fresh()->status);
+        $this->assertNull($batch->fresh()->archived_at);
         $this->assertSame(2, $appointment->fresh()->response->answers['dass21'][1]);
         $this->assertSame('Incomplete', $appointment->fresh()->response->score_summary['tests']['dass21']['completion']);
         $this->assertCount(3, $appointment->fresh()->response->score_summary['sections']);
         app(GuidanceAssessmentSessionService::class)->expireDue();
         $this->assertDatabaseCount('guidance_test_responses', 2);
-        $this->actingAs($this->staff())->get(route('staff.guidance-batches.index', ['archived' => 1]))->assertOk()->assertSee('Review Submission');
+        $staff = $this->staff();
+        app(GuidanceBatchService::class)->endBatch($batch);
+        $this->actingAs($staff)->get(route('staff.guidance-batches.index'))->assertOk()
+            ->assertSee('Review Submission')->assertSee('Done reviewing and evaluation');
         $review = $this->getJson(route('staff.guidance-appointments.review', $appointment))->assertOk();
         $this->assertStringContainsString('Used QR pass (inactive)', $review->json('html'));
         $this->assertStringContainsString('Raw item answers', $review->json('html'));
@@ -260,14 +307,14 @@ class GuidanceBatchTest extends TestCase
         $appointment = $batch->appointments()->first(); $token = $appointment->qrCode->token;
         $this->postJson(route('guidance.start', $token))->assertJsonPath('remaining_seconds', 600);
         $this->assertCount(1, app(GuidanceAssessmentSessionService::class)->sections($appointment));
-        $this->submitGuidanceSections($token, ['career' => array_fill(1, 6, 3)])->assertJsonPath('status', 'Completed');
+        $this->submitGuidanceSections($token, ['career' => array_fill(1, 6, 3)])->assertJsonPath('status', 'Under review');
         $this->assertCount(6, $appointment->fresh()->response->score_summary['tests']['career']['scores']);
         config(['guidance.bfpi' => ['items' => 2, 'subscales' => ['Example' => [1, 2]], 'reverse_items' => [2], 'overlap' => 'Average']]);
         $batch = $this->batch('Personality Test'); $this->ready($batch);
         app(GuidanceBatchService::class)->start($batch, $this->staff()->id);
         $appointment = $batch->appointments()->first(); $token = $appointment->qrCode->token;
         $this->postJson(route('guidance.start', $token))->assertJsonPath('remaining_seconds', 600);
-        $this->submitGuidanceSections($token, ['bfpi' => [1 => 5, 2 => 1]])->assertJsonPath('status', 'Completed');
+        $this->submitGuidanceSections($token, ['bfpi' => [1 => 5, 2 => 1]])->assertJsonPath('status', 'Under review');
         $this->assertEquals(5, $appointment->fresh()->response->score_summary['tests']['bfpi']['scores']['Example']);
     }
 

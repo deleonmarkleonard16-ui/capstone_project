@@ -31,6 +31,7 @@
 @php($activeCount = $batch->appointments->where('status','In-Progress')->count())
 @php($submittedCount = $roster->where('attendance_status','Completed')->count())
 @php($absentCount = $batch->appointments->where('attendance_status','Absent')->count())
+@php($pendingReviewCount = $roster->filter(fn ($person) => $person->response && !$person->reviewed_at)->count())
 <details class="card p-3 mb-3" data-batch="{{ $batch->getKey() }}">
 <summary><strong>{{ $batch->batch_name }}</strong> · {{ $batch->course }} · {{ $batch->test_type }} <span class="badge text-bg-primary">Ready: {{ $batch->appointments->where('attendance_status','Ready')->count() }}/{{ $batch->appointments->count() }}</span> <span class="badge text-bg-secondary">{{ $batch->status }}</span></summary>
 <div class="d-flex flex-wrap gap-2 my-3">
@@ -41,8 +42,11 @@
 <form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="start"><button class="btn btn-primary">Start Batch Assessment</button></form>
 @elseif($batch->status === 'In-Progress')
 <form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('End this batch assessment now? Active tests will be submitted for counselor review, and students who have not started will be marked absent.')">@csrf<input type="hidden" name="action" value="end"><button class="btn btn-danger"><i class="bi bi-stop-circle me-1"></i>End Assessment</button></form>
+@elseif($batch->status === 'Under review')
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('Finish reviewing and evaluating this batch, then move its completed results to Archives?')">@csrf<input type="hidden" name="action" value="finish-review"><button class="btn btn-success" @disabled($pendingReviewCount > 0)><i class="bi bi-archive me-1"></i>Done reviewing and evaluation</button></form>
+@if($pendingReviewCount > 0)<span class="align-self-center small text-muted">{{ $pendingReviewCount }} submitted assessment(s) still need review.</span>@endif
 @endif
-<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('Archive this batch? Students who have not started will be marked absent.')">@csrf<input type="hidden" name="action" value="archive"><button class="btn btn-outline-secondary" @disabled($batch->status === 'In-Progress')>Archive Batch</button></form>
+@if($batch->status === 'Pending Registration')<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('Archive this unused batch?')">@csrf<input type="hidden" name="action" value="archive"><button class="btn btn-outline-secondary">Archive Batch</button></form>@endif
 @endunless
 </div>
 <div class="row g-3 mb-4">
@@ -73,20 +77,20 @@
 </section>
 <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Student ID</th><th>Name</th><th>Reference</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 @foreach($roster as $appointment)<tr><td>{{ $appointment->student_id_number }}</td><td>{{ $appointment->applicant->full_name }}</td><td>{{ $appointment->request_code }}</td><td>{{ $appointment->origin_section ?: $batch->year_section ?: '—' }}</td><td>{{ $appointment->source_batch_id ? 'Makeup Exam · ' : '' }}{{ $appointment->attendance_status === 'Ready' ? 'Ready in Session' : $appointment->attendance_status }}<br>@include('guidance.security-controls')</td><td><div class="d-flex flex-wrap gap-2">
-<button class="btn btn-sm btn-outline-primary" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}">Review Submission</button>
+@unless($archived)<button class="btn btn-sm btn-outline-primary" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}">Review Submission</button>@endunless
 @if($batch->status === 'In-Progress' && $appointment->batch_id === $batch->getKey() && $appointment->attendance_status === 'Ready' && $appointment->status === 'Receipt Uploaded' && !$appointment->started_at)
 <form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="start-student"><input type="hidden" name="appointment_id" value="{{ $appointment->getKey() }}"><button class="btn btn-sm btn-success"><i class="bi bi-play-circle me-1"></i>Start Assessment</button></form>
 @endif
-@if($appointment->status === 'Under review' && $appointment->response)
+@if(!$archived && $appointment->status === 'Under review' && $appointment->response)
 <button class="btn btn-sm btn-warning" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-pencil-square me-1"></i>Review &amp; Evaluate</button>
 @endif
-@if($appointment->response)<a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}">View Scores</a>@endif
-@if($appointment->is_archived && $appointment->response)
+@if(!$archived && $appointment->response)<a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}">View Scores</a>@endif
+@if($archived && $appointment->response)
 <a class="btn btn-sm btn-success" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}">Review Result</a>
-@if(in_array($appointment->test_category, ['psychological', 'personality'], true) || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7', 'bfpi'], true))<a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.preview', ['appointment' => $appointment->getKey(), 'auto_print' => 1]) }}" target="_blank" rel="noopener">Download Assessment</a>@elseif($appointment->test_category === 'career')<a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'html', 'auto_print' => 1]) }}" target="_blank" rel="noopener">Download Assessment</a>@else<a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.personality.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener">Print Certificate</a>@endif
+@if(in_array($appointment->test_category, ['psychological', 'personality'], true) || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7', 'bfpi'], true))<a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.preview', ['appointment' => $appointment->getKey(), 'auto_print' => 1]) }}" target="_blank" rel="noopener">Download Assessment</a>@elseif($appointment->test_category === 'career')<a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'html', 'auto_print' => 1]) }}" target="_blank" rel="noopener">Download Assessment</a>@endif
 @endif
 @if(!$appointment->started_at && in_array($appointment->attendance_status, ['Pending Scan','Ready']) && !$archived)<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="absent"><input type="hidden" name="appointment_id" value="{{ $appointment->getKey() }}"><button class="btn btn-sm btn-outline-warning">Mark Absentee</button></form>@endif
-@if($appointment->attendance_status === 'Absent')<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="convert"><input type="hidden" name="appointment_id" value="{{ $appointment->getKey() }}"><button class="btn btn-sm btn-outline-secondary">Convert to Makeup Exam</button></form>@endif
+@if(!$archived && $appointment->attendance_status === 'Absent')<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="convert"><input type="hidden" name="appointment_id" value="{{ $appointment->getKey() }}"><button class="btn btn-sm btn-outline-secondary">Convert to Makeup Exam</button></form>@endif
 </div></td></tr>@endforeach
 </tbody></table></div>
 </details>

@@ -137,11 +137,13 @@
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 <button type="submit" name="action" value="save" class="btn btn-outline-primary">
-                    <i class="bi bi-floppy me-1"></i>Save Remarks Only
+                    <i class="bi bi-floppy me-1"></i>{{ $appointment->batch_id ? 'Save Remarks & Recommendation' : 'Save Remarks Only' }}
                 </button>
+                @unless($appointment->batch_id)
                 <button type="submit" name="action" value="complete_and_archive" class="btn btn-success">
                     <i class="bi bi-archive me-1"></i>Save &amp; Move to Archive
                 </button>
+                @endunless
             </div>
         </form>
     </section>

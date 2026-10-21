@@ -27,8 +27,8 @@
     <section class="kiosk-card">
         <div class="text-primary text-uppercase fw-bold small mb-2">Secure exam entry</div>
         <h1 id="admission-kiosk-title" class="h4 fw-bold">Prepare your phone</h1>
-        <p class="mb-2">End any video call and close chat heads or floating windows before continuing.</p>
-        <p class="small text-muted mb-3">Fullscreen and focus checks are required. Chrome can detect when this page is hidden or loses focus, but it cannot identify or detect every call or overlay.</p>
+        <p class="mb-2">Turn on Do Not Disturb and remove chat heads or floating windows before continuing. Then tap “Enable fullscreen and continue.”</p>
+        <p class="small text-muted mb-3">Fullscreen and focus checks are required. Keep this page open and focused throughout the exam.</p>
         <p id="admission-kiosk-status" class="small fw-semibold text-danger" role="status" aria-live="assertive">Tap below to enable fullscreen. You cannot continue until it succeeds.</p>
         <button id="admission-kiosk-enter" type="button" class="btn btn-primary w-100 fw-semibold py-2">Enable fullscreen and continue</button>
     </section>

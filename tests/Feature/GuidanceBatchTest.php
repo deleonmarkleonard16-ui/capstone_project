@@ -96,6 +96,28 @@ class GuidanceBatchTest extends TestCase
         $this->postJson($url, ['action' => 'archive'])->assertConflict();
     }
 
+    public function test_started_batch_student_can_reverify_only_for_their_running_assessment(): void
+    {
+        Storage::fake('local');
+        $batch = $this->batch();
+        $this->ready($batch);
+        $staff = $this->staff();
+        app(GuidanceBatchService::class)->start($batch, $staff->id);
+        $appointment = $batch->appointments()->where('student_id_number', '001')->firstOrFail();
+
+        // A fresh browser session must be able to recover the pass after the
+        // proctor starts the batch, while identity matching remains required.
+        $this->flushSession();
+        $verify = route('guidance.batch.verify', $batch->batch_token);
+        $this->post($verify, ['student_id' => '001', 'first_name' => 'Maria', 'middle_name' => 'Cruz', 'last_name' => 'Santos'])->assertRedirect();
+        $this->getJson(route('guidance.batch.state', $batch->batch_token))
+            ->assertOk()->assertJsonPath('url', route('guidance.take', $appointment->qrCode->token));
+
+        $this->flushSession();
+        $this->postJson($verify, ['student_id' => '001', 'first_name' => 'Wrong', 'middle_name' => 'Cruz', 'last_name' => 'Santos'])
+            ->assertUnprocessable();
+    }
+
     public function test_section_deadlines_catch_up_preserve_drafts_and_auto_archive_batch(): void
     {
         $this->travelTo(now()->startOfSecond());

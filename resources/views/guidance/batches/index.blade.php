@@ -25,15 +25,47 @@
 <div data-module-live data-module="{{ $moduleKey ?? 'all' }}" data-view="{{ $archived ? 'archive' : 'batches' }}">
 @forelse($batches as $batch)
 @php($roster = $batch->appointments->concat($batch->makeupAppointments)->sortBy('guidance_appointment_id'))
+@php($incidents = $roster->flatMap(fn ($person) => $person->securityIncidents->map(fn ($incident) => ['incident' => $incident, 'person' => $person]))->sortByDesc(fn ($row) => $row['incident']->created_at))
+@php($totalCount = $roster->count())
+@php($readyCount = $batch->appointments->where('attendance_status','Ready')->count())
+@php($activeCount = $batch->appointments->where('status','In-Progress')->count())
+@php($submittedCount = $roster->where('attendance_status','Completed')->count())
+@php($absentCount = $batch->appointments->where('attendance_status','Absent')->count())
 <details class="card p-3 mb-3" data-batch="{{ $batch->getKey() }}">
 <summary><strong>{{ $batch->batch_name }}</strong> · {{ $batch->course }} · {{ $batch->test_type }} <span class="badge text-bg-primary">Ready: {{ $batch->appointments->where('attendance_status','Ready')->count() }}/{{ $batch->appointments->count() }}</span> <span class="badge text-bg-secondary">{{ $batch->status }}</span></summary>
 <div class="d-flex flex-wrap gap-2 my-3">
-<a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{{ route(auth()->user()->role.'.guidance-batches.qr', $batch) }}">View/Print Batch QR</a>
+<a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{{ route(auth()->user()->role.'.guidance-batches.qr', $batch) }}"><i class="bi bi-qr-code me-1"></i>View / Project Batch QR</a>
 <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#batch-details-{{ $batch->getKey() }}">Review Batch Details</button>
 @unless($archived)
 @foreach(['start'=>'Start Batch Assessment','archive'=>'Archive Batch'] as $action=>$label)<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="{{ $action }}"><button class="btn {{ $action === 'start' ? 'btn-primary' : 'btn-outline-secondary' }}" @disabled($action === 'start' && $batch->status !== 'Pending Registration')>{{ $label }}</button></form>@endforeach
 @endunless
 </div>
+<div class="row g-3 mb-4">
+    @foreach([
+        ['Total Applicants', $totalCount, ($roster->first()?->student_id_number ?: 'Roster').' – '.($roster->last()?->student_id_number ?: 'students'), 'primary'],
+        ['Ready / Checked In', $readyCount, 'Waiting room queue', 'success'],
+        ['Taking Test (Live)', $activeCount, 'Active test-takers', 'warning'],
+        ['Submitted', $submittedCount, ($totalCount ? round($submittedCount / $totalCount * 100) : 0).'% completed', 'info'],
+        ['Absent', $absentCount, 'Roster absentees', 'danger'],
+        ['Prohibited Rules', $incidents->count(), $incidents->count() ? 'Security incident(s) logged' : 'Clean / No violations', $incidents->count() ? 'danger' : 'dark'],
+    ] as [$label, $value, $hint, $tone])
+    <div class="col-6 col-md-4 col-xl-2"><div class="card page-card shadow-xs border-start border-4 border-{{ $tone }} h-100"><div class="card-body p-3"><div class="text-muted small text-uppercase fw-semibold" style="font-size:11px">{{ $label }}</div><div class="h3 mb-0 fw-bold text-{{ $tone }}">{{ $value }}</div><div class="small text-muted mt-1 text-truncate">{{ $hint }}</div></div></div></div>
+    @endforeach
+</div>
+<section class="card page-card shadow-sm mb-4 border-top border-3 {{ $incidents->count() ? 'border-danger' : 'border-primary' }}">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2"><i class="bi bi-shield-exclamation {{ $incidents->count() ? 'text-danger' : 'text-primary' }} fs-5"></i><h2 class="h6 mb-0 fw-bold">Live Prohibited Rules &amp; Security Violations Monitor</h2><span class="badge {{ $incidents->count() ? 'bg-danger' : 'bg-secondary' }}">{{ $incidents->count() }} Incident(s) Logged</span></div>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#batch-security-{{ $batch->getKey() }}" aria-expanded="{{ $incidents->count() ? 'true' : 'false' }}"><i class="bi bi-chevron-down"></i> Toggle Feed</button>
+    </div>
+    <div class="collapse {{ $incidents->count() ? 'show' : '' }}" id="batch-security-{{ $batch->getKey() }}"><div class="table-responsive" style="max-height:220px;overflow-y:auto"><table class="table table-sm table-hover align-middle mb-0" style="font-size:13px"><thead class="table-light sticky-top"><tr><th class="ps-3">Time</th><th>Student Name</th><th>Student ID</th><th>Prohibited Rule Violated</th><th>Strike Number</th><th class="pe-3 text-end">Status</th></tr></thead><tbody>
+        @forelse($incidents as $row)
+        @php($incident = $row['incident']) @php($person = $row['person'])
+        <tr><td class="ps-3 text-muted font-monospace">{{ $incident->created_at?->timezone('Asia/Manila')->format('h:i:s A') ?: '—' }}</td><td class="fw-semibold">{{ $person->applicant?->full_name ?? 'Unknown Student' }}</td><td class="font-monospace">{{ $person->student_id_number ?: '—' }}</td><td><span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">{{ \App\Models\GuidanceSecurityIncident::TYPES[$incident->incident_type] ?? str($incident->incident_type)->headline() }}</span></td><td><span class="badge {{ $incident->strike_number >= 3 ? 'bg-danger' : 'bg-warning text-dark' }}">Strike {{ $incident->strike_number }}</span></td><td class="pe-3 text-end"><span class="text-muted small">{{ $incident->strike_number >= 3 ? 'Review required' : 'Logged' }}</span></td></tr>
+        @empty
+        <tr><td colspan="6" class="text-center text-muted py-3 small"><i class="bi bi-shield-check text-success me-1"></i>No prohibited rule violations logged for this batch yet.</td></tr>
+        @endforelse
+    </tbody></table></div></div>
+</section>
 <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Student ID</th><th>Name</th><th>Reference</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 @foreach($roster as $appointment)<tr><td>{{ $appointment->student_id_number }}</td><td>{{ $appointment->applicant->full_name }}</td><td>{{ $appointment->request_code }}</td><td>{{ $appointment->origin_section ?: $batch->year_section ?: '—' }}</td><td>{{ $appointment->source_batch_id ? 'Makeup Exam · ' : '' }}{{ $appointment->attendance_status === 'Ready' ? 'Ready in Session' : $appointment->attendance_status }}<br>@include('guidance.security-controls')</td><td><div class="d-flex flex-wrap gap-2">
 <button class="btn btn-sm btn-outline-primary" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}">Review Submission</button>

@@ -131,7 +131,6 @@ class GuidanceBatchService
 
     public function verify(GuidanceTestBatch $batch, array $identity): GuidanceAppointment
     {
-        abort_unless($batch->status === 'Pending Registration', 409, 'Registration has closed.');
         $studentId = mb_strtoupper(trim((string) ($identity['student_id'] ?? '')));
         $appointment = $batch->appointments()->with('applicant')->where('student_id_number', $studentId)->first();
         $matches = $appointment && mb_strtoupper($appointment->student_id_number) === $studentId && $appointment->attendance_status !== 'Absent';
@@ -141,6 +140,15 @@ class GuidanceBatchService
             $matches = $matches && $expected === $provided;
         }
         if (!$matches) throw ValidationException::withMessages(['student_id' => 'The student ID and full name must exactly match the roster.']);
+
+        // Once the proctor starts a batch, registration stays closed. Students
+        // whose assessments were already started may still re-verify after a
+        // lost browser session so they can recover their session-bound pass.
+        $canJoinRunningAssessment = $batch->status === 'In-Progress'
+            && $appointment->status === 'In-Progress'
+            && $appointment->attendance_status === 'Ready';
+        abort_unless($batch->status === 'Pending Registration' || $canJoinRunningAssessment, 409, 'Registration has closed.');
+
         return $appointment;
     }
 

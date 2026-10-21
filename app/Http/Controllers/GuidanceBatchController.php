@@ -17,9 +17,26 @@ class GuidanceBatchController extends Controller
         $archived = $request->boolean('archived');
         $query = GuidanceTestBatch::with(['appointments.applicant', 'appointments.securityIncidents', 'makeupAppointments.applicant', 'makeupAppointments.securityIncidents', 'makeupAppointments.response'])->where('status', $archived ? '=' : '!=', 'Completed');
         $category = $request->route('module') ?? $request->query('category');
-        $filters = \App\Support\TableFilters::validate($request, ['Pending Registration', 'In-Progress', 'Completed']);
+        $filters = \App\Support\TableFilters::validate($request, array_keys(\App\Models\ServiceRequest::TESTING_QUEUE_STATUSES));
         if ($filters['course'] ?? null) $query->where('course', $filters['course']);
-        if ($filters['status'] ?? null) $query->where('status', $filters['status']);
+        if ($filters['status'] ?? null) {
+            $appointmentStatus = match ($filters['status']) {
+                'pending' => 'Pending Payment',
+                'proof_review' => 'Receipt Uploaded',
+                'processing' => 'In-Progress',
+                'under_review' => 'Under review',
+                'completed' => 'Completed',
+            };
+            if ($filters['status'] === 'completed') {
+                $query->where(fn ($batches) => $batches->where('status', 'Completed')
+                    ->orWhereHas('appointments', fn ($appointments) => $appointments->where('status', $appointmentStatus))
+                    ->orWhereHas('makeupAppointments', fn ($appointments) => $appointments->where('status', $appointmentStatus)));
+            } else {
+                $query->where(fn ($batches) => $batches
+                    ->whereHas('appointments', fn ($appointments) => $appointments->where('status', $appointmentStatus))
+                    ->orWhereHas('makeupAppointments', fn ($appointments) => $appointments->where('status', $appointmentStatus)));
+            }
+        }
         \App\Support\TableFilters::dates($query, $filters);
         foreach (\App\Support\TableFilters::words($filters['q'] ?? null) as $word) {
             $like = '%'.$word.'%';

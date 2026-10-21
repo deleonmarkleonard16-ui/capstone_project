@@ -27,6 +27,13 @@ class ServiceRequest extends Model
     }
 
     public const SERVICES = ['testing' => 'Testing Request', 'good-moral' => 'Good Moral Request', 'exit-form' => 'Exit Form'];
+    public const TESTING_QUEUE_STATUSES = [
+        'pending' => 'Pending',
+        'proof_review' => 'Proof review',
+        'processing' => 'Processing',
+        'under_review' => 'Under review',
+        'completed' => 'Completed',
+    ];
     public const STATUSES = ['pending', 'approved', 'proof_review', 'processing', 'under_review', 'ready', 'scheduled', 'completed', 'declined', 'cancelled', 'void'];
 
     /**

@@ -37,8 +37,8 @@
 
     // Under Review route — filter the individual queue by status
     $underReviewRoute = match($currentModule) {
-        'personality', 'career' => route("{$role}.{$currentModule}.index", ['status' => 'Under review']),
-        default                 => route("{$role}.psychological.index", ['status' => 'Under review']),
+        'personality', 'career' => route("{$role}.{$currentModule}.index", ['status' => 'under_review']),
+        default                 => route("{$role}.psychological.index", ['status' => 'under_review']),
     };
 
     // State detection
@@ -55,7 +55,7 @@
                    && !$isArchive;
 
     $isUnderReview = !$isAnalytics && !$isBatch && !$isArchive
-                     && request()->input('status') === 'Under review';
+                     && in_array(request()->input('status'), ['Under review', 'under_review'], true);
 
     $isQueue     = !$isAnalytics && !$isBatch && !$isArchive && !$isUnderReview;
 @endphp

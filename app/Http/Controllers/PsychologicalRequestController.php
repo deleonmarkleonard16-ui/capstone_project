@@ -58,7 +58,7 @@ class PsychologicalRequestController extends Controller
 
         $filters = $request->validate([
             'q' => 'nullable|string|max:100',
-            'status' => ['nullable', Rule::in(array_merge(self::STATUSES, \App\Models\GuidanceAppointment::STATUSES))],
+            'status' => ['nullable', Rule::in(array_merge(array_keys(ServiceRequest::TESTING_QUEUE_STATUSES), ['Under review']))],
             'test_type' => ['nullable', Rule::in(array_keys($module['tests']))],
             'course' => ['nullable', Rule::in(array_keys(\App\Support\CourseCatalog::allOptions()))],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
@@ -110,11 +110,8 @@ class PsychologicalRequestController extends Controller
         }
 
         if (! empty($filters['status'])) {
-            if (in_array($filters['status'], \App\Models\GuidanceAppointment::STATUSES, true)) {
-                $query->whereHas('guidanceAppointments', fn ($appointments) => $appointments->where('status', $filters['status']));
-            } else {
-                $query->where('status', $filters['status']);
-            }
+            $status = $filters['status'] === 'Under review' ? 'under_review' : $filters['status'];
+            $query->where('status', $status);
         }
         if (!empty($filters['test_type'])) {
             $query->whereHas('guidanceAppointments', fn ($appointments) => $appointments->whereJsonContains('test_types', $filters['test_type'])->orWhere('test_type', $filters['test_type']));
@@ -142,8 +139,19 @@ class PsychologicalRequestController extends Controller
                 };
                 $query->where('test_category', $moduleKey)
                     ->orWhere(fn ($legacy) => $legacy->whereNull('test_category')->whereIn('test_type', $legacyTypes));
-            })->where('is_archived', true)->when($filters['course'] ?? null, fn ($q, $course) => $q->where(fn ($a) => $a->where('origin_course', $course)->orWhereHas('serviceRequest', fn ($r) => $r->where('course', $course))))->when($filters['q'] ?? null, function ($q, $search) { foreach (\App\Support\TableFilters::words($search) as $word) { $like = '%'.$word.'%'; $q->where(fn ($a) => $a->where('request_code', 'like', $like)->orWhere('student_id_number', 'like', $like)->orWhere('origin_section', 'like', $like)->orWhereHas('applicant', fn ($s) => $s->where('first_name', 'like', $like)->orWhere('last_name', 'like', $like))); } }), $filters)->latest('archived_at')->paginate(10, ['*'], 'appointments_page')->withQueryString() : null,
-            'archivedBatches' => $mode === 'archive' ? \App\Support\TableFilters::dates(GuidanceTestBatch::where('test_type', $module['batch_label'])->where('status', 'Completed')->when($filters['course'] ?? null, fn ($q, $course) => $q->where('course', $course))->when($filters['q'] ?? null, fn ($q, $search) => $q->where(fn ($b) => $b->where('batch_name', 'like', '%'.$search.'%')->orWhere('year_section', 'like', '%'.$search.'%')->orWhereHas('appointments', fn ($a) => $a->where('student_id_number', 'like', '%'.$search.'%')->orWhere('request_code', 'like', '%'.$search.'%')->orWhereHas('applicant', fn ($s) => $s->where('first_name', 'like', '%'.$search.'%')->orWhere('last_name', 'like', '%'.$search.'%')))->orWhereHas('makeupAppointments', fn ($a) => $a->where('student_id_number', 'like', '%'.$search.'%')->orWhere('request_code', 'like', '%'.$search.'%')->orWhereHas('applicant', fn ($s) => $s->where('first_name', 'like', '%'.$search.'%')->orWhere('last_name', 'like', '%'.$search.'%'))))), $filters)->latest('batch_id')->paginate(10, ['*'], 'batches_page')->withQueryString() : null,
+            })->where('is_archived', true)->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', match ($status) {
+                'pending' => 'Pending Payment', 'proof_review' => 'Receipt Uploaded', 'processing' => 'In-Progress',
+                'under_review' => 'Under review', default => 'Completed',
+            }))->when($filters['course'] ?? null, fn ($q, $course) => $q->where(fn ($a) => $a->where('origin_course', $course)->orWhereHas('serviceRequest', fn ($r) => $r->where('course', $course))))->when($filters['q'] ?? null, function ($q, $search) { foreach (\App\Support\TableFilters::words($search) as $word) { $like = '%'.$word.'%'; $q->where(fn ($a) => $a->where('request_code', 'like', $like)->orWhere('student_id_number', 'like', $like)->orWhere('origin_section', 'like', $like)->orWhereHas('applicant', fn ($s) => $s->where('first_name', 'like', $like)->orWhere('last_name', 'like', $like))); } }), $filters)->latest('archived_at')->paginate(10, ['*'], 'appointments_page')->withQueryString() : null,
+            'archivedBatches' => $mode === 'archive' ? \App\Support\TableFilters::dates(GuidanceTestBatch::where('test_type', $module['batch_label'])->where('status', 'Completed')->when(($filters['status'] ?? null) && $filters['status'] !== 'completed', function ($q, $status) {
+                $appointmentStatus = match ($status) {
+                    'pending' => 'Pending Payment', 'proof_review' => 'Receipt Uploaded', 'processing' => 'In-Progress', 'under_review' => 'Under review',
+                    default => 'Completed',
+                };
+                $q->where(fn ($batches) => $batches
+                    ->whereHas('appointments', fn ($appointments) => $appointments->where('status', $appointmentStatus))
+                    ->orWhereHas('makeupAppointments', fn ($appointments) => $appointments->where('status', $appointmentStatus)));
+            })->when($filters['course'] ?? null, fn ($q, $course) => $q->where('course', $course))->when($filters['q'] ?? null, fn ($q, $search) => $q->where(fn ($b) => $b->where('batch_name', 'like', '%'.$search.'%')->orWhere('year_section', 'like', '%'.$search.'%')->orWhereHas('appointments', fn ($a) => $a->where('student_id_number', 'like', '%'.$search.'%')->orWhere('request_code', 'like', '%'.$search.'%')->orWhereHas('applicant', fn ($s) => $s->where('first_name', 'like', '%'.$search.'%')->orWhere('last_name', 'like', '%'.$search.'%')))->orWhereHas('makeupAppointments', fn ($a) => $a->where('student_id_number', 'like', '%'.$search.'%')->orWhere('request_code', 'like', '%'.$search.'%')->orWhereHas('applicant', fn ($s) => $s->where('first_name', 'like', '%'.$search.'%')->orWhere('last_name', 'like', '%'.$search.'%'))))), $filters)->latest('batch_id')->paginate(10, ['*'], 'batches_page')->withQueryString() : null,
         ]);
     }
 

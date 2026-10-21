@@ -187,6 +187,12 @@
 
                 {{-- ── 7. SETTINGS ── --}}
                 @if ($isAdmin || $isStaff)
+                @if ($isAdmin)
+                <a class="sidebar-link {{ request()->routeIs('admin.audit-logs') ? 'active' : '' }}"
+                   href="{{ route('admin.audit-logs') }}">
+                    <i class="bi bi-journal-text"></i> Audit Logs
+                </a>
+                @endif
                 <a class="sidebar-link {{ request()->routeIs($role.'.settings.*') ? 'active' : '' }}"
                    href="{{ route($role.'.settings.index') }}">
                     <i class="bi bi-sliders"></i> Settings

@@ -234,6 +234,7 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
 });
 
 Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/audit-logs', [\App\Http\Controllers\AdminAuditLogController::class, 'index'])->name('audit-logs');
     Route::prefix('admission')->name('admission.')->middleware('admission.cycle')->group(function () {
         Route::get('/analytics', [\App\Http\Controllers\AdmissionOverviewController::class, 'analytics'])->name('analytics');
         Route::get('/archive', [\App\Http\Controllers\AdmissionOverviewController::class, 'archive'])->name('archive');

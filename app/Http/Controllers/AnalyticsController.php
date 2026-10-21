@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AdmissionApplicant;
-use App\Models\AdmissionCycle;
-use App\Models\Applicant;
 use App\Models\GuidanceAppointment;
 use App\Models\GuidanceSetting;
 use App\Models\GuidanceTestResponse;
@@ -21,21 +18,19 @@ use Illuminate\Validation\Rule;
 
 class AnalyticsController extends Controller
 {
-    /** Use the same branded renderer for institutional reports and record exports. */
+    /** Render Guidance analytics summaries and record exports. */
     public function exportReport(Request $request)
     {
         $filters = $request->validate([
             'format' => ['nullable', Rule::in(['html', 'pdf', 'docx', 'csv'])],
             'type' => ['nullable', Rule::in(['summary', 'records'])],
-            'cycle_id' => ['nullable', 'integer', 'exists:admission_cycles,id'],
             'auto_print' => ['nullable', 'boolean'],
             'course' => ['prohibited'], 'status' => ['prohibited'],
         ]);
         $format = $filters['format'] ?? 'html';
         $fallback = route($request->user()->role.'.exports.index');
         try {
-            $cycleId = isset($filters['cycle_id']) ? (int) $filters['cycle_id'] : null;
-            $metrics = $this->compileExecutiveMetrics($cycleId);
+            $metrics = $this->compileExecutiveMetrics();
             $dashboard = app(AnalyticsDashboardService::class);
             $metrics['actionCenter'] = $dashboard->actionCenterCounts();
             $metrics['documentFees'] = $dashboard->documentFeeAnalytics();
@@ -48,9 +43,6 @@ class AnalyticsController extends Controller
                 }
                 foreach (ServiceRequest::whereIn('service', ['good-moral', 'exit-form'])->get() as $r) {
                     $records->push([$r->reference ?? '-', trim(($r->last_name ?? '').', '.($r->first_name ?? ''), ' ,') ?: 'N/A', $r->student_number ?: '-', $r->gender ?? '-', $r->courseLabel(), ServiceRequest::SERVICES[$r->service] ?? 'Document', $r->or_number ?? '-', $r->or_date?->format('Y-m-d') ?? '-', $r->status ?? '-', 'N/A', $r->purpose ?: '-', $r->created_at?->format('Y-m-d') ?? '-']);
-                }
-                foreach (AdmissionApplicant::when($cycleId, fn ($q, $id) => $q->where('admission_cycle_id', $id))->get() as $r) {
-                    $records->push([$r->application_number ?? '-', $r->full_name ?? 'N/A', $r->student_id ?? '-', $r->sex ?? '-', $r->course_choice ?? 'N/A', 'Admission', 'N/A', 'N/A', $r->qualification_status ?? 'Pending', 'N/A', 'GWA: '.($r->gwa ?? '-').'; Exam: '.($r->exam_score ?? '-').'; Total: '.($r->total_score ?? '-'), $r->created_at?->format('Y-m-d') ?? '-']);
                 }
             } elseif (($metrics['totalRequests'] ?? 0) > 0) {
                 $appendMetric = function (string $label, $value) use (&$appendMetric, $records): void {
@@ -67,20 +59,20 @@ class AnalyticsController extends Controller
             }
             if ($records->isEmpty()) return redirect($fallback)->with('error', 'No eligible records found for the selected filters.');
             $document = [
-                'title' => ($filters['type'] ?? 'summary') === 'records' ? 'Institutional Administrative Records Report' : 'Executive Institutional Analytics Summary',
-                'office' => 'Guidance and Counseling Office / Testing and Admission Office',
-                'metadata' => ['Admission Cycle' => $cycleId ? (AdmissionCycle::find($cycleId)?->display_name ?? 'N/A') : 'All admission cycles', 'Academic Year' => GuidanceSetting::valueOf('academic_year', date('Y').'-'.(date('Y') + 1)), 'Guidance / Documents' => 'All batches and requests', 'Date Generated' => now()->timezone('Asia/Manila')->format('F j, Y g:i A').' (Asia/Manila)', 'Active Filters' => 'Admission cycle: '.($cycleId ?? 'All').'; Guidance / Documents: All'],
+                'title' => ($filters['type'] ?? 'summary') === 'records' ? 'Guidance Testing and Services Records Report' : 'Guidance Analytics Summary',
+                'office' => 'Guidance and Counseling Office',
+                'metadata' => ['Academic Year' => GuidanceSetting::valueOf('academic_year', date('Y').'-'.(date('Y') + 1)), 'Guidance / Documents' => 'All batches and requests', 'Date Generated' => now()->timezone('Asia/Manila')->format('F j, Y g:i A').' (Asia/Manila)', 'Active Filters' => 'Guidance / Documents: All'],
                 'summary' => [], 'certificates' => [], 'orientation' => 'landscape', 'columns' => $columns, 'rows' => $records,
                 'format' => $format, 'autoPrint' => (bool) ($filters['auto_print'] ?? false),
             ];
             $bytes = app(\App\Services\DocumentExportService::class)->render($document, $format);
             $mime = match ($format) { 'pdf' => 'application/pdf', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'csv' => 'text/csv; charset=UTF-8', default => 'text/html; charset=UTF-8' };
             $headers = ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store'];
-            if ($format !== 'html') $headers['Content-Disposition'] = 'attachment; filename="DMSGTA-institutional-report-'.now()->format('Y-m-d').'.'.$format.'"';
+            if ($format !== 'html') $headers['Content-Disposition'] = 'attachment; filename="DMSGTA-guidance-analytics-'.now()->format('Y-m-d').'.'.$format.'"';
 
             return response($bytes, 200, $headers);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Institutional export failed', ['exception' => $e]);
+            \Illuminate\Support\Facades\Log::error('Guidance analytics export failed', ['exception' => $e]);
 
             return redirect($fallback)->with('error', 'Unable to generate the document. Please contact the system administrator or try another format.');
         }
@@ -128,14 +120,13 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Main Executive Analytics Dashboard Engine.
+     * Main Guidance Analytics Dashboard.
      */
     public function dashboard(Request $request, AnalyticsDashboardService $dashboardService)
     {
         app(GuidanceAssessmentSessionService::class)->expireDue();
 
-        $selectedCycleId = $request->query('cycle_id') ? (int) $request->query('cycle_id') : null;
-        $metrics = $this->compileExecutiveMetrics($selectedCycleId);
+        $metrics = $this->compileExecutiveMetrics();
 
         // Merge service datasets: Action Center, Intervention, Proctoring Feed, Demographics, Document/Fee Analytics, Controls
         $metrics['actionCenter']       = $dashboardService->actionCenterCounts();
@@ -144,8 +135,6 @@ class AnalyticsController extends Controller
         $metrics['demographics']       = $dashboardService->demographicAnalytics();
         $metrics['documentFees']       = $dashboardService->documentFeeAnalytics();
         $metrics['controls']           = $dashboardService->systemControls();
-        $metrics['selectedCycleId']    = $selectedCycleId ?: ($metrics['controls']['activeCycleId'] ?? null);
-
         return view('admin.analytics', $metrics);
     }
 
@@ -224,7 +213,7 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Export Executive Analytics Summary as PDF.
+     * Export Guidance Analytics Summary as PDF.
      */
     public function exportPdf(Request $request, AnalyticsDashboardService $dashboardService)
     {
@@ -234,7 +223,7 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Export Executive Analytics Data as Excel-compatible CSV.
+     * Export Guidance Analytics Data as Excel-compatible CSV.
      */
     public function exportExcel(Request $request)
     {
@@ -244,32 +233,11 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Compile comprehensive institutional analytics metrics across all 3 modules.
+     * Compile Guidance testing, intervention, and document service metrics.
      */
-    private function compileExecutiveMetrics(?int $cycleId = null): array
+    private function compileExecutiveMetrics(): array
     {
-        // ── 1. Admission Module Analytics ──
-        $admissionQuery = AdmissionApplicant::query();
-        if ($cycleId) {
-            $admissionQuery->where('admission_cycle_id', $cycleId);
-        }
-
-        $totalAdmissionApplicants = (clone $admissionQuery)->count();
-        $qualifiedAdmissionCount = (clone $admissionQuery)->where('qualification_status', 'Qualified')->count();
-        $notQualifiedAdmissionCount = (clone $admissionQuery)->where('qualification_status', 'Not Qualified')->count();
-        $pendingAdmissionCount = (clone $admissionQuery)->where(function ($q) {
-            $q->whereNull('qualification_status')
-              ->orWhere('qualification_status', 'Pending')
-              ->orWhere('qualification_status', '');
-        })->count();
-
-        $admissionStatusBreakdown = [
-            'Qualified'     => $qualifiedAdmissionCount,
-            'Not Qualified' => $notQualifiedAdmissionCount,
-            'Pending'       => $pendingAdmissionCount,
-        ];
-
-        // ── 2. Request Testing Services Analytics ──
+        // ── 1. Guidance Testing Services Analytics ──
         $psychologicalRequestsCount = ServiceRequest::where('service', 'psychological')->count()
             + GuidanceAppointment::where(function ($q) {
                 $q->where('test_types', 'like', '%psychological%')
@@ -326,7 +294,7 @@ class AnalyticsController extends Controller
             $applicant = $response->applicant ?? $appointment?->applicant;
             $serviceRequest = $appointment?->serviceRequest;
 
-            $studentName = mb_strtoupper($applicant?->full_name ?? ($serviceRequest ? trim($serviceRequest->first_name . ' ' . $serviceRequest->last_name) : 'Anonymous Examinee'));
+            $studentName = mb_strtoupper($applicant?->full_name ?? ($serviceRequest ? trim($serviceRequest->first_name . ' ' . $serviceRequest->last_name) : 'Anonymous Student'));
             $studentId = $appointment?->student_number ?: ($applicant?->application_number ?: ($serviceRequest?->student_number ?: 'Not Provided'));
             $course = $appointment ? $appointment->courseLabel() : ($serviceRequest?->courseLabel() ?? 'Unspecified');
 
@@ -419,16 +387,9 @@ class AnalyticsController extends Controller
         // Program Testing Volume (All campus degree programs dynamically merged)
         $officialPrograms = CourseCatalog::allOptions();
         $programTestingVolume = [];
-        $admissionByProgram = [];
 
         foreach ($officialPrograms as $code => $title) {
             $programTestingVolume[$code] = 0;
-            $admissionByProgram[$code] = [
-                'code'      => $code,
-                'title'     => $title,
-                'total'     => 0,
-                'qualified' => 0,
-            ];
         }
 
         // Count across ServiceRequest
@@ -460,21 +421,6 @@ class AnalyticsController extends Controller
             }
         }
 
-        // Admission counts per program (filtered by cycle if provided)
-        $admCourseStats = (clone $admissionQuery)
-            ->selectRaw('course_choice, COUNT(*) as total, SUM(CASE WHEN qualification_status = "Qualified" THEN 1 ELSE 0 END) as qualified')
-            ->whereNotNull('course_choice')
-            ->groupBy('course_choice')
-            ->get();
-
-        foreach ($admCourseStats as $cs) {
-            $code = $cs->course_choice;
-            if (isset($admissionByProgram[$code])) {
-                $admissionByProgram[$code]['total'] = (int) $cs->total;
-                $admissionByProgram[$code]['qualified'] = (int) $cs->qualified;
-            }
-        }
-
         // ── 3. Document Services & Clearances Analytics ──
         $goodMoralTotal = ServiceRequest::where('service', 'good-moral')->count();
         $goodMoralClaimed = ServiceRequest::where('service', 'good-moral')->whereIn('status', ['completed', 'claimed', 'ready'])->count();
@@ -485,26 +431,13 @@ class AnalyticsController extends Controller
         $exitFormPending = ServiceRequest::where('service', 'exit-form')->whereIn('status', ['pending', 'approved', 'proof_review'])->count();
 
         // ── 4. Socio-Demographics & Monthly Trends ──
-        $maleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['male'])->count()
-            + Applicant::whereHas('genderLookup', fn ($q) => $q->where('slug', 'male'))->count()
-            + AdmissionApplicant::whereRaw('LOWER(sex) = ?', ['male'])->count();
-
-        $femaleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['female'])->count()
-            + Applicant::whereHas('genderLookup', fn ($q) => $q->where('slug', 'female'))->count()
-            + AdmissionApplicant::whereRaw('LOWER(sex) = ?', ['female'])->count();
+        $maleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['male'])->count();
+        $femaleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['female'])->count();
 
         if ($maleCount === 0 && $femaleCount === 0) {
             $maleCount = 1;
             $femaleCount = 1;
         }
-
-        $specialCategories = [
-            '4Ps' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%4Ps%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%4Ps%'))->count(),
-            'OSY' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%OSY%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%OSY%'))->count(),
-            'IP'  => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%IP%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%IP%'))->count(),
-            'PWD' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%PWD%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%PWD%'))->count(),
-            'SP'  => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%SP%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%SP%'))->count(),
-        ];
 
         // ── 5. Monthly Request Trends (Last 6 Months) ──
         $monthlyTrends = [];
@@ -515,28 +448,20 @@ class AnalyticsController extends Controller
             $end = $monthDate->copy()->endOfMonth();
 
             $count = ServiceRequest::whereBetween('created_at', [$start, $end])->count()
-                + GuidanceAppointment::whereNull('service_request_id')->whereBetween('created_at', [$start, $end])->count()
-                + AdmissionApplicant::whereBetween('created_at', [$start, $end])->count();
+                + GuidanceAppointment::whereNull('service_request_id')->whereBetween('created_at', [$start, $end])->count();
 
             $monthlyTrends[$monthKey] = $count;
         }
 
-        $totalRequests = ServiceRequest::count() + GuidanceAppointment::whereNull('service_request_id')->count() + $totalAdmissionApplicants;
+        $totalRequests = ServiceRequest::count() + GuidanceAppointment::whereNull('service_request_id')->count();
         $activeRequests = ServiceRequest::whereIn('status', ServiceRequest::ACTIVE_STATUSES)->count()
-            + GuidanceAppointment::whereIn('status', ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'])->count()
-            + $pendingAdmissionCount;
+            + GuidanceAppointment::whereIn('status', ['Pending Payment', 'Receipt Uploaded', 'Approved', 'In-Progress'])->count();
 
         return [
-            'guidanceOnly'              => false,
+            'guidanceOnly'              => true,
             'totalRequests'             => $totalRequests,
             'completedTests'            => $completedTests,
             'activeRequests'            => $activeRequests,
-            'totalAdmissionApplicants'  => $totalAdmissionApplicants,
-            'qualifiedAdmissionCount'   => $qualifiedAdmissionCount,
-            'notQualifiedAdmissionCount'=> $notQualifiedAdmissionCount,
-            'pendingAdmissionCount'     => $pendingAdmissionCount,
-            'admissionStatusBreakdown'  => $admissionStatusBreakdown,
-            'admissionByProgram'        => $admissionByProgram,
             'psychologicalRequestsCount'=> $psychologicalRequestsCount,
             'personalityRequestsCount'  => $personalityRequestsCount,
             'careerRequestsCount'       => $careerRequestsCount,
@@ -557,7 +482,6 @@ class AnalyticsController extends Controller
             'officialPrograms'          => $officialPrograms,
             'maleCount'                 => $maleCount,
             'femaleCount'               => $femaleCount,
-            'specialCategories'         => $specialCategories,
             'monthlyTrends'             => $monthlyTrends,
             'redFlags'                  => array_slice($redFlags, 0, 25),
             'role'                      => auth()->user()?->role ?? 'admin',

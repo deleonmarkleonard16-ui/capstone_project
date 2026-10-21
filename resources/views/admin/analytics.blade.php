@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Executive Analytics Dashboard')
+@section('title', 'Guidance Analytics Dashboard')
 
 @section('content')
 <div class="executive-analytics container-fluid px-2 px-md-3 py-2">
@@ -14,33 +14,21 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-1 small text-muted">
                             <li class="breadcrumb-item"><a href="{{ route($role . '.dashboard') }}" class="text-decoration-none">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Executive Analytics</li>
+                            <li class="breadcrumb-item active" aria-current="page">Guidance Analytics</li>
                         </ol>
                     </nav>
                     <h1 class="h4 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
                         <i class="bi bi-bar-chart-line-fill text-primary"></i>
-                        <span>Executive Institutional Analytics Dashboard</span>
+                        <span>Guidance Analytics Dashboard</span>
                     </h1>
                     <p class="text-muted small mb-0">
-                        Digital Management System for Guidance Testing and Admission (DMSGTA) &bull; PSU San Carlos Campus
+                        Guidance and Counseling Office &bull; PSU San Carlos Campus
                     </p>
                 </div>
 
                 {{-- Dynamic System Quick Controls --}}
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    {{-- 1. Active Admission Cycle Selector --}}
-                    <div class="d-flex align-items-center gap-1 bg-light p-1 rounded-3 border">
-                        <label for="admissionCycleSelect" class="small fw-semibold text-secondary px-2 mb-0 d-none d-sm-inline">Cycle:</label>
-                        <select id="admissionCycleSelect" class="form-select form-select-sm border-0 bg-transparent fw-bold text-primary" style="max-width: 200px;" onchange="switchAdmissionCycle(this.value)">
-                            @foreach($controls['admissionCycles'] as $cycle)
-                                <option value="{{ $cycle['id'] }}" {{ $selectedCycleId == $cycle['id'] ? 'selected' : '' }}>
-                                    {{ $cycle['label'] }} ({{ $cycle['status'] }})
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    {{-- 2. Emergency Proctor Override Toggle --}}
+                    {{-- Emergency Proctor Override Toggle --}}
                     <button type="button"
                             id="btnEmergencyProctor"
                             class="btn btn-sm px-3 shadow-sm d-flex align-items-center gap-2 fw-semibold {{ $controls['proctoringPaused'] ? 'btn-danger' : 'btn-outline-danger' }}"
@@ -53,7 +41,7 @@
 
                     {{-- Export Actions --}}
                     <div class="btn-group btn-group-sm shadow-sm" role="group">
-                        <a href="{{ route($role . '.analytics.export.pdf', ['cycle_id' => $selectedCycleId]) }}" target="_blank" class="btn btn-outline-danger d-flex align-items-center gap-1">
+                        <a href="{{ route($role . '.analytics.export.pdf') }}" target="_blank" class="btn btn-outline-danger d-flex align-items-center gap-1">
                             <i class="bi bi-file-earmark-pdf-fill"></i>
                             <span class="d-none d-md-inline">PDF</span>
                         </a>
@@ -148,15 +136,15 @@
         </div>
     </div>
 
-    {{-- Executive Summary KPI Stat Row --}}
+    {{-- Guidance Summary KPI Stat Row --}}
     <div class="row g-2 g-md-3 mb-3">
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-4 border-primary">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase tracking-wider">Total Volume</div>
+                        <div class="text-muted small fw-semibold text-uppercase tracking-wider">Total Guidance Volume</div>
                         <div class="stat-value h4 fw-bold text-dark mb-0 mt-1">{{ number_format($totalRequests) }}</div>
-                        <div class="text-muted small mt-1">All Core Modules</div>
+                        <div class="text-muted small mt-1">Testing and document requests</div>
                     </div>
                     <div class="stat-icon p-2 rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                         <i class="bi bi-folder-fill fs-3"></i>
@@ -165,22 +153,7 @@
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-4 border-info">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <div class="text-muted small fw-semibold text-uppercase tracking-wider">Admission Applicants</div>
-                        <div class="stat-value h4 fw-bold text-info mb-0 mt-1">{{ number_format($totalAdmissionApplicants) }}</div>
-                        <div class="text-muted small mt-1">{{ number_format($qualifiedAdmissionCount) }} Qualified</div>
-                    </div>
-                    <div class="stat-icon p-2 rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="bi bi-mortarboard-fill fs-3"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-4 border-success">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
@@ -195,7 +168,7 @@
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
+        <div class="col-6 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white border-start border-4 border-warning">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
@@ -239,7 +212,7 @@
                             <th class="py-2">Severity</th>
                             <th class="py-2">Intervention Status</th>
                             <th class="py-2">Date Assessed</th>
-                            <th class="py-2 text-end">Clinical Action Controls</th>
+                            <th class="py-2 text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody class="small">
@@ -261,20 +234,18 @@
                             </td>
                             <td class="text-muted small">{{ $flag['date'] }}</td>
                             <td class="text-end">
-                                <div class="btn-group btn-group-sm">
-                                    {{-- Action A: View Confidential Profile Modal --}}
-                                    <button type="button" class="btn btn-outline-dark btn-sm" onclick="openConfidentialProfileModal({{ $flag['response_id'] }})" title="View Confidential Profile">
-                                        <i class="bi bi-file-earmark-person-fill text-danger me-1"></i>View Profile
-                                    </button>
-                                    {{-- Action B: Flag for Follow-Up / Schedule Session --}}
-                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="quickUpdateIntervention({{ $flag['appointment_id'] }}, 'Counseling Scheduled')" title="Schedule Session">
-                                        <i class="bi bi-calendar-event me-1"></i>Schedule
-                                    </button>
-                                    {{-- Action C: Contact / In Progress --}}
-                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="quickUpdateIntervention({{ $flag['appointment_id'] }}, 'In Progress')" title="Contact">
-                                        <i class="bi bi-telephone-inbound-fill me-1"></i>Contact
-                                    </button>
+                                @if(!empty($flag['appointment_id']))
+                                <div class="d-flex justify-content-end flex-wrap gap-1">
+                                    <a class="btn btn-outline-primary btn-sm" href="{{ $flag['view_url'] }}">
+                                        <i class="bi bi-clipboard-check me-1"></i>Review Result
+                                    </a>
+                                    <a class="btn btn-outline-success btn-sm" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $flag['appointment_id'], 'format' => 'pdf']) }}">
+                                        <i class="bi bi-download me-1"></i>Download Assessment
+                                    </a>
                                 </div>
+                                @else
+                                <span class="text-muted">Assessment unavailable</span>
+                                @endif
                             </td>
                         </tr>
                         @empty
@@ -351,7 +322,7 @@
                                     <div class="text-muted fw-bold">PHQ-9 Mood (Severe/Mod. Sev)</div>
                                     <div class="text-danger fw-bold fs-6">
                                         {{ ($scaleDistributions['phq9_mood']['Severe'] ?? 0) + ($scaleDistributions['phq9_mood']['Moderately Severe'] ?? 0) }}
-                                        <span class="text-muted fw-normal fs-xs">Examinees</span>
+                                        <span class="text-muted fw-normal fs-xs">Students</span>
                                     </div>
                                 </div>
                             </div>
@@ -360,7 +331,7 @@
                                     <div class="text-muted fw-bold">GAD-7 Anxiety (Severe)</div>
                                     <div class="text-danger fw-bold fs-6">
                                         {{ $scaleDistributions['gad7_anxiety']['Severe'] ?? 0 }}
-                                        <span class="text-muted fw-normal fs-xs">Examinees</span>
+                                        <span class="text-muted fw-normal fs-xs">Students</span>
                                     </div>
                                 </div>
                             </div>
@@ -370,18 +341,17 @@
             </div>
         </div>
 
-        {{-- COLUMN 2: Socio-Demographics & Special Categories + Admission Comparison --}}
+        {{-- Guidance Testing Student Demographics --}}
         <div class="col-12 col-lg-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
                 <div class="card-header bg-white border-bottom border-light pt-3 px-3 pb-3 d-flex justify-content-between align-items-center">
                     <div>
                         <h2 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
                             <i class="bi bi-people-fill text-warning"></i>
-                            <span>Socio-Demographic &amp; Institutional Profile</span>
+                            <span>Guidance Testing Demographics</span>
                         </h2>
-                        <small class="text-muted">Accreditation metrics &amp; Special Group distribution</small>
+                        <small class="text-muted">Recorded gender distribution from guidance service requests</small>
                     </div>
-                    <span class="badge bg-light text-secondary border">Institutional Target</span>
                 </div>
                 <div class="card-body p-3">
                     <div class="row align-items-center mb-3">
@@ -393,39 +363,17 @@
                         <div class="col-7">
                             <div class="d-flex flex-column gap-2">
                                 <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light">
-                                    <span class="small fw-semibold"><i class="bi bi-gender-male text-primary me-1"></i> Male Examinees</span>
+                                    <span class="small fw-semibold"><i class="bi bi-gender-male text-primary me-1"></i> Male Students</span>
                                     <span class="fw-bold text-dark">{{ number_format($demographics['maleCount']) }}</span>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light">
-                                    <span class="small fw-semibold"><i class="bi bi-gender-female text-danger me-1"></i> Female Examinees</span>
+                                    <span class="small fw-semibold"><i class="bi bi-gender-female text-danger me-1"></i> Female Students</span>
                                     <span class="fw-bold text-dark">{{ number_format($demographics['femaleCount']) }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Special Categories --}}
-                    <div class="p-2 border rounded-3 bg-light mb-3">
-                        <span class="small text-muted fw-bold text-uppercase d-block mb-1">Special Categories &amp; Equity Target Groups:</span>
-                        <div class="d-flex flex-wrap gap-1">
-                            @foreach($demographics['specialCategories'] as $group => $count)
-                                <span class="badge bg-white text-dark border px-2 py-1 small">
-                                    {{ $group }}: <strong class="text-primary">{{ number_format($count) }}</strong>
-                                </span>
-                            @endforeach
-                        </div>
-                    </div>
-
-                    {{-- Admission Qualified vs Total --}}
-                    <div class="pt-2 border-top">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h3 class="h6 fw-bold text-dark mb-0 small text-uppercase">PSU-CAT Admission Qualification</h3>
-                            <span class="badge bg-success bg-opacity-10 text-success">{{ number_format($qualifiedAdmissionCount) }} Qualified</span>
-                        </div>
-                        <div style="position: relative; height: 130px; width: 100%;">
-                            <canvas id="admissionStatusChart"></canvas>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -482,7 +430,7 @@
                             <table class="table table-sm table-bordered align-middle mb-0">
                                 <thead class="table-light small">
                                     <tr>
-                                        <th>Student / Examinee</th>
+                                        <th>Student</th>
                                         <th>Strikes</th>
                                         <th>Status</th>
                                         <th class="text-end">Remote Staff Controls</th>
@@ -700,29 +648,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ── 3. Admission Qualification Status Donut ──
-    const admStatusCtx = document.getElementById('admissionStatusChart');
-    if (admStatusCtx) {
-        new Chart(admStatusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: {!! json_encode(array_keys($admissionStatusBreakdown)) !!},
-                datasets: [{
-                    data: {!! json_encode(array_values($admissionStatusBreakdown)) !!},
-                    backgroundColor: ['#198754', '#dc3545', '#ffc107'],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } },
-                cutout: '65%'
-            }
-        });
-    }
-
     // ── 4. Program Participation Heatmap (All 11 Campus Programs) ──
     const programCtx = document.getElementById('programChart');
     if (programCtx) {
@@ -756,13 +681,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Start live background sync
     setInterval(syncLiveStats, 10000);
 });
-
-// ── Switch Admission Cycle ──
-function switchAdmissionCycle(cycleId) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('cycle_id', cycleId);
-    window.location.href = url.toString();
-}
 
 // ── Toggle Emergency Proctor Override ──
 function toggleEmergencyProctorOverride() {

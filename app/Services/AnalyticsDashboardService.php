@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Events\InterventionStatusUpdated;
 use App\Events\ProctorEmergencyOverrideToggled;
-use App\Models\AdmissionApplicant;
-use App\Models\AdmissionCycle;
 use App\Models\GuidanceAppointment;
 use App\Models\GuidanceSetting;
 use App\Models\GuidanceTestBatch;
@@ -20,14 +18,14 @@ use Illuminate\Support\Facades\DB;
 /**
  * AnalyticsDashboardService
  *
- * Centralised data layer for the Executive Analytics Dashboards (/admin/analytics and /staff/analytics).
+ * Centralized data layer for the Guidance Analytics Dashboards (/admin/analytics and /staff/analytics).
  * Computes:
  * - 1. High-Priority Action Center (pending receipts, unassigned batches, unprocessed doc requests)
  * - 2. High-Risk / Red-Flag Intervention Panel (querying guidance_test_responses JSON score summaries, student actions)
  * - 3. Real-Time Security & Proctoring Incident Feed (total infractions, max-strike lockout feed, warn/pause/force terminate)
- * - 4. Demographic & Institutional Target Analytics (gender, 4Ps/OSY/IP/PWD/SP, 11-program participation heatmap)
+ * - 4. Guidance demographics and testing volume by program
  * - 5. Document Fulfillment & Fee Analytics (issuance vs claimed, revenue collection summary mapped against ORs)
- * - 6. Dynamic System Controls (active cycle selector, emergency proctor pause override)
+ * - 6. Guidance System Controls (emergency proctor pause override)
  */
 class AnalyticsDashboardService
 {
@@ -80,7 +78,7 @@ class AnalyticsDashboardService
 
             $studentName  = mb_strtoupper(
                 $applicant?->full_name
-                ?? ($sr ? trim($sr->first_name . ' ' . $sr->last_name) : 'Anonymous Examinee')
+                ?? ($sr ? trim($sr->first_name . ' ' . $sr->last_name) : 'Anonymous Student')
             );
             $studentId    = $appointment?->student_number
                 ?: ($applicant?->application_number ?: ($sr?->student_number ?: 'Not Provided'));
@@ -187,7 +185,7 @@ class AnalyticsDashboardService
 
         $studentName = mb_strtoupper(
             $applicant?->full_name
-            ?? ($sr ? trim($sr->first_name . ' ' . $sr->last_name) : 'Anonymous Examinee')
+            ?? ($sr ? trim($sr->first_name . ' ' . $sr->last_name) : 'Anonymous Student')
         );
         $studentId   = $appointment?->student_number
             ?: ($applicant?->application_number ?: ($sr?->student_number ?: 'Not Provided'));
@@ -257,7 +255,7 @@ class AnalyticsDashboardService
                     ?? trim(($appt->serviceRequest?->first_name ?? '') . ' ' . ($appt->serviceRequest?->last_name ?? ''));
                 return [
                     'appointment_id'     => $appt->getKey(),
-                    'student_name'       => mb_strtoupper($name) ?: 'Unknown Examinee',
+                    'student_name'       => mb_strtoupper($name) ?: 'Unknown Student',
                     'student_id'         => $appt->student_number ?? $appt->serviceRequest?->student_number ?? 'N/A',
                     'strike_count'       => $appt->strike_count,
                     'threshold'          => $threshold,
@@ -325,7 +323,7 @@ class AnalyticsDashboardService
             return [
                 'success' => true,
                 'action'  => 'warn',
-                'message' => 'Proctor warning transmitted to examinee console.',
+                'message' => 'Proctor warning transmitted to the student exam page.',
                 'status'  => $appointment->status,
             ];
         }
@@ -349,27 +347,17 @@ class AnalyticsDashboardService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 4. DEMOGRAPHIC & INSTITUTIONAL TARGET ANALYTICS
+    // 4. GUIDANCE DEMOGRAPHICS & TESTING VOLUME
     // ─────────────────────────────────────────────────────────────────────────
 
     public function demographicAnalytics(): array
     {
-        $maleCount   = ServiceRequest::whereRaw('LOWER(gender) = ?', ['male'])->count()
-            + AdmissionApplicant::whereRaw('LOWER(sex) = ?', ['male'])->count();
-        $femaleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['female'])->count()
-            + AdmissionApplicant::whereRaw('LOWER(sex) = ?', ['female'])->count();
+        $maleCount   = ServiceRequest::whereRaw('LOWER(gender) = ?', ['male'])->count();
+        $femaleCount = ServiceRequest::whereRaw('LOWER(gender) = ?', ['female'])->count();
 
         if ($maleCount === 0 && $femaleCount === 0) {
             $maleCount = $femaleCount = 1;
         }
-
-        $specialCategories = [
-            '4Ps' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%4Ps%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%4Ps%'))->count(),
-            'OSY' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%OSY%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%OSY%'))->count(),
-            'IP'  => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%IP%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%IP%'))->count(),
-            'PWD' => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%PWD%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%PWD%'))->count(),
-            'SP'  => AdmissionApplicant::where(fn ($q) => $q->where('special_group', 'like', '%SP%')->orWhere('4ps_osy_ip_pwd_sp', 'like', '%SP%'))->count(),
-        ];
 
         // 11 Campus degree programs registered in courses table
         $officialPrograms      = CourseCatalog::allOptions();
@@ -405,7 +393,6 @@ class AnalyticsDashboardService
         return [
             'maleCount'            => $maleCount,
             'femaleCount'          => $femaleCount,
-            'specialCategories'    => $specialCategories,
             'programParticipation' => $programParticipation,
             'officialPrograms'     => $officialPrograms,
         ];
@@ -493,22 +480,9 @@ class AnalyticsDashboardService
 
     public function systemControls(): array
     {
-        $cycles = AdmissionCycle::orderByDesc('id')
-            ->get(['id', 'cycle_name', 'name', 'status', 'is_active'])
-            ->map(fn ($c) => [
-                'id'        => $c->id,
-                'label'     => $c->display_name,
-                'status'    => $c->status,
-                'is_active' => (bool) $c->is_active,
-            ])
-            ->toArray();
-
-        $activeCycleId    = AdmissionCycle::active()?->id;
         $proctoringPaused = (bool) GuidanceSetting::valueOf('proctor_pause_active', '0');
 
         return [
-            'admissionCycles'  => $cycles,
-            'activeCycleId'    => $activeCycleId,
             'proctoringPaused' => $proctoringPaused,
         ];
     }

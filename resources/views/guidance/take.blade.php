@@ -16,6 +16,7 @@ body { user-select:none; -webkit-user-select:none; }
 .stepper-pill { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; transition: background 0.3s; }
 .stepper-pill.active { background: #2563eb; }
 .stepper-pill.completed { background: #16a34a; }
+.guidance-answer-sheet { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-columns: auto; }
 
 </style>
 @endpush
@@ -147,7 +148,7 @@ body { user-select:none; -webkit-user-select:none; }
                 @endphp
 
                 <div class="assessment-step" data-step="{{ $stepNum }}" data-test="{{ $test }}" @if($stepNum !== 1) hidden @endif>
-                    <div class="answer-sheet-matrix" data-total-items="{{ count($section['items']) }}" style="--vertical-grid-rows: {{ count($section['items']) }}">
+                    <div class="answer-sheet-matrix guidance-answer-sheet" data-total-items="{{ count($section['items']) }}">
                         @foreach($section['items'] as $item)
                             @php
                                 $inputName = $isSingle ? "answers[{$item}]" : "answers[{$test}][{$item}]";
@@ -186,16 +187,5 @@ body { user-select:none; -webkit-user-select:none; }
 @endsection
 
 @push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.answer-sheet-matrix').forEach((grid) => {
-        const sync = () => {
-            const columns = window.innerWidth < 576 ? 1 : window.innerWidth < 992 ? 1 : window.innerWidth < 1400 ? 2 : 3;
-            grid.style.setProperty('--vertical-grid-rows', Math.ceil(Number(grid.dataset.totalItems) / columns));
-        };
-        sync(); window.addEventListener('resize', sync);
-    });
-});
-</script>
 <script src="{{ asset('js/guidance-assessment.js') }}" defer></script>
 @endpush

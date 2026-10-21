@@ -38,11 +38,13 @@ cannot be used in public individual tracking to bypass verification.
 Receipt upload or webcam capture makes a student **Ready in Session**. Starting
 the batch verifies the available receipts and starts every ready appointment in
 one transaction, with the same start timestamp and first-section deadline.
-Only ready students start; registration then closes. Waiting rooms poll every two
-seconds and redirect to the assessment. Students enter fullscreen with a click
-(browser APIs require a user gesture); this does not reset the shared deadline.
-Staff should inspect receipts before starting the batch. Repeated start requests
-do not create additional passes or reset deadlines.
+Students who have not joined yet can still verify their roster identity and
+submit a receipt while the batch is running. Staff inspect each late receipt in
+the batch queue and use **Start Assessment** to issue that student a pass and
+start their own section timer. Waiting rooms poll every two seconds and redirect
+to the assessment when staff starts it. Students enter fullscreen with a click
+(browser APIs require a user gesture); this does not reset their deadline.
+Repeated start requests do not create additional passes or reset deadlines.
 
 Mark unstarted students **Absent**, or convert an absent appointment to an
 individual request. Conversion keeps its reference, applicant, receipt, category,

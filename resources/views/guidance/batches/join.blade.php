@@ -24,16 +24,16 @@
                 <div class="col-12 col-md-6"><label class="form-label fw-semibold" for="locked-{{ $field }}">{{ $label }}</label><input class="form-control bg-light" id="locked-{{ $field }}" value="{{ $batch->$field }}" readonly></div>
             @endforeach
         </div>
-        @if($appointment->attendance_status === 'Pending Scan' && $batch->status === 'Pending Registration')
+        @if($appointment->attendance_status === 'Pending Scan' && in_array($batch->status, ['Pending Registration', 'In-Progress'], true))
             <form method="post" enctype="multipart/form-data" action="{{ route('guidance.batch.receipt', $batch->batch_token) }}" id="batch-receipt">@csrf
                 <h2 class="h5">Proof of payment</h2>
-                <p class="muted">Take a photo with your camera or upload an existing receipt image.</p>
+                <p class="muted">{{ $batch->status === 'In-Progress' ? 'This batch is already running. Submit your receipt; staff will review it and start your assessment.' : 'Take a photo with your camera or upload an existing receipt image.' }}</p>
                 <div class="d-flex flex-wrap gap-2 mb-3"><button type="button" class="btn btn-outline-primary" id="camera-start">Take Photo of Receipt</button><button type="button" class="btn btn-outline-primary" id="file-choice">Upload Receipt File</button></div>
                 <video id="receipt-camera" class="w-100 rounded-3" style="max-height:360px" playsinline autoplay muted hidden></video><button type="button" id="camera-capture" class="btn btn-secondary mb-3" hidden>Capture photo</button><canvas id="receipt-canvas" hidden></canvas>
                 <label class="form-label fw-semibold" for="receipt-file">Receipt image (JPG, PNG, WebP; up to 5 MB)</label><input id="receipt-file" name="receipt" type="file" accept="image/*" class="form-control mb-3" required><img id="receipt-preview" alt="Receipt preview" class="img-fluid rounded-3 mb-3" style="max-height:300px" hidden><p id="camera-message" role="alert"></p><button class="btn btn-primary w-100">Submit receipt and join session</button>
             </form>
         @else
-            <div class="alert alert-info" id="batch-wait" data-batch-id="{{ $batch->getKey() }}" data-state="{{ route('guidance.batch.state', $batch->batch_token) }}">{{ $appointment->attendance_status === 'Ready' ? 'Ready in Session. Waiting for the proctor to start the assessment.' : $appointment->attendance_status }}</div>
+            <div class="alert alert-info" id="batch-wait" data-batch-id="{{ $batch->getKey() }}" data-state="{{ route('guidance.batch.state', $batch->batch_token) }}">{{ $appointment->attendance_status === 'Ready' ? ($batch->status === 'In-Progress' ? 'Receipt submitted. Waiting for staff to review it and start your assessment.' : 'Ready in Session. Waiting for the proctor to start the assessment.') : $appointment->attendance_status }}</div>
         @endif
     @endif
 </div></div>

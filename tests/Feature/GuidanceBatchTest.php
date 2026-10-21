@@ -118,6 +118,35 @@ class GuidanceBatchTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_rostered_student_can_join_and_start_after_batch_is_already_running(): void
+    {
+        Storage::fake('local');
+        $batch = $this->batch();
+        $service = app(GuidanceBatchService::class);
+        $appointments = $batch->appointments()->orderBy('guidance_appointment_id')->get();
+        $service->receipt($batch, $appointments[0]->getKey(), $this->receipt());
+        $staff = $this->staff();
+        $service->start($batch, $staff->id);
+
+        $lateStudent = $appointments[1];
+        $verifyUrl = route('guidance.batch.verify', $batch->batch_token);
+        $identity = ['student_id' => '002', 'first_name' => 'Juan', 'middle_name' => '', 'last_name' => 'Reyes'];
+        $this->postJson($verifyUrl, array_replace($identity, ['last_name' => 'Wrong']))->assertUnprocessable();
+        $this->post($verifyUrl, $identity)->assertRedirect();
+        $this->post(route('guidance.batch.receipt', $batch->batch_token), ['receipt' => $this->receipt()])->assertRedirect();
+        $this->assertSame('Ready', $lateStudent->fresh()->attendance_status);
+        $this->getJson(route('guidance.batch.state', $batch->batch_token))->assertOk()->assertJsonPath('url', null);
+
+        $this->actingAs($staff)->post(route('staff.guidance-batches.action', $batch), [
+            'action' => 'start-student', 'appointment_id' => $lateStudent->getKey(),
+        ])->assertRedirect();
+
+        $this->assertSame('In-Progress', $lateStudent->fresh()->status);
+        $this->assertNotNull($lateStudent->fresh()->started_at);
+        $this->getJson(route('guidance.batch.state', $batch->batch_token))->assertOk()
+            ->assertJsonPath('url', route('guidance.take', $lateStudent->fresh()->qrCode->token));
+    }
+
     public function test_section_deadlines_catch_up_preserve_drafts_and_auto_archive_batch(): void
     {
         $this->travelTo(now()->startOfSecond());

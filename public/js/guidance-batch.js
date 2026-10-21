@@ -7,7 +7,9 @@
                 if (!response.ok) throw new Error('Unable to check the session. Refresh to verify your identity if this persists.');
                 const state = await response.json();
                 if (state.url) { location.replace(state.url); return; }
-                waiting.textContent = state.attendance === 'Ready' && state.status !== 'Completed' ? 'Ready in Session. Waiting for the proctor to start the assessment.' : state.attendance;
+                waiting.textContent = state.attendance === 'Ready' && state.status !== 'Completed'
+                    ? (state.status === 'In-Progress' ? 'Receipt submitted. Waiting for staff to review it and start your assessment.' : 'Ready in Session. Waiting for the proctor to start the assessment.')
+                    : state.attendance;
                 if (state.status === 'Completed' || state.attendance === 'Absent') return;
             } catch (error) { waiting.textContent = error.message; }
             setTimeout(checkState, 2000);

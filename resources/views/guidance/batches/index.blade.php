@@ -69,6 +69,9 @@
 <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Student ID</th><th>Name</th><th>Reference</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 @foreach($roster as $appointment)<tr><td>{{ $appointment->student_id_number }}</td><td>{{ $appointment->applicant->full_name }}</td><td>{{ $appointment->request_code }}</td><td>{{ $appointment->origin_section ?: $batch->year_section ?: '—' }}</td><td>{{ $appointment->source_batch_id ? 'Makeup Exam · ' : '' }}{{ $appointment->attendance_status === 'Ready' ? 'Ready in Session' : $appointment->attendance_status }}<br>@include('guidance.security-controls')</td><td><div class="d-flex flex-wrap gap-2">
 <button class="btn btn-sm btn-outline-primary" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}">Review Submission</button>
+@if($batch->status === 'In-Progress' && $appointment->batch_id === $batch->getKey() && $appointment->attendance_status === 'Ready' && $appointment->status === 'Receipt Uploaded' && !$appointment->started_at)
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="start-student"><input type="hidden" name="appointment_id" value="{{ $appointment->getKey() }}"><button class="btn btn-sm btn-success"><i class="bi bi-play-circle me-1"></i>Start Assessment</button></form>
+@endif
 @if($appointment->status === 'Under review' && $appointment->response)
 <button class="btn btn-sm btn-warning" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-pencil-square me-1"></i>Review &amp; Evaluate</button>
 @endif

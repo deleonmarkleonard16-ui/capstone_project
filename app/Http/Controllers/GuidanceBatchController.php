@@ -64,8 +64,9 @@ class GuidanceBatchController extends Controller
     }
     public function action(Request $request, GuidanceTestBatch $batch, GuidanceBatchService $service)
     {
-        $data = $request->validate(['action' => ['required', Rule::in(['start', 'absent', 'convert', 'archive'])], 'appointment_id' => 'required_if:action,absent,convert|nullable|integer']);
+        $data = $request->validate(['action' => ['required', Rule::in(['start', 'start-student', 'absent', 'convert', 'archive'])], 'appointment_id' => 'required_if:action,absent,convert,start-student|nullable|integer']);
         if ($data['action'] === 'start') $service->start($batch, $request->user()->id);
+        elseif ($data['action'] === 'start-student') $service->startLateStudent($batch, (int) $data['appointment_id'], $request->user()->id);
         else $service->action($batch, $data['action'], $data['appointment_id'] ?? null);
         return back()->with('success', 'Batch updated.');
     }

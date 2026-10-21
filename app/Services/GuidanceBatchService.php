@@ -141,13 +141,16 @@ class GuidanceBatchService
         }
         if (!$matches) throw ValidationException::withMessages(['student_id' => 'The student ID and full name must exactly match the roster.']);
 
-        // Once the proctor starts a batch, registration stays closed. Students
-        // whose assessments were already started may still re-verify after a
-        // lost browser session so they can recover their session-bound pass.
+        // Exact roster identity remains required. After launch, only students
+        // still eligible to join or already taking this batch may re-verify.
         $canJoinRunningAssessment = $batch->status === 'In-Progress'
             && $appointment->status === 'In-Progress'
             && $appointment->attendance_status === 'Ready';
-        abort_unless($batch->status === 'Pending Registration' || $canJoinRunningAssessment, 409, 'Registration has closed.');
+        $canRegisterForRunningBatch = $batch->status === 'In-Progress'
+            && !$appointment->started_at
+            && in_array($appointment->attendance_status, ['Pending Scan', 'Ready'], true)
+            && in_array($appointment->status, ['Pending Payment', 'Receipt Uploaded'], true);
+        abort_unless($batch->status === 'Pending Registration' || $canJoinRunningAssessment || $canRegisterForRunningBatch, 409, 'Registration has closed.');
 
         return $appointment;
     }
@@ -157,11 +160,34 @@ class GuidanceBatchService
         $receiptData = ReceiptStorage::payload($receipt);
         DB::transaction(function () use ($batch, $appointmentId, $receiptData) {
                 $locked = GuidanceTestBatch::whereKey($batch->getKey())->lockForUpdate()->firstOrFail();
-                abort_unless($locked->status === 'Pending Registration', 409, 'Registration has closed.');
+                abort_unless(in_array($locked->status, ['Pending Registration', 'In-Progress'], true), 409, 'Registration has closed.');
                 $appointment = $locked->appointments()->whereKey($appointmentId)->lockForUpdate()->firstOrFail();
                 abort_unless($appointment->attendance_status === 'Pending Scan', 409, 'Receipt already submitted or student marked absent.');
+                abort_unless(!$appointment->started_at && in_array($appointment->status, ['Pending Payment', 'Receipt Uploaded'], true), 409, 'This student cannot join the active assessment.');
                 $appointment->update([...$receiptData, 'payment_slip_path' => null, 'status' => 'Receipt Uploaded', 'attendance_status' => 'Ready', 'appointment_at' => now()]);
             }, 3);
+    }
+
+    public function startLateStudent(GuidanceTestBatch $batch, int $appointmentId, int $staffId): void
+    {
+        DB::transaction(function () use ($batch, $appointmentId, $staffId) {
+            $locked = GuidanceTestBatch::whereKey($batch->getKey())->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'In-Progress', 409, 'The batch is not running.');
+            $appointment = $locked->appointments()->whereKey($appointmentId)->lockForUpdate()->firstOrFail();
+            abort_unless($appointment->attendance_status === 'Ready' && $appointment->status === 'Receipt Uploaded' && !$appointment->started_at, 409, 'This student is not ready to start an assessment.');
+            abort_unless($appointment->hasReceipt(), 422, 'A submitted receipt is required before starting.');
+            foreach ($appointment->testTypes() as $test) app(GuidanceTestScoringService::class)->definition($test);
+
+            $started = now();
+            $appointment->qrCode()->firstOrCreate([], ['token' => bin2hex(random_bytes(32)), 'is_active' => true]);
+            $appointment->update([
+                'status' => 'In-Progress',
+                'verified_by' => $staffId,
+                'verified_at' => $started,
+                'started_at' => $started,
+                'expires_at' => $started->copy()->addSeconds(GuidanceAssessmentSessionService::DURATION),
+            ]);
+        }, 3);
     }
 
     public function start(GuidanceTestBatch $batch, int $staffId): void

@@ -190,6 +190,26 @@ class GuidanceBatchService
         }, 3);
     }
 
+    public function endBatch(GuidanceTestBatch $batch): void
+    {
+        DB::transaction(function () use ($batch) {
+            $locked = GuidanceTestBatch::whereKey($batch->getKey())->lockForUpdate()->firstOrFail();
+            abort_unless($locked->status === 'In-Progress', 409, 'Only a running batch can be ended.');
+
+            $sessions = app(GuidanceAssessmentSessionService::class);
+            $running = $locked->appointments()->where('status', 'In-Progress')->orderBy('guidance_appointment_id')->lockForUpdate()->get();
+            foreach ($running as $appointment) {
+                $sessions->endByStaff($appointment);
+            }
+
+            $locked->appointments()
+                ->whereNull('started_at')
+                ->whereIn('attendance_status', ['Pending Scan', 'Ready'])
+                ->update(['attendance_status' => 'Absent']);
+            $locked->update(['status' => 'Completed', 'archived_at' => now()]);
+        }, 3);
+    }
+
     public function start(GuidanceTestBatch $batch, int $staffId): void
     {
         DB::transaction(function () use ($batch, $staffId) {

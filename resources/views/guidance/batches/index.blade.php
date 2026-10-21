@@ -37,7 +37,12 @@
 <a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{{ route(auth()->user()->role.'.guidance-batches.qr', $batch) }}"><i class="bi bi-qr-code me-1"></i>View / Project Batch QR</a>
 <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#batch-details-{{ $batch->getKey() }}">Review Batch Details</button>
 @unless($archived)
-@foreach(['start'=>'Start Batch Assessment','archive'=>'Archive Batch'] as $action=>$label)<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="{{ $action }}"><button class="btn {{ $action === 'start' ? 'btn-primary' : 'btn-outline-secondary' }}" @disabled($action === 'start' && $batch->status !== 'Pending Registration')>{{ $label }}</button></form>@endforeach
+@if($batch->status === 'Pending Registration')
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="start"><button class="btn btn-primary">Start Batch Assessment</button></form>
+@elseif($batch->status === 'In-Progress')
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('End this batch assessment now? Active tests will be submitted for counselor review, and students who have not started will be marked absent.')">@csrf<input type="hidden" name="action" value="end"><button class="btn btn-danger"><i class="bi bi-stop-circle me-1"></i>End Assessment</button></form>
+@endif
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('Archive this batch? Students who have not started will be marked absent.')">@csrf<input type="hidden" name="action" value="archive"><button class="btn btn-outline-secondary" @disabled($batch->status === 'In-Progress')>Archive Batch</button></form>
 @endunless
 </div>
 <div class="row g-3 mb-4">

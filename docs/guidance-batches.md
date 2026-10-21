@@ -44,7 +44,10 @@ the batch queue and use **Start Assessment** to issue that student a pass and
 start their own section timer. Waiting rooms poll every two seconds and redirect
 to the assessment when staff starts it. Students enter fullscreen with a click
 (browser APIs require a user gesture); this does not reset their deadline.
-Repeated start requests do not create additional passes or reset deadlines.
+Repeated start requests do not create additional passes or reset deadlines. Staff
+can end a running batch with **End Assessment**; active assessments are finalized
+from saved answers for counselor review, unstarted roster entries are marked
+Absent, and the batch is archived.
 
 Mark unstarted students **Absent**, or convert an absent appointment to an
 individual request. Conversion keeps its reference, applicant, receipt, category,

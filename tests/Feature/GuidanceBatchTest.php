@@ -147,6 +147,30 @@ class GuidanceBatchTest extends TestCase
             ->assertJsonPath('url', route('guidance.take', $lateStudent->fresh()->qrCode->token));
     }
 
+    public function test_staff_can_end_running_batch_and_preserve_active_drafts_for_review(): void
+    {
+        Storage::fake('local');
+        $batch = $this->batch();
+        $appointments = $batch->appointments()->orderBy('guidance_appointment_id')->get();
+        $service = app(GuidanceBatchService::class);
+        $service->receipt($batch, $appointments[0]->getKey(), $this->receipt());
+        $staff = $this->staff();
+        $service->start($batch, $staff->id);
+        $active = $appointments[0]->fresh();
+        app(GuidanceAssessmentSessionService::class)->save($active, ['dass21' => [1 => 3]], false, 0);
+
+        $this->actingAs($staff)->post(route('staff.guidance-batches.action', $batch), ['action' => 'end'])->assertRedirect();
+
+        $this->assertSame('Completed', $batch->fresh()->status);
+        $this->assertNotNull($batch->fresh()->archived_at);
+        $this->assertSame('Under review', $active->fresh()->status);
+        $this->assertSame('Completed', $active->fresh()->attendance_status);
+        $this->assertSame(3, $active->fresh()->response->answers['dass21'][1]);
+        $this->assertSame('Incomplete', $active->fresh()->response->score_summary['tests']['dass21']['completion']);
+        $this->assertFalse($active->fresh()->qrCode->is_active);
+        $this->assertSame('Absent', $appointments[1]->fresh()->attendance_status);
+    }
+
     public function test_section_deadlines_catch_up_preserve_drafts_and_auto_archive_batch(): void
     {
         $this->travelTo(now()->startOfSecond());

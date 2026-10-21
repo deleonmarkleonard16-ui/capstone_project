@@ -104,6 +104,9 @@ class GuidanceReviewTest extends TestCase
         $this->submitGuidanceSections($token, ['dass21' => array_fill(1, 21, 3), 'phq9' => array_fill(1, 9, 3), 'gad7' => array_fill(1, 7, 3)])->assertOk();
         $review = $this->getJson($url)->assertOk();
         $this->assertStringContainsString('Raw item answers (JSON)', $review->json('html'));
+        $this->assertStringContainsString('DASS-21 · Depression, Anxiety &amp; Stress', $review->json('html'));
+        $this->assertStringContainsString('PHQ-9 · Patient Health Questionnaire', $review->json('html'));
+        $this->assertStringContainsString('GAD-7 · Generalized Anxiety Disorder', $review->json('html'));
         $this->assertStringContainsString('<template data-review-deferred>', $review->json('html'));
         $this->assertStringContainsString('Extremely Severe', $review->json('html'));
         $this->assertStringContainsString('Used QR pass (inactive)', $review->json('html'));

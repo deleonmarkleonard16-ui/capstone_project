@@ -50,7 +50,7 @@
             <h3 class="h5 mt-4">Submission results</h3>
             @foreach($appointment->response->testSummaries() as $test => $summary)
                 <template data-review-deferred>
-                <h4 class="h6 mt-3">{{ \App\Services\GuidanceTestScoringService::LABELS[$test] ?? $test }}</h4>
+                <h4 class="h6 mt-3">{{ ['dass21' => 'DASS-21 · Depression, Anxiety & Stress', 'phq9' => 'PHQ-9 · Patient Health Questionnaire', 'gad7' => 'GAD-7 · Generalized Anxiety Disorder'][$test] ?? \App\Services\GuidanceTestScoringService::LABELS[$test] ?? $test }}</h4>
                 @if(isset($summary['scores']))
                     <table class="table table-sm"><thead><tr><th>Scale</th><th>Score</th><th>{{ $test === 'career' ? 'Interest level' : 'Severity' }}</th></tr></thead><tbody>
                     @foreach($summary['scores'] as $scale => $score)<tr><td>{{ ucfirst($scale) }}</td><td>{{ $score }}</td><td>{{ $summary['interpretation'][$scale === 'total' ? 'severity' : $scale] ?? 'For counselor review' }}</td></tr>@endforeach

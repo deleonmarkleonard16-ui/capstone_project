@@ -486,25 +486,27 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Computed Exam Score</label>
-                            <input value="{{ $applicant->exam_score !== null ? number_format($applicant->exam_score, 2) : 'Not submitted' }}"
-                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
+                            <div class="form-control form-control-sm bg-light text-muted" aria-label="Computed exam score">
+                                {{ $applicant->exam_score !== null ? number_format($applicant->exam_score, 2) : 'Not submitted' }}
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Stanine Score</label>
-                            <input value="{{ $applicant->stanine_score ?? 'Not computed' }}"
-                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
+                            <div class="form-control form-control-sm bg-light text-muted" aria-label="Stanine score">
+                                {{ $applicant->stanine_score ?? 'Not computed' }}
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Total Score</label>
-                            <input value="{{ $applicant->total_score !== null ? number_format($applicant->total_score, 2) : 'Pending' }}"
-                                   id="edit-total-score-{{ $applicant->id }}"
-                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
+                            <div id="edit-total-score-{{ $applicant->id }}" class="form-control form-control-sm bg-light text-muted" aria-label="Total score">
+                                {{ $applicant->total_score !== null ? number_format($applicant->total_score, 2) : 'Pending' }}
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Remarks</label>
-                            <input value="{{ $outcomes[$applicant->id]['remark'] ?? $eval['remarks'] ?? 'Pending' }}"
-                                   id="edit-qualification-{{ $applicant->id }}"
-                                   class="form-control form-control-sm bg-light text-muted" disabled readonly>
+                            <div id="edit-qualification-{{ $applicant->id }}" class="form-control form-control-sm bg-light text-muted" aria-label="Qualification remarks">
+                                {{ $outcomes[$applicant->id]['remark'] ?? $eval['remarks'] ?? 'Pending' }}
+                            </div>
                         </div>
 
                         @php
@@ -824,9 +826,9 @@
             const editInterview = document.getElementById(`edit-interview-score-${applicantId}`);
             if (editInterview) editInterview.value = Number(payload.interview_score).toFixed(2);
             const editTotal = document.getElementById(`edit-total-score-${applicantId}`);
-            if (editTotal) editTotal.value = payload.total_score === null ? 'Pending' : Number(payload.total_score).toFixed(2);
+            if (editTotal) editTotal.textContent = payload.total_score === null ? 'Pending' : Number(payload.total_score).toFixed(2);
             const editQualification = document.getElementById(`edit-qualification-${applicantId}`);
-            if (editQualification) editQualification.value = payload.qualification_status || 'Pending';
+            if (editQualification) editQualification.textContent = payload.qualification_status || 'Pending';
 
             const remarks = document.querySelector(`[data-remarks-cell="${applicantId}"] .badge`);
             if (remarks) {

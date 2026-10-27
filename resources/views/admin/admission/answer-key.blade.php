@@ -37,12 +37,14 @@
                 <div class="vertical-answer-grid" id="answerKeyGrid" data-total-items="{{ $configuredItems }}">
                     @for ($i = 1; $i <= $configuredItems; $i++)
                         <div class="vertical-answer-grid__item">
-                            <div class="answer-choice-set" role="radiogroup" aria-label="Answer for item {{ $i }}">
-                                <span class="input-group-text answer-choice-set__number">{{ $i }}</span>
-                                @foreach (['A', 'B', 'C', 'D'] as $letter)
-                                    <input class="btn-check" type="radio" name="answers[{{ $i }}]" id="answer-{{ $i }}-{{ $letter }}" value="{{ $letter }}" @checked(($keys[$i] ?? null) === $letter) @required($loop->first)>
-                                    <label class="btn btn-outline-primary btn-sm answer-choice-set__option" for="answer-{{ $i }}-{{ $letter }}">{{ $letter }}</label>
-                                @endforeach
+                            <div class="input-group input-group-sm">
+                                <label class="input-group-text answer-choice-set__number" for="answer-{{ $i }}">{{ $i }}</label>
+                                <select name="answers[{{ $i }}]" id="answer-{{ $i }}" class="form-select form-select-sm" aria-label="Answer for item {{ $i }}" required>
+                                    <option value="">Select</option>
+                                    @foreach (['A', 'B', 'C', 'D'] as $letter)
+                                        <option value="{{ $letter }}" @selected(($keys[$i] ?? null) === $letter)>{{ $letter }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                     @endfor
@@ -71,15 +73,17 @@
     /* Grid places 1–14 top-to-bottom, then starts the next column. */
     .vertical-answer-grid {
         display: grid;
-        grid-template-columns: minmax(0, 520px);
+        grid-template-columns: repeat(5, minmax(145px, 170px));
+        justify-content: center;
         gap: .55rem;
         max-height: 620px;
         overflow: auto;
     }
-    .answer-choice-set { display: flex; align-items: stretch; gap: .25rem; }
     .answer-choice-set__number { min-width: 36px; justify-content: center; }
-    .answer-choice-set__option { min-width: 38px; }
-    @media (max-width: 767.98px) {
+    @media (max-width: 991.98px) {
+        .vertical-answer-grid { grid-template-columns: repeat(3, minmax(145px, 170px)); }
+    }
+    @media (max-width: 575.98px) {
         .vertical-answer-grid { grid-template-columns: minmax(0, 1fr); }
     }
 </style>
@@ -106,12 +110,11 @@
     const buildItem = (item, answer = '') => {
         const col = document.createElement('div');
         col.className = 'vertical-answer-grid__item';
-        const choices = ['A', 'B', 'C', 'D'].map((letter, index) =>
-            `<input class="btn-check" type="radio" name="answers[${item}]" id="answer-${item}-${letter}" value="${letter}" ${letter === answer ? 'checked' : ''} ${index === 0 ? 'required' : ''}>` +
-            `<label class="btn btn-outline-primary btn-sm answer-choice-set__option" for="answer-${item}-${letter}">${letter}</label>`
-        ).join('');
-        col.innerHTML = `<div class="answer-choice-set" role="radiogroup" aria-label="Answer for item ${item}">` +
-            `<span class="input-group-text answer-choice-set__number">${item}</span>${choices}</div>`;
+        col.innerHTML = `<div class="input-group input-group-sm">` +
+            `<label class="input-group-text answer-choice-set__number" for="answer-${item}">${item}</label>` +
+            `<select name="answers[${item}]" id="answer-${item}" class="form-select form-select-sm" aria-label="Answer for item ${item}" required>` +
+            `<option value="">Select</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>`;
+        col.querySelector('select').value = answer;
         return col;
     };
 
@@ -121,7 +124,7 @@
         setter.classList.remove('is-invalid');
 
         const answers = [...grid.querySelectorAll('.vertical-answer-grid__item')]
-            .map(item => item.querySelector('input[type="radio"]:checked')?.value || '');
+            .map(item => item.querySelector('select')?.value || '');
         grid.replaceChildren(...Array.from({ length: count }, (_, index) => buildItem(index + 1, answers[index] || '')));
         grid.dataset.totalItems = count;
         hiddenInput.value = count;

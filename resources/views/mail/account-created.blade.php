@@ -3,7 +3,7 @@
 
 Hello {{ $account->name }},
 
-An administrator approved your **{{ ucfirst($account->role) }}** account for {{ config('app.name') }}.
+An administrator created your **{{ ucfirst($account->role) }}** account for {{ config('app.name') }}.
 
 **Email:** {{ $account->email }}<br>
 **Temporary password:** `{{ $temporaryPassword }}`

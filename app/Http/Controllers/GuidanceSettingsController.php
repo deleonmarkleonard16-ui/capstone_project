@@ -7,7 +7,6 @@ use App\Models\Course;
 use App\Models\User;
 use App\Support\CourseCatalog;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -130,27 +129,29 @@ class GuidanceSettingsController extends Controller
 
         $temporaryPassword = Str::password(14, symbols: true);
 
+        $account = User::create([
+            'name' => trim($data['name']),
+            'email' => strtolower(trim($data['email'])),
+            'role' => $data['role'],
+            'password' => $temporaryPassword,
+            // The account cannot log in until Brevo accepts the credentials.
+            'is_active' => false,
+            'email_verified_at' => now(),
+            'password_setup_required' => $data['role'] === 'staff',
+        ]);
+
         try {
-            $account = DB::transaction(function () use ($data, $temporaryPassword): User {
-                $account = User::create([
-                    'name' => trim($data['name']),
-                    'email' => strtolower(trim($data['email'])),
-                    'role' => $data['role'],
-                    'password' => $temporaryPassword,
-                    'is_active' => true,
-                    'email_verified_at' => now(),
-                    'password_setup_required' => $data['role'] === 'staff',
-                ]);
-
-                Mail::to($account->email)->send(new AccountCreatedMail($account, $temporaryPassword));
-
-                return $account;
-            });
+            Mail::to($account->email)->send(new AccountCreatedMail($account, $temporaryPassword));
+            $account->update(['is_active' => true]);
         } catch (\Throwable $exception) {
             report($exception);
 
+            // This is a brand-new, inactive account with no related activity.
+            // Removing it lets the admin retry with the same email address.
+            $account->delete();
+
             return back()->withInput($request->except('admin_password'))
-                ->with('error', 'The account was not created because Brevo could not send the credentials. Please check the mail configuration and try again.');
+                ->with('error', 'Brevo could not send the credentials within 10 seconds. The account was not created. Please verify the Render mail settings and try again.');
         }
 
         return redirect()->route('admin.settings.index', ['tab' => 'staff'])

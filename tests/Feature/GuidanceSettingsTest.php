@@ -56,6 +56,25 @@ class GuidanceSettingsTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('replacement-secret-123', $staff->fresh()->password));
     }
 
+    public function test_failed_brevo_delivery_removes_inactive_account_and_allows_retry(): void
+    {
+        $admin = User::factory()->create([
+            'role_id' => Role::where('slug', 'admin')->value('id'),
+            'password' => 'admin-password',
+        ]);
+
+        Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('SMTP timed out'));
+
+        $this->actingAs($admin)->post(route('admin.settings.user'), [
+            'name' => 'Retry Staff',
+            'email' => 'retry@example.test',
+            'role' => 'staff',
+            'admin_password' => 'admin-password',
+        ])->assertRedirect()->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('users', ['email' => 'retry@example.test']);
+    }
+
     public function test_official_program_cannot_be_disabled(): void
     {
         $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);

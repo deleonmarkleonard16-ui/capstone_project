@@ -7,6 +7,6 @@
 @if ($headerUser && in_array($headerRole, ['admin', 'staff'], true))
     <div class="header-account d-flex flex-column align-items-center gap-1">
         <small class="text-muted fw-semibold">Signed in as</small>
-        <span class="badge role-pill {{ $headerRole }} text-uppercase">{{ $displayRole }}</span>
+        <span class="badge role-pill {{ $headerRole }}">{{ $displayRole }}: {{ $headerUser->name }}</span>
     </div>
 @endif

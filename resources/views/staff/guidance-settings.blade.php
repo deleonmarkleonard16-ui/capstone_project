@@ -195,28 +195,59 @@
 @elseif(request('tab') === 'staff')
 {{-- ── STAFF ACCOUNTS TAB ── --}}
 <div class="card page-card shadow-sm p-4">
-    <h2 class="h5 section-title mb-2">Create Guidance Staff Account</h2>
-    <form method="post" action="{{ route(auth()->user()->role.'.settings.user') }}" class="row g-2 align-items-end mb-4">
+    <h2 class="h5 section-title mb-2">Create Admin or Staff Account</h2>
+    <p class="text-muted small">A secure password is generated automatically and sent through Brevo after you re-verify and approve the account.</p>
+    <form id="create-account-form" method="post" action="{{ route(auth()->user()->role.'.settings.user') }}" class="row g-2 align-items-end mb-4">
         @csrf
-        <input type="hidden" name="is_active" value="1">
         <div class="col-lg-3">
-            <label class="form-label form-label-sm fw-semibold" for="new-staff-name">Name</label>
-            <input id="new-staff-name" name="name" class="form-control form-control-sm" required maxlength="255">
+            <label class="form-label form-label-sm fw-semibold" for="new-account-name">Name</label>
+            <input id="new-account-name" name="name" class="form-control form-control-sm" value="{{ old('name') }}" required maxlength="255">
         </div>
         <div class="col-lg-3">
-            <label class="form-label form-label-sm fw-semibold" for="new-staff-email">Email</label>
-            <input id="new-staff-email" type="email" name="email" class="form-control form-control-sm" required>
+            <label class="form-label form-label-sm fw-semibold" for="new-account-email">Email</label>
+            <input id="new-account-email" type="email" name="email" class="form-control form-control-sm" value="{{ old('email') }}" required>
         </div>
-        <div class="col-lg-3">
-            <label class="form-label form-label-sm fw-semibold" for="new-staff-password">Temporary Password</label>
-            <input id="new-staff-password" type="password" name="password" minlength="8" class="form-control form-control-sm" required autocomplete="new-password" placeholder="Min. 8 characters">
+        <div class="col-lg-2">
+            <label class="form-label form-label-sm fw-semibold" for="new-account-role">Account type</label>
+            <select id="new-account-role" name="role" class="form-select form-select-sm" required>
+                <option value="staff" @selected(old('role', 'staff') === 'staff')>Staff</option>
+                <option value="admin" @selected(old('role') === 'admin')>Admin</option>
+            </select>
         </div>
-        <div class="col-lg-3">
-            <button class="btn btn-primary btn-sm w-100">Create Staff Account</button>
+        <div class="col-lg-4">
+            <button type="button" class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#approveAccountModal">
+                Create Account
+            </button>
+        </div>
+
+        <div class="modal fade" id="approveAccountModal" tabindex="-1" aria-labelledby="approveAccountLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title h5" id="approveAccountLabel">Re-verify and approve</h3>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info small">
+                            Approving <strong id="approval-role">Staff</strong>: <strong id="approval-name">—</strong>
+                            (<span id="approval-email">—</span>). Brevo will email the generated password immediately.
+                        </div>
+                        <label class="form-label fw-semibold" for="admin-password">Your admin password</label>
+                        <input id="admin-password" form="create-account-form" type="password" name="admin_password" class="form-control" required autocomplete="current-password">
+                        <div class="form-text">Required to confirm that you authorize this account.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" form="create-account-form" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Approve &amp; Send Email
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </form>
 
-    <h2 class="h5 section-title mb-2">Registered Staff Accounts</h2>
+    <h2 class="h5 section-title mb-2">Registered Admin and Staff Accounts</h2>
     <p class="text-muted small mb-3">Leave password blank to retain existing credentials. Disabled accounts remain preserved in historical audit logs.</p>
 
     <div class="table-responsive">
@@ -225,6 +256,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Email</th>
+                    <th>Role</th>
                     <th>Status</th>
                     <th class="text-end">Actions</th>
                 </tr>
@@ -234,6 +266,7 @@
                 <tr>
                     <td class="fw-semibold">{{ $staff->name }}</td>
                     <td>{{ $staff->email }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ ucfirst($staff->role) }}</span></td>
                     <td>
                         <span class="badge bg-{{ $staff->is_active ? 'success' : 'secondary' }}">
                             {{ $staff->is_active ? 'Active' : 'Disabled' }}
@@ -246,7 +279,7 @@
                     </td>
                 </tr>
                 <tr class="collapse bg-light" id="edit-staff-{{ $staff->id }}">
-                    <td colspan="4" class="p-3">
+                    <td colspan="5" class="p-3">
                         <form method="post" action="{{ route(auth()->user()->role.'.settings.user', $staff) }}" class="row g-2 align-items-end">
                             @csrf
                             <input type="hidden" name="is_active" value="0">
@@ -279,6 +312,17 @@
         </table>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.getElementById('approveAccountModal')?.addEventListener('show.bs.modal', () => {
+    document.getElementById('approval-name').textContent = document.getElementById('new-account-name').value || '—';
+    document.getElementById('approval-email').textContent = document.getElementById('new-account-email').value || '—';
+    const role = document.getElementById('new-account-role');
+    document.getElementById('approval-role').textContent = role.options[role.selectedIndex].text;
+});
+</script>
+@endpush
 @endif
 
 @endsection

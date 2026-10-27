@@ -22,10 +22,12 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'email_verified_at',
         'password',
         'role',
         'can_proctor',
         'is_active',
+        'password_setup_required',
     ];
 
     /**
@@ -50,6 +52,7 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'can_proctor'       => 'boolean',
             'is_active'         => 'boolean',
+            'password_setup_required' => 'boolean',
         ];
     }
 

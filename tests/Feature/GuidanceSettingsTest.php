@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class GuidanceSettingsTest extends TestCase
@@ -38,13 +39,17 @@ class GuidanceSettingsTest extends TestCase
 
     public function test_admin_creates_staff_and_resets_credentials(): void
     {
-        $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
+        Mail::fake();
+        $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id'), 'password' => 'admin-password']);
         $this->actingAs($admin)->post(route('admin.settings.user'), [
-            'name' => 'Guidance Staff', 'email' => 'staff@example.test', 'password' => 'initial-secret-123', 'is_active' => '1',
+            'name' => 'Guidance Staff', 'email' => 'staff@example.test', 'role' => 'staff',
+            'admin_password' => 'admin-password',
         ])->assertRedirect();
         $staff = User::where('email', 'staff@example.test')->firstOrFail();
         $this->assertSame('staff', $staff->role);
         $this->assertTrue($staff->is_active);
+        $this->assertTrue($staff->password_setup_required);
+        Mail::assertSent(\App\Mail\AccountCreatedMail::class, fn ($mail) => $mail->hasTo('staff@example.test'));
         $this->actingAs($admin)->post(route('admin.settings.user', $staff), [
             'name' => 'Updated Staff', 'email' => $staff->email, 'password' => 'replacement-secret-123', 'is_active' => '1',
         ])->assertRedirect();

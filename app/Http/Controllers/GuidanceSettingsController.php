@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AccountCreatedMail;
 use App\Models\Course;
 use App\Models\User;
 use App\Support\CourseCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class GuidanceSettingsController extends Controller
@@ -21,7 +25,8 @@ class GuidanceSettingsController extends Controller
 
         return view('staff.guidance-settings', [
             'courses' => Course::orderBy('code')->get(),
-            'users' => User::whereHas('roleLookup', fn ($query) => $query->where('slug', 'staff'))->orderBy('name')->get(),
+            'users' => User::whereHas('roleLookup', fn ($query) => $query->whereIn('slug', ['admin', 'staff']))
+                ->with('roleLookup')->orderBy('name')->get(),
         ]);
     }
 
@@ -89,15 +94,66 @@ class GuidanceSettingsController extends Controller
 
     public function user(Request $request, ?User $user = null)
     {
-        if ($user) abort_unless($user->role === 'staff', 404);
+        if ($user) abort_unless(in_array($user->role, ['admin', 'staff'], true), 404);
+
+        if (! $user) {
+            return $this->createUser($request);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user?->id)],
             'is_active' => 'required|boolean',
-            'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8'],
         ]);
+
+        if ($user->is($request->user()) && ! (bool) $data['is_active']) {
+            return back()->with('error', 'You cannot disable the account you are currently using.');
+        }
+
         if (empty($data['password'])) unset($data['password']);
-        if ($user) $user->update($data); else User::create($data + ['role' => 'staff']);
-        return back()->with('success', 'Staff account updated.');
+        $user->update($data);
+
+        return back()->with('success', ucfirst($user->role).' account updated.');
+    }
+
+    private function createUser(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')],
+            'role' => ['required', Rule::in(['admin', 'staff'])],
+            'admin_password' => ['required', 'current_password'],
+        ], [
+            'admin_password.current_password' => 'The administrator password is incorrect. The account was not approved.',
+        ]);
+
+        $temporaryPassword = Str::password(14, symbols: true);
+
+        try {
+            $account = DB::transaction(function () use ($data, $temporaryPassword): User {
+                $account = User::create([
+                    'name' => trim($data['name']),
+                    'email' => strtolower(trim($data['email'])),
+                    'role' => $data['role'],
+                    'password' => $temporaryPassword,
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                    'password_setup_required' => $data['role'] === 'staff',
+                ]);
+
+                Mail::to($account->email)->send(new AccountCreatedMail($account, $temporaryPassword));
+
+                return $account;
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withInput($request->except('admin_password'))
+                ->with('error', 'The account was not created because Brevo could not send the credentials. Please check the mail configuration and try again.');
+        }
+
+        return redirect()->route('admin.settings.index', ['tab' => 'staff'])
+            ->with('success', ucfirst($account->role).' account approved. Login credentials were sent to '.$account->email.'.');
     }
 }

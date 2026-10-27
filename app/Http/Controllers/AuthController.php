@@ -43,6 +43,10 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->put('user_role', $role);
 
+        if ($role === 'staff' && Auth::user()->password_setup_required) {
+            return redirect()->route('staff.password-choice');
+        }
+
         return redirect()->route($role.'.dashboard');
     }
 

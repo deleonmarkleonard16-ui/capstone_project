@@ -35,4 +35,21 @@ class StaffSettingsTest extends TestCase
         ])->assertSessionHasErrors('current_password');
         $this->assertNotSame('Changed', $staff->fresh()->name);
     }
+
+    public function test_new_staff_chooses_whether_to_keep_or_change_temporary_password(): void
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'password_setup_required' => true,
+        ]);
+
+        $this->post(route('login.store'), [
+            'email' => $staff->email,
+            'password' => 'password',
+        ])->assertRedirect(route('staff.password-choice'));
+
+        $this->get(route('staff.password-choice'))->assertOk()->assertSee('Change Password');
+        $this->post(route('staff.password-choice.keep'))->assertRedirect(route('staff.dashboard'));
+        $this->assertFalse($staff->fresh()->password_setup_required);
+    }
 }

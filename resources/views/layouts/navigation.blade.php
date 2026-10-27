@@ -61,8 +61,8 @@
             {{-- Account pill: Compact rounded pill badge without secondary title lines --}}
             <div class="sidebar-account mb-3">
                 <small>Signed in as</small>
-                <span class="badge role-pill {{ $isStaff ? 'staff' : ($isAdmin ? 'admin' : 'secondary') }} text-uppercase">
-                    {{ $displayRole }}
+                <span class="badge role-pill {{ $isStaff ? 'staff' : ($isAdmin ? 'admin' : 'secondary') }}">
+                    {{ $displayRole }}: {{ $user->name }}
                 </span>
             </div>
 

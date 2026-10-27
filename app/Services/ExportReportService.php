@@ -58,12 +58,15 @@ class ExportReportService
             ->when(in_array($type, ['qualified', 'not-qualified'], true), fn ($q) => $q->where('qualification_status', $type === 'qualified' ? 'Qualified' : 'Not Qualified'))
             ->when($type !== 'session', fn ($q) => $q->orderBy('course_choice')->orderByDesc('total_score'))
             ->orderBy('last_name')->orderBy('first_name')->get();
-        $columns = ['Application Number', 'Name', 'Sex', 'Course Choice', 'GWA'];
-        $columns = array_merge($columns, $type === 'session' ? ['Proctor Verification'] : ['Exam Score', 'Stanine', 'Interview', 'Total Score', 'Status']);
+        $columns = $type === 'session'
+            ? ['Full Name', 'First Choice', 'Second Choice', 'GWA']
+            : ['Application Number', 'Name', 'Sex', 'Course Choice', 'GWA', 'Exam Score', 'Stanine', 'Interview', 'Total Score', 'Status'];
         $rows = $records->map(function ($r) use ($type) {
-            $row = [$r->application_number ?? '-', $r->full_name ?? 'N/A', $r->sex ?? '-', $r->course_choice ?? 'N/A', $r->gwa ?? '-'];
+            if ($type === 'session') {
+                return [$r->full_name ?? 'N/A', $r->course_choice_1 ?: $r->course_choice ?: 'N/A', $r->course_choice_2 ?: $r->second_course_choice ?: '-', $r->gwa !== null ? number_format((float) $r->gwa, 2) : '-'];
+            }
 
-            return array_merge($row, $type === 'session' ? ['________________'] : [$r->exam_score ?? '-', $r->stanine_score ?? '-', $r->interview_score ?? '-', $r->total_score ?? '-', $r->qualification_status ?? 'Pending']);
+            return [$r->application_number ?? '-', $r->full_name ?? 'N/A', $r->sex ?? '-', $r->course_choice ?? 'N/A', $r->gwa ?? '-', $r->exam_score ?? '-', $r->stanine_score ?? '-', $r->interview_score ?? '-', $r->total_score ?? '-', $r->qualification_status ?? 'Pending'];
         });
 
         return [

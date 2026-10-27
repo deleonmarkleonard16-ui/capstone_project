@@ -101,14 +101,14 @@ class DocumentExportTest extends TestCase
         }
     }
 
-    public function test_session_print_is_scoped_and_auto_prints_with_proctor_column(): void
+    public function test_session_print_is_scoped_and_auto_prints_with_requested_columns(): void
     {
         $this->login();
         $cycle = $this->cycle();
         $session = AdmissionSession::create(['admission_cycle_id' => $cycle->id, 'session_name' => 'Morning', 'start_time' => now(), 'room' => '101', 'start_number' => 1, 'end_number' => 10]);
         $this->applicant($cycle, ['admission_session_id' => $session->id, 'first_name' => 'Assigned']);
         $this->applicant($cycle, ['first_name' => 'Unassigned']);
-        $this->get('/admin/admission/print-masterlist?session_id='.$session->id)->assertOk()->assertSee('Assigned')->assertDontSee('Unassigned')->assertSee('Proctor Verification')->assertSee('GWA')->assertSee('window.onload = function() { window.print(); };', false);
+        $this->get('/admin/admission/print-masterlist?session_id='.$session->id)->assertOk()->assertSee('Assigned')->assertDontSee('Unassigned')->assertSee('Full Name')->assertSee('First Choice')->assertSee('Second Choice')->assertSee('GWA')->assertDontSee('Application Number')->assertDontSee('Proctor Verification')->assertSee('window.onload = function() { window.print(); };', false);
         $this->get('/admin/admission/export?type=session')->assertRedirect('/admin/exports')->assertSessionHas('error');
     }
 

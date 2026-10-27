@@ -486,25 +486,25 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Computed Exam Score</label>
-                            <div class="form-control form-control-sm bg-light text-muted" aria-label="Computed exam score">
+                            <div class="small fw-semibold text-dark py-1" aria-label="Computed exam score">
                                 {{ $applicant->exam_score !== null ? number_format($applicant->exam_score, 2) : 'Not submitted' }}
                             </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Stanine Score</label>
-                            <div class="form-control form-control-sm bg-light text-muted" aria-label="Stanine score">
+                            <div class="small fw-semibold text-dark py-1" aria-label="Stanine score">
                                 {{ $applicant->stanine_score ?? 'Not computed' }}
                             </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Total Score</label>
-                            <div id="edit-total-score-{{ $applicant->id }}" class="form-control form-control-sm bg-light text-muted" aria-label="Total score">
+                            <div id="edit-total-score-{{ $applicant->id }}" class="small fw-semibold text-dark py-1" aria-label="Total score">
                                 {{ $applicant->total_score !== null ? number_format($applicant->total_score, 2) : 'Pending' }}
                             </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label form-label-sm text-muted">Remarks</label>
-                            <div id="edit-qualification-{{ $applicant->id }}" class="form-control form-control-sm bg-light text-muted" aria-label="Qualification remarks">
+                            <div id="edit-qualification-{{ $applicant->id }}" class="small fw-semibold text-dark py-1" aria-label="Qualification remarks">
                                 {{ $outcomes[$applicant->id]['remark'] ?? $eval['remarks'] ?? 'Pending' }}
                             </div>
                         </div>

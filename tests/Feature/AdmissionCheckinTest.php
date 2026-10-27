@@ -76,9 +76,13 @@ class AdmissionCheckinTest extends TestCase
 
         $this->get(route('admin.admission.sessions.print-masterlist', $session))
             ->assertOk()
-            ->assertSee('Official Admission Test Session Masterlist')
+            ->assertSee('List of Examinees for PSU-SC CAT')
             ->assertSee('Covered Court')
-            ->assertSeeInOrder(['CAT-001', 'CAT-002'])
+            ->assertSeeInOrder(['Alpha, Test', 'Zulu, Test'])
+            ->assertSee('First Choice')
+            ->assertSee('Second Choice')
+            ->assertSee('GWA')
+            ->assertDontSee('Application Number')
             ->assertSee('window.print()');
 
         $paperSheets = $this->get(route('admin.admission.sessions.print-paper-answer-sheets', $session))

@@ -3,153 +3,95 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Session Masterlist — {{ $session->session_name }}</title>
+    <title>PSU-CAT Masterlist — {{ $session->session_name }}</title>
     <style>
-        @page { size: A4 landscape; margin: 0; }
+        @page { size: A4 portrait; margin: 0; }
         * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            padding: 10mm;
-            color: #111;
-            background: #fff;
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 10px;
-        }
-        .document { width: 100%; margin: 0 auto; }
-        .toolbar { margin-bottom: 12px; text-align: right; }
-        .toolbar button {
-            padding: 8px 14px;
-            border: 1px solid #143d80;
-            border-radius: 4px;
-            color: #fff;
-            background: #143d80;
-            cursor: pointer;
-        }
-        .official-header {
-            position: relative;
-            min-height: 24mm;
-            padding: 1mm 24mm 4mm;
-            text-align: center;
-            border-bottom: 2px solid #143d80;
-        }
-        .official-header img {
-            position: absolute;
-            top: 0;
-            left: 2mm;
-            width: 21mm;
-            height: 21mm;
-            object-fit: contain;
-        }
-        .university { margin: 0; font-size: 18px; color: #143d80; text-transform: uppercase; }
-        .office { margin: 3px 0 0; font-size: 12px; font-weight: 700; }
-        .document-title { margin: 7px 0 0; font-size: 15px; text-transform: uppercase; letter-spacing: .5px; }
-        .meta {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px 18px;
-            margin: 5mm 0 4mm;
-            padding: 3mm;
-            border: 1px solid #888;
-            background: #f7f8fa;
-        }
-        .meta div { min-width: 0; }
-        .meta strong { display: inline-block; margin-right: 4px; }
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { border: 1px solid #555; padding: 5px 4px; vertical-align: middle; }
-        th { background: #e8edf5; font-size: 9px; text-align: center; text-transform: uppercase; }
-        tbody tr { height: 11mm; break-inside: avoid; page-break-inside: avoid; }
-        .center { text-align: center; }
-        .mono { font-family: Consolas, "Courier New", monospace; }
-        .name { font-weight: 700; text-transform: uppercase; }
-        .remarks { height: 10mm; }
-        .document-footer {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5mm;
-            font-size: 9px;
-            color: #444;
-        }
-        @media print {
-            html, body { width: 100%; min-height: 100%; }
-            body { padding: 10mm; }
-            .no-print { display: none !important; }
-            .meta, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
+        body { margin: 0; background: #e9edf3; font-family: Arial, Helvetica, sans-serif; color: #111; }
+        .toolbar { width: 210mm; margin: 10px auto; text-align: right; }
+        .toolbar button { padding: 9px 15px; color: #fff; background: #123c85; border: 0; border-radius: 4px; font-weight: 700; cursor: pointer; }
+        .paper { position: relative; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 0 13mm 22mm; background: #fff; overflow: hidden; }
+        .header-band { margin: 0 -13mm; padding: 8mm 12mm 5mm; background: #fff900; border-top: 3px solid #101010; border-bottom: 3px solid #fff900; }
+        .header-table { width: 100%; border-collapse: collapse; }
+        .header-table td { border: 0; vertical-align: middle; }
+        .seal { width: 29mm; height: 29mm; object-fit: contain; }
+        .bagong { width: 31mm; max-height: 25mm; object-fit: contain; }
+        .republic { margin-bottom: 1mm; font-family: Georgia, serif; font-size: 10pt; }
+        .university-image { width: 86mm; max-height: 13mm; object-fit: contain; }
+        .university-fallback { display: block; font: bold 22pt Georgia, serif; }
+        .campus { margin: 1mm 0; font-family: Georgia, serif; font-size: 9pt; }
+        .contacts { display: flex; justify-content: center; gap: 3mm; font-size: 6.5pt; white-space: nowrap; }
+        .yellow-rule { height: 3mm; margin: 0 -13mm; background: #fff900; border-bottom: 1mm solid #d8d8d8; }
+        .title { margin: 6mm 0 4mm; text-align: center; font-size: 10.5pt; font-weight: 700; text-transform: uppercase; }
+        .schedule { display: grid; grid-template-columns: 1.3fr 1.3fr .8fr; gap: 4mm; margin: 0 8mm 4mm; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; }
+        .schedule .value { color: #1174ba; text-decoration: underline; }
+        .content { display: grid; grid-template-columns: 1fr 33mm; gap: 8mm; align-items: start; }
+        table.masterlist { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7pt; }
+        .masterlist th, .masterlist td { height: 4.8mm; padding: 1px 2px; border: .25mm solid #575757; vertical-align: middle; }
+        .masterlist th { text-align: center; font-size: 6.7pt; font-weight: 700; text-transform: uppercase; }
+        .masterlist td:first-child, .masterlist td:last-child { text-align: center; }
+        .name, .choice { text-transform: uppercase; }
+        .note { margin-top: 52mm; padding: 4mm 2.5mm; border: .35mm solid #666; text-align: center; font-size: 8.4pt; line-height: 1.12; text-transform: uppercase; }
+        .note strong { display: block; margin-bottom: 3mm; text-align: left; }
+        .footer-band { position: absolute; right: 0; bottom: 0; left: 0; padding: 2mm 4mm 1.5mm; background: #fff900; border-top: 1px solid #e6d900; }
+        .footer-band img { display: block; width: 100%; height: 9mm; object-fit: contain; }
+        .footer-text { margin-top: 1mm; text-align: center; font-size: 5.3pt; line-height: 1.2; }
+        .empty { padding: 8mm; text-align: center; }
+        @media print { body { background: #fff; } .toolbar { display: none; } .paper { width: 210mm; min-height: 297mm; margin: 0; } .header-band, .yellow-rule, .footer-band { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     </style>
 </head>
 <body>
-<div class="toolbar no-print">
-    <button type="button" onclick="window.print()">Print Masterlist</button>
-</div>
-
-<main class="document">
-    <header class="official-header">
-        <img src="{{ asset('images/psu-logo.png') }}" alt="Pangasinan State University logo">
-        <h1 class="university">Pangasinan State University — San Carlos Campus</h1>
-        <p class="office">Guidance &amp; Counseling / Testing Office</p>
-        <h2 class="document-title">Official Admission Test Session Masterlist</h2>
+@php
+    $sealPath = public_path('images/psu-template/image1.png');
+    if (!is_file($sealPath)) $sealPath = public_path('images/psu-logo.png');
+    $seal = is_file($sealPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($sealPath)) : '';
+    $titlePath = public_path('images/psu-template/psu_title_gothic.png');
+    $titleImage = is_file($titlePath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($titlePath)) : '';
+    $bagongPath = public_path('images/psu-template/bagong_pilipinas.png');
+    $bagong = is_file($bagongPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($bagongPath)) : '';
+    $footerPath = public_path('images/psu-template/image8.png');
+    if (!is_file($footerPath)) $footerPath = public_path('images/psu-template/image8.jpg');
+    $footer = is_file($footerPath) ? 'data:image/'.(str_ends_with($footerPath, '.png') ? 'png' : 'jpeg').';base64,'.base64_encode(file_get_contents($footerPath)) : '';
+@endphp
+<div class="toolbar"><button type="button" onclick="window.print()">Print Masterlist</button></div>
+<main class="paper">
+    <header class="header-band">
+        <table class="header-table"><tr>
+            <td style="width:32mm"><img class="seal" src="{{ $seal }}" alt="Pangasinan State University seal"></td>
+            <td style="text-align:center">
+                <div class="republic">Republic of the Philippines</div>
+                @if($titleImage)<img class="university-image" src="{{ $titleImage }}" alt="Pangasinan State University">@else<div class="university-fallback">Pangasinan State University</div>@endif
+                <div class="campus">Lingayen, Pangasinan</div>
+                <div class="contacts">www.psu.edu.ph &nbsp; • &nbsp; president@psu.edu.ph &nbsp; • &nbsp; www.facebook.com/PSUroars</div>
+            </td>
+            <td style="width:34mm;text-align:right">@if($bagong)<img class="bagong" src="{{ $bagong }}" alt="Bagong Pilipinas">@endif</td>
+        </tr></table>
     </header>
-
-    <section class="meta" aria-label="Session details">
-        <div><strong>Admission Cycle:</strong> {{ $cycle->name ?? $cycle->cycle_name ?? '—' }}</div>
-        <div><strong>Session Name:</strong> {{ $session->session_name }}</div>
-        <div><strong>Venue:</strong> {{ $session->room ?: 'Main Testing Hall' }}</div>
-        <div><strong>Date &amp; Time:</strong> {{ optional($session->start_time)->format('F d, Y · h:i A') ?: 'Not scheduled' }}</div>
-        <div><strong>Masterlist Range:</strong> #{{ $session->start_number }}–#{{ $session->end_number }}</div>
-        <div><strong>Total Assigned:</strong> {{ $applicants->count() }} examinee(s)</div>
+    <div class="yellow-rule"></div>
+    <h1 class="title">List of Examinees for PSU-SC CAT ({{ $session->session_name }})</h1>
+    <div class="schedule">
+        <div>Date of Test: <span class="value">{{ optional($session->start_time)->format('F d, Y') ?: 'Not set' }}</span></div>
+        <div>Venue: <span class="value">{{ $session->room ?: 'Not set' }}</span></div>
+        <div>Time: <span class="value">{{ optional($session->start_time)->format('h:i A') ?: 'Not set' }}</span></div>
+    </div>
+    <section class="content">
+        <table class="masterlist">
+            <colgroup><col style="width:7%"><col style="width:36%"><col style="width:20%"><col style="width:20%"><col style="width:17%"></colgroup>
+            <thead><tr><th>No.</th><th>Full Name</th><th>First Choice</th><th>Second Choice</th><th>GWA</th></tr></thead>
+            <tbody>
+                @forelse($applicants as $applicant)
+                    <tr><td>{{ $loop->iteration }}</td><td class="name">{{ $applicant->full_name }}</td><td class="choice">{{ \App\Support\CourseCatalog::label($applicant->course_choice_1 ?: $applicant->course_choice) }}</td><td class="choice">{{ \App\Support\CourseCatalog::label($applicant->course_choice_2 ?: $applicant->second_course_choice) }}</td><td>{{ $applicant->gwa !== null ? number_format((float) $applicant->gwa, 2) : '—' }}</td></tr>
+                @empty
+                    <tr><td colspan="5" class="empty">No examinees are assigned to {{ $session->session_name }}.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+        <aside class="note"><strong>Note:</strong>Those applicants whose names are not included in the list must check their application status and follow the given instruction to qualify for the last batch of examination.</aside>
     </section>
-
-    <table>
-        <colgroup>
-            <col style="width:4%"><col style="width:12%"><col style="width:23%"><col style="width:6%">
-            <col style="width:16%"><col style="width:7%"><col style="width:13%"><col style="width:19%">
-        </colgroup>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Application Number</th>
-                <th>Full Name<br>(Last Name, First Name, Middle Name)</th>
-                <th>Sex</th>
-                <th>Course Choice</th>
-                <th>GWA</th>
-                <th>Exam Status / Score</th>
-                <th>Proctor Signature / Remarks</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($applicants as $index => $applicant)
-                <tr>
-                    <td class="center">{{ $index + 1 }}</td>
-                    <td class="center mono">{{ $applicant->application_number }}</td>
-                    <td class="name">{{ $applicant->full_name }}</td>
-                    <td class="center">{{ $applicant->sex ?: '—' }}</td>
-                    <td>{{ \App\Support\CourseCatalog::label($applicant->course_choice) }}</td>
-                    <td class="center mono">{{ $applicant->gwa !== null ? number_format((float) $applicant->gwa, 2) : '—' }}</td>
-                    <td class="center">
-                        @if($applicant->submitted_at)
-                            <strong>Submitted</strong><br>
-                            Score: {{ number_format((float) $applicant->exam_score, 2) }} / {{ (int) ($cycle->total_items ?: 80) }}<br>
-                            Stanine: {{ $applicant->stanine_score ?? '—' }}
-                        @else
-                            Pending
-                        @endif
-                    </td>
-                    <td class="remarks"></td>
-                </tr>
-            @empty
-                <tr><td colspan="8" class="center">No examinees are assigned to this session.</td></tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    <footer class="document-footer">
-        <span>Prepared for: PSU-CAT Session Administration</span>
-        <span>Generated: {{ now()->format('F d, Y · h:i A') }}</span>
+    <footer class="footer-band">
+        @if($footer)<img src="{{ $footer }}" alt="Pangasinan State University footer">@endif
+        <div class="footer-text">Alaminos City · Asingan · Bayambang · Binmaley · Infanta · San Carlos City · Sta. Maria · Urdaneta City &nbsp;|&nbsp; School of Advanced Studies · Open University Systems</div>
     </footer>
 </main>
-
-<script>
-    window.addEventListener('load', function () { window.print(); });
-</script>
 </body>
 </html>

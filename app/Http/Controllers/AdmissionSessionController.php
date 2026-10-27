@@ -246,9 +246,15 @@ class AdmissionSessionController extends Controller
 
     public function printMasterlist(AdmissionSession $session)
     {
-        request()->merge(['session_id' => $session->id]);
+        $cycle = $session->cycle;
+        abort_unless($cycle, 404);
 
-        return app(DocumentExportController::class)->printMasterlist(request(), 'admission');
+        $applicants = $session->applicants()
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        return view('admin.admission.sessions.print_masterlist', compact('session', 'cycle', 'applicants'));
     }
 
     /**

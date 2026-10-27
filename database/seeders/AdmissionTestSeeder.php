@@ -35,7 +35,7 @@ class AdmissionTestSeeder extends Seeder
         User::updateOrCreate(
             ['email' => $staffEmail],
             [
-                'name' => env('STAFF_NAME', 'Admission Staff'),
+                'name' => env('STAFF_NAME', 'Staff'),
                 'password' => Hash::make($staffPassword),
                 'role' => 'staff',
                 'is_active' => true,

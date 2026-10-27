@@ -11,6 +11,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuditActivity
 {
+    private const IGNORED_ROUTES = [
+        'answers.save-progress',
+        'guidance.progress',
+        'api.notifications.clear-module',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -24,6 +30,11 @@ class AuditActivity
 
         $route = $request->route();
         $routeName = $route?->getName();
+
+        if (in_array($routeName, self::IGNORED_ROUTES, true)) {
+            return $response;
+        }
+
         $action = $routeName ? str_replace(['.', '-', '_'], ' ', $routeName) : $request->method().' '.$request->path();
         $subject = [];
         foreach (($route?->parameters() ?? []) as $key => $value) {

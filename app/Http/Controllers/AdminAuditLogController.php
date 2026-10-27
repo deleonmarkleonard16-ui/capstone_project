@@ -7,6 +7,12 @@ use Illuminate\Http\Request;
 
 class AdminAuditLogController extends Controller
 {
+    private const HIDDEN_BACKGROUND_ROUTES = [
+        'answers.save-progress',
+        'guidance.progress',
+        'api.notifications.clear-module',
+    ];
+
     public function index(Request $request)
     {
         $filters = $request->validate([
@@ -16,7 +22,11 @@ class AdminAuditLogController extends Controller
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ]);
 
-        $query = AuditLog::query()->orderByDesc('created_at')->orderByDesc('id');
+        $query = AuditLog::query()
+            ->with('user:id,name')
+            ->whereNotIn('route', self::HIDDEN_BACKGROUND_ROUTES)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
         if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(fn ($q) => $q->where('user_name', 'like', "%{$search}%")

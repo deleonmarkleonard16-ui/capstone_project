@@ -41,7 +41,7 @@
                 @forelse($logs as $log)
                     <tr>
                         <td class="text-nowrap">{{ $log->created_at?->format('Y-m-d H:i:s') }}</td>
-                        <td>{{ $log->user_name ?? 'Deleted user' }}<div class="small text-muted text-uppercase">{{ $log->user_role }}</div></td>
+                        <td>{{ $log->user?->name ?? $log->user_name ?? 'Deleted user' }}<div class="small text-muted text-uppercase">{{ $log->user_role }}</div></td>
                         <td>{{ $log->action }}</td>
                         <td class="small">@if($log->subject){{ collect($log->subject)->map(fn ($value, $key) => "$key: $value")->join(', ') }}@else—@endif</td>
                         <td><span class="badge text-bg-light">{{ $log->method }}</span> <span class="small">{{ $log->route ?? '—' }}</span></td>

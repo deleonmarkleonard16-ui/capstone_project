@@ -7,7 +7,7 @@
     <h2 class="h5">{{ ucwords(str_replace('-', ' ', $module)) }}</h2>
     <form method="GET" action="{{ route(auth()->user()->role.'.'.$module.'.export') }}" class="row g-3">
         <div class="col-md-4"><label class="form-label">Document type</label><select name="type" class="form-select">@foreach($types as $type)<option value="{{ $type }}">{{ ucwords(str_replace('-', ' ', $type)) }}</option>@endforeach</select></div>
-        <div class="col-md-4"><label class="form-label">Format</label><select name="format" class="form-select"><option value="html">Print-friendly preview</option><option value="pdf">PDF</option><option value="docx">DOCX</option><option value="csv">CSV</option></select></div>
+        <div class="col-md-4"><label class="form-label">Format</label><select name="format" class="form-select"><option value="pdf">PDF viewer (print / download)</option><option value="docx">DOCX</option><option value="csv">CSV</option></select></div>
         @if($module !== 'analytics')
             <div class="col-md-4"><label class="form-label">Course</label><select name="course" class="form-select"><option value="">All courses</option>@foreach($courses as $code => $label)<option value="{{ $code }}">{{ $label }}</option>@endforeach</select></div>
         @endif
@@ -22,7 +22,7 @@
             <div class="col-md-3"><label class="form-label">Request ID (individual document)</label><input type="number" min="1" name="request_id" class="form-control"></div>
             <div class="col-md-3"><label class="form-label">Status</label><input name="status" class="form-control" placeholder="All statuses"></div>
         @endif
-        <div class="col-12"><button class="btn btn-primary">Generate document</button> <label class="ms-3"><input type="checkbox" name="auto_print" value="1"> Open print dialog for HTML</label></div>
+        <div class="col-12"><button class="btn btn-primary">Open document</button></div>
     </form>
 </div></div>
 @endforeach

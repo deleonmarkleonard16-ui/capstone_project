@@ -12,8 +12,8 @@
                 <td>@if($entry->hasReceipt())<button type="button" class="btn btn-link btn-sm p-0" data-receipt="{{ route(auth()->user()->role.'.documents.proof', $entry) }}" data-or-number="{{ $entry->or_number }}" data-or-date="{{ $entry->or_date ? \Illuminate\Support\Carbon::parse($entry->or_date)->format('M d, Y') : '' }}"><i class="bi bi-receipt me-1"></i>Show receipt</button>@else<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Not uploaded</span>@endif</td>
                 <td class="text-nowrap">@include('staff.partials.document-actions')
                     @if($entry->hasReceipt() && (($moduleKey === 'good-moral' && in_array($entry->status, ['ready', 'completed'], true)) || ($moduleKey === 'exit-form' && $entry->status === 'completed')))
-                        @foreach(['html' => ($moduleKey === 'good-moral' ? 'Print Certificate' : 'Print Exit Clearance Slip'), 'pdf' => 'PDF', 'docx' => 'DOCX'] as $format => $label)
-                            <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.'.$moduleKey.'.export', ['request_id' => $entry->id, 'type' => 'certificate', 'format' => $format, 'auto_print' => $format === 'html' ? 1 : 0]) }}" target="_blank" rel="noopener">{{ $label }}</a>
+                        @foreach(['pdf' => 'View / Print PDF', 'docx' => 'DOCX'] as $format => $label)
+                            <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.'.$moduleKey.'.export', ['request_id' => $entry->id, 'type' => 'certificate', 'format' => $format]) }}" target="_blank" rel="noopener">{{ $label }}</a>
                         @endforeach
                     @endif
                 </td>

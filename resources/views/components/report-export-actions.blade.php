@@ -58,8 +58,7 @@
 
 @php
     $actions = [
-        'html' => ['label' => 'Print official report', 'colors' => 'bg-slate-800 hover:bg-slate-900'],
-        'pdf' => ['label' => 'Export PDF', 'colors' => 'bg-red-600 hover:bg-red-700'],
+        'pdf' => ['label' => 'View / Print PDF', 'colors' => 'bg-red-600 hover:bg-red-700'],
         'docx' => ['label' => 'Export DOCX', 'colors' => 'bg-blue-600 hover:bg-blue-700'],
         'csv' => ['label' => 'Export CSV', 'colors' => 'bg-emerald-600 hover:bg-emerald-700'],
     ];
@@ -68,7 +67,8 @@
 <div class="report-export-actions no-print mb-3 flex items-center gap-2" role="group" aria-label="Report print and export actions">
     @foreach($actions as $format => $action)
         <a class="report-export-actions__button report-export-actions__button--{{ $format }} {{ $action['colors'] }} flex items-center gap-2 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-white transition-colors"
-           href="{{ route(auth()->user()->role.'.guidance-testing.export', array_merge($parameters, ['type' => 'individual', 'format' => $format, 'auto_print' => $format === 'html' ? 1 : 0])) }}">
+           href="{{ route(auth()->user()->role.'.guidance-testing.export', array_merge($parameters, ['type' => 'individual', 'format' => $format])) }}"
+           @if($format === 'pdf') target="_blank" rel="noopener" @endif>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                 @if($format === 'html')
                     <path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />

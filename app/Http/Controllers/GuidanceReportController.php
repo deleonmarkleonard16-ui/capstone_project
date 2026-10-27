@@ -50,7 +50,8 @@ class GuidanceReportController extends Controller
                 default => 'text/html; charset=UTF-8',
             }, 'Cache-Control' => 'private, no-store'];
             if ($format !== 'html') {
-                $headers['Content-Disposition'] = 'attachment; filename="DMSGTA-'.($isPersonality ? 'Personality' : 'Psychological').'-Assessment-'.$appointment->getKey().'.'.$format.'"';
+                $disposition = $format === 'pdf' ? 'inline' : 'attachment';
+                $headers['Content-Disposition'] = $disposition.'; filename="DMSGTA-'.($isPersonality ? 'Personality' : 'Psychological').'-Assessment-'.$appointment->getKey().'.'.$format.'"';
             }
 
             return response($bytes, 200, $headers);

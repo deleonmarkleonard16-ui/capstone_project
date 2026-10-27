@@ -83,7 +83,7 @@ class AdmissionReportController extends Controller
 
         return response($bytes, 200, [
             'Content-Type' => $mime,
-            'Content-Disposition' => 'attachment; filename="PSU-CAT-'.$type.'-'.$cycle->id.'.'.$format.'"',
+            'Content-Disposition' => ($format === 'pdf' ? 'inline' : 'attachment').'; filename="PSU-CAT-'.$type.'-'.$cycle->id.'.'.$format.'"',
             'Cache-Control' => 'private, no-store',
             'X-Content-Type-Options' => 'nosniff',
         ]);

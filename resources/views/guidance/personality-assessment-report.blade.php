@@ -9,7 +9,7 @@
 <body>
     @if($format === 'html')
         <nav class="no-print" aria-label="Assessment actions">
-            <button type="button" onclick="window.print()">Print assessment</button>
+            <a href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener">View / Print PDF</a>
             @foreach(['pdf'] as $exportFormat)
                 <a href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => $exportFormat]) }}">Download {{ strtoupper($exportFormat) }}</a>
             @endforeach

@@ -83,7 +83,7 @@ class DocumentExportController extends Controller
             $headers = ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'];
             if ($format !== 'html') {
                 $filename = 'DMSGTA-'.Str::slug($document['title']).'-'.now()->format('Y-m-d').'.'.$format;
-                $headers['Content-Disposition'] = 'attachment; filename="'.$filename.'"';
+                $headers['Content-Disposition'] = ($format === 'pdf' ? 'inline' : 'attachment').'; filename="'.$filename.'"';
             }
 
             return response($bytes, 200, $headers);
@@ -98,7 +98,7 @@ class DocumentExportController extends Controller
 
     public function printMasterlist(Request $request, string $module)
     {
-        $request->merge(['format' => 'html', 'auto_print' => true]);
+        $request->merge(['format' => 'pdf', 'auto_print' => false]);
         if ($module === 'admission') $request->merge(['type' => 'session']);
 
         return $this->export($request, $module);
@@ -125,7 +125,7 @@ class DocumentExportController extends Controller
                 return response()->streamDownload(static function () use ($bytes): void { echo $bytes; }, 'DMSGTA-guidance-archive-'.now()->format('Y-m-d').'.csv', ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store']);
             }
 
-            return response($bytes, 200, ['Content-Type' => $mime, 'Content-Disposition' => ($format === 'html' ? 'inline' : 'attachment').'; filename="DMSGTA-guidance-archive-'.now()->format('Y-m-d').'.'.$format.'"', 'Cache-Control' => 'private, no-store']);
+            return response($bytes, 200, ['Content-Type' => $mime, 'Content-Disposition' => (in_array($format, ['html', 'pdf'], true) ? 'inline' : 'attachment').'; filename="DMSGTA-guidance-archive-'.now()->format('Y-m-d').'.'.$format.'"', 'Cache-Control' => 'private, no-store']);
         } catch (\Throwable $e) {
             Log::error('Guidance archive export failed', ['exception' => $e]);
 

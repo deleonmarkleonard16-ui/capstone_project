@@ -239,8 +239,8 @@
                                     <a class="btn btn-outline-primary btn-sm" href="{{ $flag['view_url'] }}">
                                         <i class="bi bi-clipboard-check me-1"></i>Review Result
                                     </a>
-                                    <a class="btn btn-outline-success btn-sm" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $flag['appointment_id'], 'format' => 'pdf']) }}">
-                                        <i class="bi bi-download me-1"></i>Download Assessment
+                                    <a class="btn btn-outline-success btn-sm" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $flag['appointment_id'], 'format' => 'pdf']) }}" target="_blank" rel="noopener">
+                                        <i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF
                                     </a>
                                 </div>
                                 @else

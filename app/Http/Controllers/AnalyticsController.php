@@ -68,7 +68,7 @@ class AnalyticsController extends Controller
             $bytes = app(\App\Services\DocumentExportService::class)->render($document, $format);
             $mime = match ($format) { 'pdf' => 'application/pdf', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'csv' => 'text/csv; charset=UTF-8', default => 'text/html; charset=UTF-8' };
             $headers = ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store'];
-            if ($format !== 'html') $headers['Content-Disposition'] = 'attachment; filename="DMSGTA-guidance-analytics-'.now()->format('Y-m-d').'.'.$format.'"';
+            if ($format !== 'html') $headers['Content-Disposition'] = ($format === 'pdf' ? 'inline' : 'attachment').'; filename="DMSGTA-guidance-analytics-'.now()->format('Y-m-d').'.'.$format.'"';
 
             return response($bytes, 200, $headers);
         } catch (\Throwable $e) {

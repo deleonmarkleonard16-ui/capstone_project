@@ -35,7 +35,8 @@ class CareerReportController extends Controller
             };
             $headers = ['Content-Type' => $contentType, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'];
             if ($format !== 'html') {
-                $headers['Content-Disposition'] = 'attachment; filename="DMSGTA-Career-Assessment-'.$appointment->getKey().'.'.$format.'"';
+                $disposition = $format === 'pdf' ? 'inline' : 'attachment';
+                $headers['Content-Disposition'] = $disposition.'; filename="DMSGTA-Career-Assessment-'.$appointment->getKey().'.'.$format.'"';
             }
 
             return response($bytes, 200, $headers);

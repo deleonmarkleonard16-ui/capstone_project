@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @if (auth()->check() || request()->routeIs('login'))
+    @if (auth()->check() || request()->routeIs('login', 'password.*'))
         <script>
             // History snapshots must revalidate the session with the server.
             window.addEventListener('pageshow', function (event) {
@@ -186,6 +186,7 @@
             'checkin.*',
             'answers.*',
             'login',
+            'password.*',
             'portal.*',
             'guidance.batch.join',
             'document.batch.*',

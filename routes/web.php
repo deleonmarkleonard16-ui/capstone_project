@@ -4,6 +4,7 @@ use App\Http\Controllers\AnswerSheetController;
 use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamMonitoringController;
 use App\Http\Controllers\ExamResultController;
@@ -109,6 +110,12 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->group(fu
 Route::middleware([PreventBackHistory::class, 'guest'])->group(function (): void {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store'])->name('login.store');
+    Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'email'])
+        ->middleware('throttle:6,1')
+        ->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'destroy'])

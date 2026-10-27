@@ -248,6 +248,9 @@
                                         <label for="password" class="form-label fw-semibold text-slate-700 mb-0" style="font-size: 0.85rem; color: #334155;">
                                             Password
                                         </label>
+                                        <a href="{{ route('password.request') }}" class="text-primary text-decoration-none fw-semibold" style="font-size: 0.8rem;">
+                                            Forgot password?
+                                        </a>
                                     </div>
                                     <div class="custom-input-group has-trailing">
                                         <i class="bi bi-lock input-icon-prefix"></i>

@@ -25,14 +25,14 @@
         .title { margin: 6mm 0 4mm; text-align: center; font-size: 10.5pt; font-weight: 700; text-transform: uppercase; }
         .schedule { display: grid; grid-template-columns: 1.3fr 1.3fr .8fr; gap: 4mm; margin: 0 8mm 4mm; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; }
         .schedule .value { color: #1174ba; text-decoration: underline; }
-        .content { display: grid; grid-template-columns: 1fr 33mm; gap: 8mm; align-items: start; }
-        table.masterlist { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 7pt; }
+        .content { width: 100%; }
+        table.masterlist { width: 100%; margin: 0 auto; border-collapse: collapse; table-layout: fixed; font-size: 7pt; }
         .masterlist th, .masterlist td { height: 4.8mm; padding: 1px 2px; border: .25mm solid #575757; vertical-align: middle; }
         .masterlist th { text-align: center; font-size: 6.7pt; font-weight: 700; text-transform: uppercase; }
         .masterlist td:first-child, .masterlist td:last-child { text-align: center; }
         .name, .choice { text-transform: uppercase; }
-        .note { margin-top: 52mm; padding: 4mm 2.5mm; border: .35mm solid #666; text-align: center; font-size: 8.4pt; line-height: 1.12; text-transform: uppercase; }
-        .note strong { display: block; margin-bottom: 3mm; text-align: left; }
+        .note { position: absolute; right: 20mm; bottom: 25mm; left: 20mm; padding: 3mm 5mm; border: .35mm solid #666; text-align: center; font-size: 8.4pt; line-height: 1.25; text-transform: uppercase; }
+        .note strong { display: inline; margin-right: 1.5mm; }
         .footer-band { position: absolute; right: 0; bottom: 0; left: 0; padding: 2mm 4mm 1.5mm; background: #fff900; border-top: 1px solid #e6d900; }
         .footer-band img { display: block; width: 100%; height: 9mm; object-fit: contain; }
         .footer-text { margin-top: 1mm; text-align: center; font-size: 5.3pt; line-height: 1.2; }

@@ -75,6 +75,44 @@ class GuidanceSettingsTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'retry@example.test']);
     }
 
+    public function test_admin_can_delete_another_staff_account(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
+        $staff = User::factory()->create(['role_id' => Role::where('slug', 'staff')->value('id')]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.settings.user.destroy', $staff))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $staff->id]);
+    }
+
+    public function test_admin_cannot_delete_their_own_account(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.settings.user.destroy', $admin))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', ['id' => $admin->id]);
+    }
+
+    public function test_admin_can_delete_another_admin_when_one_will_remain(): void
+    {
+        $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
+        $otherAdmin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.settings.user.destroy', $otherAdmin))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $otherAdmin->id]);
+    }
+
     public function test_official_program_cannot_be_disabled(): void
     {
         $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);

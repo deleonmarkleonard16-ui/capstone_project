@@ -276,6 +276,12 @@
                         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#edit-staff-{{ $staff->id }}">
                             <i class="bi bi-pencil me-1"></i> Edit
                         </button>
+                        @if(!$staff->is(auth()->user()))
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" data-bs-target="#delete-account-{{ $staff->id }}">
+                                <i class="bi bi-trash me-1"></i> Delete
+                            </button>
+                        @endif
                     </td>
                 </tr>
                 <tr class="collapse bg-light" id="edit-staff-{{ $staff->id }}">
@@ -311,6 +317,40 @@
             </tbody>
         </table>
     </div>
+
+    @foreach($users as $staff)
+        @if(!$staff->is(auth()->user()))
+            <div class="modal fade" id="delete-account-{{ $staff->id }}" tabindex="-1"
+                 aria-labelledby="delete-account-label-{{ $staff->id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title h5" id="delete-account-label-{{ $staff->id }}">
+                                Delete {{ ucfirst($staff->role) }} account?
+                            </h3>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-2">You are about to permanently delete <strong>{{ $staff->name }}</strong> ({{ $staff->email }}).</p>
+                            <div class="alert alert-danger small mb-0">
+                                This account will immediately lose access. This action cannot be undone.
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form method="post" action="{{ route('admin.settings.user.destroy', $staff) }}">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="bi bi-trash me-1"></i> Delete account
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endforeach
 </div>
 
 @push('scripts')

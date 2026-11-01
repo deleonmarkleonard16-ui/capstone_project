@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\User;
 use App\Support\CourseCatalog;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -114,6 +115,39 @@ class GuidanceSettingsController extends Controller
         $user->update($data);
 
         return back()->with('success', ucfirst($user->role).' account updated.');
+    }
+
+    public function destroyUser(Request $request, User $user)
+    {
+        abort_unless(in_array($user->role, ['admin', 'staff'], true), 404);
+
+        if ($user->is($request->user())) {
+            return back()->with('error', 'You cannot delete the account you are currently using.');
+        }
+
+        if ($user->role === 'admin') {
+            $adminCount = User::whereHas(
+                'roleLookup',
+                fn ($query) => $query->where('slug', 'admin')
+            )->count();
+
+            if ($adminCount <= 1) {
+                return back()->with('error', 'The last administrator account cannot be deleted.');
+            }
+        }
+
+        $name = $user->name;
+        $role = $user->role;
+
+        try {
+            $user->delete();
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return back()->with('error', ucfirst($role).' account "'.$name.'" has protected historical activity and cannot be permanently deleted. Disable the account instead.');
+        }
+
+        return back()->with('success', ucfirst($role).' account "'.$name.'" was permanently deleted.');
     }
 
     private function createUser(Request $request)

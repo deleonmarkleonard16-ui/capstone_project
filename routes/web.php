@@ -309,6 +309,7 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
     Route::post('/system-settings/courses/{course?}', [$settings, 'course'])->name('settings.course');
     Route::post('/system-settings/courses/{course}/toggle', [$settings, 'toggleCourse'])->name('settings.course.toggle');
     Route::post('/system-settings/users/{user?}', [$settings, 'user'])->name('settings.user');
+    Route::delete('/system-settings/users/{user}', [$settings, 'destroyUser'])->name('settings.user.destroy');
     Route::get('/archive', [\App\Http\Controllers\AdminArchiveController::class, 'index'])->name('archive');
     Route::view('/admission-cycle', 'staff.admission-cycle')->name('admission-cycle');
     Route::get('/admission-evaluation', [AdmissionEvaluationController::class, 'index'])->name('admission-evaluation.index');

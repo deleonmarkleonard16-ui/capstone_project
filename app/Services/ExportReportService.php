@@ -79,6 +79,8 @@ class ExportReportService
                 default => 'Admission Masterlist',
             },
             'records' => $records, 'columns' => $columns, 'rows' => $rows,
+            'evaluationSummary' => $type === 'summary',
+            'orientation' => $type === 'summary' ? 'portrait' : 'landscape',
             'metadata' => ['Admission Cycle' => $cycle->display_name, 'Academic Year' => $cycle->academic_year ?? 'N/A', 'Session' => $session?->session_name ?? 'All sessions', 'Room' => $session?->room ?? '-', 'Schedule' => $session?->start_time?->timezone('Asia/Manila')->format('F j, Y g:i A') ?? '-', 'Date Generated' => now()->timezone('Asia/Manila')->format('F j, Y g:i A').' (Asia/Manila)'],
             'summary' => ['Applicants' => $records->count(), 'Qualified' => $records->where('qualification_status', 'Qualified')->count(), 'Non-Qualified' => $records->where('qualification_status', 'Not Qualified')->count(), 'Pending' => $records->where('qualification_status', 'Pending')->count()],
         ];

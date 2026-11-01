@@ -112,6 +112,30 @@ class DocumentExportTest extends TestCase
         $this->get('/admin/admission/export?type=session')->assertRedirect('/admin/exports')->assertSessionHas('error');
     }
 
+    public function test_admission_evaluation_opens_inline_portrait_pdf_with_letterhead(): void
+    {
+        $this->login();
+        $cycle = $this->cycle();
+        $wanted = $this->applicant($cycle);
+        $activeCycle = $this->cycle();
+        $activeCycle->update(['is_active' => true, 'is_archived' => false, 'status' => 'Active']);
+        $this->applicant($activeCycle, ['first_name' => 'OtherCycle']);
+        $query = ['cycle_id' => $cycle->id, 'type' => 'summary'];
+        $this->get(route('admin.admission.analytics', ['cycle_id' => $cycle->id]))
+            ->assertOk()->assertSee('View / Print Evaluation PDF')
+            ->assertSee(route('admin.admission.report', $query + ['format' => 'pdf']))
+            ->assertDontSee('Download Evaluation (DOCX)');
+        $this->get(route('admin.admission.report', $query + ['format' => 'html']))
+            ->assertOk()->assertSee('size: A4 portrait', false)
+            ->assertSee('data:image/png;base64,', false)
+            ->assertSee($wanted->application_number)->assertDontSee('OtherCycle');
+        $response = $this->get(route('admin.admission.report', $query + ['format' => 'pdf']))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('inline;', $response->headers->get('Content-Disposition'));
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+        $this->assertMatchesRegularExpression('/\/MediaBox\s*\[0(?:\.0+)?\s+0(?:\.0+)?\s+595\.28\d*\s+841\.89\d*\]/', $response->getContent());
+    }
+
     public function test_certificate_eligibility_is_enforced_on_the_server(): void
     {
         $this->login('staff');

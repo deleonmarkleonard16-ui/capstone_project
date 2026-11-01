@@ -25,8 +25,8 @@
     {{-- Top Action & Export Buttons --}}
     @if ($cycle && $isAdmin)
     <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-primary btn-sm" href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
-            <i class="bi bi-file-earmark-word me-1"></i> Download Evaluation (DOCX)
+        <a class="btn btn-primary btn-sm" href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'pdf']) }}" target="_blank" rel="noopener">
+            <i class="bi bi-file-earmark-pdf me-1"></i> View / Print Evaluation PDF
         </a>
     </div>
     @endif

@@ -15,6 +15,13 @@
         th { background: #e8edf5; } thead { display: table-header-group; }
         tr { page-break-inside: avoid; } .signatures { margin-top: 45px; page-break-inside: avoid; }
         .signatures td { border: 0; width: 50%; text-align: center; }
+        @if($evaluationSummary ?? false)
+        @page { size: A4 portrait; margin: 50mm 13mm 30mm; }
+        .admission-letterhead { top: -50mm; left: -13mm; width: 210mm; height: 297mm; }
+        .document-header h2 { font-size: 16px; }
+        th, td { font-size: 8px; padding: 4px 2px; overflow-wrap: break-word; }
+        .signatures { margin-top: 20px; }
+        @endif
         .certificate { box-sizing: border-box; width: 100%; min-height: 272mm; padding: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 12px; line-height: 1.65; page-break-inside: avoid; position: relative; }
         .certificate + .certificate { page-break-before: always; }
         .certificate-brand { width: 100%; height: 36mm; background: #f2d83d; border-bottom: 2px solid #c2a900; }
@@ -59,7 +66,7 @@
     @endif
     @if(count($certificates) === 0)
         <header class="document-header">
-            <h1>{{ \App\Services\DocumentExportService::UNIVERSITY }}</h1>
+            @unless($evaluationSummary ?? false)<h1>{{ \App\Services\DocumentExportService::UNIVERSITY }}</h1>@endunless
             <div>{{ $office }}</div>
             <h2>{{ $title }}</h2>
         </header>

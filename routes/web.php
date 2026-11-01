@@ -296,6 +296,7 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
         Route::get('/applicants/{applicant}/certificate', [$c, 'certificate'])->name('applicants.certificate');
         Route::get('/report', [$c, 'report'])->name('report');
         $reports = \App\Http\Controllers\AdmissionReportController::class;
+        Route::post('/program-settings', [$reports, 'saveSettings'])->name('program-settings.save');
         Route::get('/reports/psu-cat-qualifiers', [$reports, 'psuCatQualifiers'])->name('reports.psu-cat-qualifiers');
         Route::match(['get', 'post'], '/reports/interview-qualifiers', [$reports, 'interviewQualifiers'])->name('reports.interview-qualifiers');
         Route::get('/reports/interview-non-qualifiers', [$reports, 'interviewNonQualifiers'])->name('reports.interview-non-qualifiers');

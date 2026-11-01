@@ -36,66 +36,7 @@
 
 {{-- ── ARCHIVED CYCLE LOCKED BANNER ── --}}
 @if($cycle->isActive())
-<div class="card page-card shadow-sm mb-3">
-    <div class="card-body p-3">
-        <h2 class="h6 mb-1">Enrollment Quotas by Program</h2>
-        <p class="small text-muted mb-2">
-            Set the number of available enrollment seats here. This is separate from the Interview Top Limit below.
-            A missing or zero quota makes otherwise eligible applicants <strong>Waitlisted</strong>.
-        </p>
-        <form method="post" action="{{ route('admin.admission.quotas.save') }}" class="mb-3">
-            @csrf
-            <div class="row g-2">
-                @foreach($reportPrograms as $code)
-                    <div class="col-6 col-md-3 col-xl-2">
-                        <label class="form-label small mb-1" for="quota-{{ $loop->index }}">{{ $code }}</label>
-                        <input id="quota-{{ $loop->index }}" class="form-control form-control-sm" type="number" min="0" max="100000" required name="quotas[{{ $code }}]" value="{{ old('quotas.'.$code, $courseQuotas[$code] ?? 0) }}" aria-label="{{ $code }} enrollment seats">
-                    </div>
-                @endforeach
-            </div>
-            @error('quotas') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-            <div class="mt-3">
-                <button class="btn btn-primary btn-sm" type="submit">Save Enrollment Quotas</button>
-            </div>
-        </form>
-
-        <h2 class="h6 mb-2">Admission Reports</h2>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-            @foreach([
-                'psu-cat-qualifiers' => 'PSU-CAT Roster',
-                'interview-non-qualifiers' => 'Not Qualified for Interview',
-                'final-enrollment-qualified' => 'Qualified for Enrollment',
-                'final-enrollment-waitlisted' => 'Waitlisted',
-            ] as $report => $label)
-                <div class="btn-group btn-group-sm" role="group" aria-label="{{ $label }} exports">
-                    <a class="btn btn-outline-primary" href="{{ route('admin.admission.reports.'.$report, ['format' => 'pdf', 'batch_group' => request('batch_group')]) }}">{{ $label }} PDF</a>
-                    <a class="btn btn-outline-primary" href="{{ route('admin.admission.reports.'.$report, ['format' => 'docx', 'batch_group' => request('batch_group')]) }}">DOCX</a>
-                </div>
-            @endforeach
-        </div>
-        <form method="post" action="{{ route('admin.admission.reports.interview-qualifiers') }}">
-            @csrf
-            @if(request('batch_group')) <input type="hidden" name="batch_group" value="{{ request('batch_group') }}"> @endif
-            <div class="fw-semibold small mb-1">Interview top limits by program</div>
-            <p class="small text-muted mb-2">Board programs require stanine 4 or higher. Other programs accept all recorded stanines. Zero selects no applicants.</p>
-            <div class="row g-2">
-                @foreach($reportPrograms as $code)
-                    <div class="col-6 col-md-3 col-xl-2">
-                        <label class="form-label small mb-1" for="top-limit-{{ $loop->index }}">{{ $code }}</label>
-                        <input id="top-limit-{{ $loop->index }}" class="form-control form-control-sm" type="number" min="0" max="100000" required name="top_limits[{{ $code }}]" value="{{ old('top_limits.'.$code, $reportCutoffs[$code] ?? 100000) }}">
-                    </div>
-                @endforeach
-            </div>
-            @error('top_limits') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
-            <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-outline-secondary btn-sm" name="save_only" value="1">Save Interview Limits</button>
-                <button class="btn btn-primary btn-sm" name="format" value="pdf">Save Limits &amp; Export Interview PDF</button>
-                <button class="btn btn-outline-primary btn-sm" name="format" value="docx">Save Limits &amp; Export Interview DOCX</button>
-            </div>
-        </form>
-    </div>
-</div>
-
+    @include('admin.admission.partials.program-settings')
 @endif
 
 @if ($isLocked)

@@ -14,6 +14,38 @@ use Illuminate\Validation\ValidationException;
 
 class AdmissionReportController extends Controller
 {
+    public function saveSettings(Request $request)
+    {
+        $cycle = AdmissionCycle::active();
+        abort_unless($cycle && $cycle->isActive(), 409, 'An active admission cycle is required.');
+        $data = $request->validate([
+            'settings' => 'required|array|min:1',
+            'settings.*.seats' => 'required|integer|min:0|max:100000',
+            'settings.*.mode' => ['required', Rule::in(['all', 'top', 'none'])],
+            'settings.*.limit' => 'nullable|integer|min:1|max:99999',
+        ]);
+        $allowed = array_unique(array_merge(array_keys(CourseCatalog::allOptions()), $cycle->applicants()->distinct()->pluck('course_choice')->all()));
+        foreach ($data['settings'] as $code => $setting) {
+            if (!in_array($code, $allowed, true)) {
+                throw ValidationException::withMessages(['settings' => 'A program code is invalid.']);
+            }
+            if ($setting['mode'] === 'top' && empty($setting['limit'])) {
+                throw ValidationException::withMessages(['settings.'.$code.'.limit' => 'Enter the number of applicants to interview.']);
+            }
+        }
+        DB::transaction(function () use ($cycle, $data) {
+            foreach ($data['settings'] as $code => $setting) {
+                $key = ['admission_cycle_id' => $cycle->id, 'course_code' => $code];
+                $timestamps = ['created_at' => now(), 'updated_at' => now()];
+                DB::table('admission_course_quotas')->updateOrInsert($key, ['seats' => (int) $setting['seats']] + $timestamps);
+                $limit = match ($setting['mode']) { 'all' => 100000, 'none' => 0, default => (int) $setting['limit'] };
+                DB::table('admission_interview_cutoffs')->updateOrInsert($key, ['top_limit' => $limit] + $timestamps);
+            }
+            app(AdmissionScoringService::class)->evaluate($cycle);
+        });
+        return back()->with('success', 'Program settings saved. Reports now use these settings.');
+    }
+
     public function psuCatQualifiers(Request $request, AdmissionReportService $reports, AdmissionReportExportService $export)
     {
         return $this->download($request, $reports, $export, 'psu-cat-qualifiers');
@@ -21,6 +53,9 @@ class AdmissionReportController extends Controller
 
     public function interviewQualifiers(Request $request, AdmissionReportService $reports, AdmissionReportExportService $export)
     {
+        if ($request->isMethod('get')) {
+            return $this->download($request, $reports, $export, 'interview-qualifiers');
+        }
         $cycle = AdmissionCycle::active();
         abort_unless($cycle, 409, 'An active admission cycle is required.');
         $data = $request->validate([

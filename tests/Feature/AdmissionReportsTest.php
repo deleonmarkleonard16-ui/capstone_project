@@ -17,6 +17,43 @@ class AdmissionReportsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_combined_program_settings_save_and_reports_use_saved_limits(): void
+    {
+        $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]));
+        $cycle = AdmissionCycle::create(['name' => 'Settings Cycle', 'academic_year' => '2026-2027', 'is_active' => true, 'status' => 'Active']);
+        $this->applicant($cycle, 'SETTINGS-1', 'BSIT', 5, 90, 85);
+        $this->get(route('admin.admission.masterlist'))->assertOk()
+            ->assertSee('Program Settings')->assertSee('Save Settings')->assertSee('All eligible')
+            ->assertSee('admission-report-type', false)->assertDontSee('Save Limits &amp; Export', false);
+        $this->from(route('admin.admission.masterlist'))->post(route('admin.admission.program-settings.save'), [
+            'settings' => [
+                'BSIT' => ['seats' => 1, 'mode' => 'top', 'limit' => 2],
+                'BEED' => ['seats' => 0, 'mode' => 'none'],
+                'BSOA' => ['seats' => 20, 'mode' => 'all'],
+            ],
+        ])->assertRedirect(route('admin.admission.masterlist'))->assertSessionHasNoErrors();
+        foreach (['BSIT' => 2, 'BEED' => 0, 'BSOA' => 100000] as $code => $limit) {
+            $this->assertDatabaseHas('admission_interview_cutoffs', ['admission_cycle_id' => $cycle->id, 'course_code' => $code, 'top_limit' => $limit]);
+        }
+        $this->assertDatabaseHas('admission_course_quotas', ['admission_cycle_id' => $cycle->id, 'course_code' => 'BSOA', 'seats' => 20]);
+        $this->get(route('admin.admission.reports.interview-qualifiers', ['format' => 'pdf']))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertDatabaseHas('admission_interview_cutoffs', ['admission_cycle_id' => $cycle->id, 'course_code' => 'BSIT', 'top_limit' => 2]);
+    }
+
+    public function test_invalid_program_settings_do_not_partially_save(): void
+    {
+        $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]));
+        $cycle = AdmissionCycle::create(['name' => 'Validation Cycle', 'academic_year' => '2026-2027', 'is_active' => true, 'status' => 'Active']);
+        $this->postJson(route('admin.admission.program-settings.save'), ['settings' => [
+            'BSIT' => ['seats' => 1, 'mode' => 'all'],
+            'BEED' => ['seats' => 2, 'mode' => 'top'],
+        ]])->assertUnprocessable()->assertJsonValidationErrors('settings.BEED.limit');
+        $this->assertDatabaseMissing('admission_course_quotas', ['admission_cycle_id' => $cycle->id]);
+        $this->postJson(route('admin.admission.program-settings.save'), ['settings' => ['INVALID' => ['seats' => 1, 'mode' => 'none']]])
+            ->assertUnprocessable()->assertJsonValidationErrors('settings');
+    }
+
     public function test_cutoff_migration_recovers_a_table_left_by_failed_mysql_index_creation(): void
     {
         Schema::dropIfExists('admission_interview_cutoffs');

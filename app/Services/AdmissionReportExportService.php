@@ -78,7 +78,7 @@ class AdmissionReportExportService
                 ? ' | Top limit: '.($roster['cutoffs'][$course] ?? 'All')
                 : (str_starts_with($type, 'final-') ? ' | Seats: '.($roster['quotas'][$course] ?? 0) : '');
             $section->addText($course.' - '.count($items).' applicant(s)'.$meta, ['bold' => true, 'size' => 9]);
-            $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 35]);
+            $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20]);
             $table->addRow(null, ['tblHeader' => true]);
             foreach ($columns as $column) $table->addCell(1200, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 7]);
             foreach ($items as $item) {

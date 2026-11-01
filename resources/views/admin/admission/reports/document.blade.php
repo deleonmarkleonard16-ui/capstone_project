@@ -24,8 +24,9 @@
         h2 { font-size: 11px; margin: 16px 0 5px; background: #e8edf5; padding: 6px; }
         .meta { font-size: 8px; line-height: 1.6; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th, td { border: 1px solid #b7c2d4; padding: 4px 3px; overflow-wrap: break-word; }
-        th { background: #183861; color: white; font-size: 6.5px; }
+        th, td { border: 1px solid #b7c2d4; overflow-wrap: break-word; }
+        th { background: #183861; color: white; font-size: 6.5px; padding: 3px; line-height: 1.1; }
+        tbody td { padding: 1.5px 3px; line-height: 1.05; vertical-align: middle; }
         tr { page-break-inside: avoid; }
     </style>
 </head>

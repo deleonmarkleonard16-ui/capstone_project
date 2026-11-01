@@ -256,9 +256,56 @@
             @endphp
         </section>
         <div class="mt-4 pt-4 border-top">
-            <h4 class="h6 fw-bold">Counselor Remarks &amp; Recommendations:</h4>
-            <div class="border rounded p-3 bg-light mb-4" style="min-height: 80px;">
-                <p class="text-muted mb-0 small fst-italic">Official clinical notes filed during intake counseling.</p>
+            <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+                <h4 class="h6 fw-bold mb-0">Counselor Remarks &amp; Recommendations:</h4>
+                <button class="btn btn-sm btn-outline-primary no-print" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#counselor-remarks-form"
+                        aria-expanded="{{ $errors->hasAny(['remarks', 'recommendations']) ? 'true' : 'false' }}"
+                        aria-controls="counselor-remarks-form">
+                    <i class="bi bi-pencil-square me-1" aria-hidden="true"></i> Edit remarks
+                </button>
+            </div>
+
+            @if(session('success'))
+                <div class="alert alert-success py-2 no-print" role="status">{{ session('success') }}</div>
+            @endif
+
+            <div class="border rounded p-3 bg-light mb-3" style="min-height: 80px;">
+                @if(filled($appointment->remarks) || filled($appointment->recommendations))
+                    @if(filled($appointment->remarks))
+                        <div class="mb-2" style="white-space: pre-line;">{{ $appointment->remarks }}</div>
+                    @endif
+                    @if(filled($appointment->recommendations))
+                        <div><strong>Recommendation:</strong> <span style="white-space: pre-line;">{{ $appointment->recommendations }}</span></div>
+                    @endif
+                @else
+                    <p class="text-muted mb-0 small fst-italic">No counselor remarks have been filed yet.</p>
+                @endif
+            </div>
+
+            <div id="counselor-remarks-form" class="collapse {{ $errors->hasAny(['remarks', 'recommendations']) ? 'show' : '' }} no-print mb-4">
+                <form method="POST" action="{{ route(auth()->user()->role.'.guidance-appointments.evaluate', $appointment) }}" class="border rounded p-3">
+                    @csrf
+                    <input type="hidden" name="action" value="save">
+                    <div class="mb-3">
+                        <label for="counselor-remarks" class="form-label fw-semibold">Remarks</label>
+                        <textarea id="counselor-remarks" name="remarks" rows="4" maxlength="5000"
+                                  class="form-control @error('remarks') is-invalid @enderror"
+                                  placeholder="Add clinical notes, observations, or follow-up details...">{{ old('remarks', $appointment->remarks) }}</textarea>
+                        @error('remarks')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="mb-3">
+                        <label for="counselor-recommendations" class="form-label fw-semibold">Recommendation</label>
+                        <textarea id="counselor-recommendations" name="recommendations" rows="2" maxlength="500"
+                                  class="form-control @error('recommendations') is-invalid @enderror"
+                                  placeholder="Add the recommended action or disposition...">{{ old('recommendations', $appointment->recommendations) }}</textarea>
+                        @error('recommendations')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#counselor-remarks-form">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save remarks</button>
+                    </div>
+                </form>
             </div>
 
             <div class="row pt-4 text-center">

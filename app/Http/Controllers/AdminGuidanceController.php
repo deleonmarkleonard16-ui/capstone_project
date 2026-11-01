@@ -161,8 +161,8 @@ class AdminGuidanceController extends Controller
             $locked = GuidanceAppointment::whereKey($appointment->getKey())->lockForUpdate()->firstOrFail();
 
             $update = [
-                'remarks' => $data['remarks'] ?? $locked->remarks,
-                'recommendations' => $data['recommendations'] ?? $locked->recommendations,
+                'remarks' => array_key_exists('remarks', $data) ? $data['remarks'] : $locked->remarks,
+                'recommendations' => array_key_exists('recommendations', $data) ? $data['recommendations'] : $locked->recommendations,
                 'reviewed_by' => $request->user()->id,
             ];
             if ($data['action'] !== 'move_to_review') $update['reviewed_at'] = now();

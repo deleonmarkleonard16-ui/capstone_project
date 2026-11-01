@@ -91,6 +91,48 @@ class GuidanceReportTest extends TestCase
         }
     }
 
+    public function test_counselor_can_edit_and_clear_remarks_from_the_results_page(): void
+    {
+        $this->login('admin');
+        $appointment = $this->appointment();
+
+        $this->get(route('admin.guidance-appointments.show-results', $appointment))
+            ->assertOk()
+            ->assertSee('Edit remarks')
+            ->assertSee('Save remarks')
+            ->assertSee(route('admin.guidance-appointments.evaluate', $appointment), false);
+
+        $this->from(route('admin.guidance-appointments.show-results', $appointment))
+            ->post(route('admin.guidance-appointments.evaluate', $appointment), [
+                'action' => 'save',
+                'remarks' => 'Student discussed coping strategies.',
+                'recommendations' => 'Schedule a follow-up session.',
+            ])
+            ->assertRedirect(route('admin.guidance-appointments.show-results', $appointment))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('guidance_appointments', [
+            'guidance_appointment_id' => $appointment->getKey(),
+            'remarks' => 'Student discussed coping strategies.',
+            'recommendations' => 'Schedule a follow-up session.',
+        ]);
+
+        $this->get(route('admin.guidance-appointments.show-results', $appointment))
+            ->assertOk()
+            ->assertSee('Student discussed coping strategies.')
+            ->assertSee('Schedule a follow-up session.');
+
+        $this->post(route('admin.guidance-appointments.evaluate', $appointment), [
+            'action' => 'save',
+            'remarks' => '',
+            'recommendations' => '',
+        ])->assertRedirect();
+
+        $appointment->refresh();
+        $this->assertNull($appointment->remarks);
+        $this->assertNull($appointment->recommendations);
+    }
+
     public function test_psychological_certificate_is_printable_and_only_available_for_completed_assessments(): void
     {
         $appointment = $this->appointment();

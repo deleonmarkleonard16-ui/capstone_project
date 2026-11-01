@@ -470,30 +470,22 @@
                                     </span>
                                 </div>
                                 <div class="row g-2 align-items-end">
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                         <label class="form-label form-label-sm text-muted mb-1" for="cert_issued_date_{{ $applicant->id }}">Date Issued:</label>
                                         <input type="date" class="form-control form-control-sm" id="cert_issued_date_{{ $applicant->id }}"
                                                value="{{ now()->format('Y-m-d') }}">
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                         <label class="form-label form-label-sm text-muted mb-1" for="cert_requestor_{{ $applicant->id }}">Requestor Name:</label>
                                         <input type="text" class="form-control form-control-sm" id="cert_requestor_{{ $applicant->id }}"
                                                value="{{ $defaultRequestor }}"
                                                placeholder="e.g. MS. PEREZ">
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                         <label class="form-label form-label-sm text-muted mb-1" for="cert_purpose_{{ $applicant->id }}">Purpose:</label>
                                         <input type="text" class="form-control form-control-sm" id="cert_purpose_{{ $applicant->id }}"
                                                value="SCHOLARSHIP"
                                                placeholder="e.g. SCHOLARSHIP">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="d-flex gap-1">
-                                            <button type="button" class="btn btn-outline-success btn-sm flex-fill fw-semibold"
-                                                    onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
-                                                <i class="bi bi-download me-1"></i> Download PDF
-                                            </button>
-                                        </div>
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label form-label-sm text-muted mb-1" for="cert_or_number_{{ $applicant->id }}">O.R. # (Optional):</label>

@@ -40,14 +40,15 @@ thead { display: table-header-group; }
 h3 { page-break-after: avoid; }
 .recommendations p { margin: 2px 0; }
 .note, .incomplete { font-size: 8px; }
-.signatures { margin: 10px 0; }
+.signatures { margin: 6px 0 3px; }
 .signatures td { width: 50%; padding-right: 24px; vertical-align: top; }
 .signature-line { border-bottom: 1px solid #222; min-height: 13px; padding-top: 5px; }
-footer { font-size: 8px; margin-top: 8px; }
+footer { font-size: 8px; margin-top: 3px; }
+footer p { margin: 2px 0 0; }
 .footer-accent { display: none; }
 .no-print { padding: 15px; text-align: center; }
 .no-print a, .no-print button { margin: 0 6px; }
-.assessment-result-details { page-break-before: always; }
+.assessment-result-details { page-break-before: auto; }
 .assessment-result-details h2 { font-size: 14px; color: #17305f; margin: 5mm 0 3mm; page-break-after: avoid; }
 .result-detail-table { margin-bottom: 4mm; }
 .result-detail-table th, .result-detail-table td { border: 1px solid #999; padding: 4px; overflow-wrap: break-word; }

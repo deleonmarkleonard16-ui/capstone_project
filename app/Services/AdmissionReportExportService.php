@@ -81,8 +81,8 @@ class AdmissionReportExportService
             $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20]);
             $table->addRow(null, ['tblHeader' => true]);
             $cellWidths = count($columns) === 13
-                ? [300, 650, 1100, 650, 400, 750, 550, 500, 500, 400, 700, 900, 800]
-                : [300, 700, 1200, 700, 400, 800, 600, 550, 550, 450, 750, 1000];
+                ? [250, 750, 1200, 650, 350, 800, 650, 450, 500, 400, 600, 550, 650]
+                : [250, 800, 1350, 700, 350, 900, 700, 450, 550, 450, 600, 700];
             foreach ($columns as $index => $column) $table->addCell($cellWidths[$index], ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 5.5]);
             foreach ($items as $item) {
                 $table->addRow(null, ['cantSplit' => true]);
@@ -117,7 +117,7 @@ class AdmissionReportExportService
 
     public function columns(string $type): array
     {
-        $columns = ['No.', 'Application Number', 'Full Name', 'Course Choice', 'Sex', '4Ps/OSY/IP/PWD/SP', 'CMFL', 'GWA', 'Exam Score', 'Stanine', 'Interview Score', 'Total Score'];
+        $columns = ['No.', 'Application No.', 'Full Name', 'Course', 'Sex', 'Special Group', 'CMFL', 'GWA', 'Exam', 'Stanine', 'Interview', 'Total'];
         if ($type !== 'psu-cat-qualifiers') $columns[] = 'Result';
         return $columns;
     }

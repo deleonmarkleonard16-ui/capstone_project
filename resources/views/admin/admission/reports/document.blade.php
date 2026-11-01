@@ -80,8 +80,8 @@
     @php
         $columns = app(\App\Services\AdmissionReportExportService::class)->columns($type);
         $columnWidths = count($columns) === 13
-            ? [3, 8, 14, 8, 5, 9, 7, 6, 6, 5, 8, 10, 11]
-            : [3, 9, 15, 9, 5, 10, 8, 7, 7, 6, 9, 12];
+            ? [3, 9, 15, 8, 5, 10, 8, 6, 6, 5, 7, 7, 11]
+            : [3, 10, 17, 9, 5, 11, 9, 6, 7, 6, 8, 9];
     @endphp
     <table class="roster-table">
         <colgroup>

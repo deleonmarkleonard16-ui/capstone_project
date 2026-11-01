@@ -24,7 +24,7 @@
         h2 { font-size: 11px; margin: 16px 0 5px; background: #e8edf5; padding: 6px; }
         .meta { font-size: 8px; line-height: 1.6; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .roster-table { width: 100%; margin: 0 auto; table-layout: fixed; }
+        .roster-table { width: auto; max-width: 100%; margin: 0 auto; table-layout: auto; }
         th, td { border: 1px solid #b7c2d4; overflow-wrap: break-word; }
         th { background: #183861; color: white; font-size: 5px; padding: 2px 1px; line-height: 1.05; }
         tbody td { padding: 1.5px 1px; line-height: 1.05; vertical-align: middle; }
@@ -77,16 +77,8 @@
         @if(str_starts_with($type, 'interview-')) | Top limit: {{ $roster['cutoffs'][$course] ?? 'All' }}
         @elseif(str_starts_with($type, 'final-')) | Seats: {{ $roster['quotas'][$course] ?? 0 }} @endif
     </h2>
-    @php
-        $columns = app(\App\Services\AdmissionReportExportService::class)->columns($type);
-        $columnWidths = count($columns) === 13
-            ? [3, 9, 15, 8, 5, 10, 8, 6, 6, 5, 7, 7, 11]
-            : [3, 10, 17, 9, 5, 11, 9, 6, 7, 6, 8, 9];
-    @endphp
+    @php($columns = app(\App\Services\AdmissionReportExportService::class)->columns($type))
     <table class="roster-table">
-        <colgroup>
-            @foreach($columnWidths as $width)<col style="width:{{ $width }}%">@endforeach
-        </colgroup>
         <thead><tr>@foreach($columns as $column)<th>{{ $column }}</th>@endforeach</tr></thead>
         <tbody>
         @foreach($items as $item)

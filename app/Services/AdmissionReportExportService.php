@@ -78,15 +78,12 @@ class AdmissionReportExportService
                 ? ' | Top limit: '.($roster['cutoffs'][$course] ?? 'All')
                 : (str_starts_with($type, 'final-') ? ' | Seats: '.($roster['quotas'][$course] ?? 0) : '');
             $section->addText($course.' - '.count($items).' applicant(s)'.$meta, ['bold' => true, 'size' => 9]);
-            $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20]);
+            $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20, 'layout' => 'autofit']);
             $table->addRow(null, ['tblHeader' => true]);
-            $cellWidths = count($columns) === 13
-                ? [250, 750, 1200, 650, 350, 800, 650, 450, 500, 400, 600, 550, 650]
-                : [250, 800, 1350, 700, 350, 900, 700, 450, 550, 450, 600, 700];
-            foreach ($columns as $index => $column) $table->addCell($cellWidths[$index], ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 5.5]);
+            foreach ($columns as $column) $table->addCell(null, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 5.5]);
             foreach ($items as $item) {
                 $table->addRow(null, ['cantSplit' => true]);
-                foreach ($this->values($item, $type) as $index => $value) $table->addCell($cellWidths[$index])->addText($value, ['size' => 5.5]);
+                foreach ($this->values($item, $type) as $value) $table->addCell()->addText($value, ['size' => 5.5]);
             }
         }
         if ($roster['count'] === 0) $section->addText('No applicants matched this report.');

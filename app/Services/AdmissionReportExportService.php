@@ -115,7 +115,12 @@ class AdmissionReportExportService
     public function columns(string $type): array
     {
         $columns = ['No.', 'Application No.', 'Full Name', 'Course', 'Sex', 'Special Group', 'CMFL', 'GWA', 'Exam', 'Stanine', 'Interview', 'Total'];
-        if ($type !== 'psu-cat-qualifiers') $columns[] = 'Result';
+        if ($type === 'psu-cat-qualifiers') {
+            array_splice($columns, 1, 1);
+            $columns[] = 'Status';
+        } else {
+            $columns[] = 'Result';
+        }
         return $columns;
     }
 
@@ -126,7 +131,8 @@ class AdmissionReportExportService
             (string) ($a->sex ?? '-'), (string) ($a->special_group ?? '-'), (string) ($a->cmfl ?? '-'),
             $this->score($a->gwa), $this->score($a->exam_score), (string) ($a->stanine_score ?? '-'),
             $this->score($a->interview_score), $this->score($a->total_score)];
-        if ($type !== 'psu-cat-qualifiers') $values[] = $item['status'];
+        if ($type === 'psu-cat-qualifiers') array_splice($values, 1, 1);
+        $values[] = $item['status'];
         return $values;
     }
 

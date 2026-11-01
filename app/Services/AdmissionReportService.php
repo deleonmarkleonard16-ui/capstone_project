@@ -49,7 +49,7 @@ class AdmissionReportService
             $groups[$course] = $group->values()->map(function ($a, $index) use ($type, $outcomes) {
                 $reason = match ($type) {
                     'interview-non-qualifiers' => !$this->examEligible($a) ? 'Below board program stanine 4' : 'Outside program top limit',
-                    'final-enrollment-qualified', 'final-enrollment-waitlisted' => $outcomes[$a->id]['remark'] ?? '-',
+                    'psu-cat-qualifiers', 'final-enrollment-qualified', 'final-enrollment-waitlisted' => $outcomes[$a->id]['remark'] ?? '-',
                     'interview-qualifiers' => 'Qualified for Interview',
                     default => '-',
                 };

@@ -54,6 +54,36 @@ class AdmissionReportsTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('settings');
     }
 
+    public function test_psu_cat_roster_replaces_application_number_with_official_status(): void
+    {
+        $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]));
+        $cycle = AdmissionCycle::create(['name' => 'Roster Status', 'academic_year' => '2026-2027', 'is_active' => true, 'status' => 'Active']);
+        $qualified = $this->applicant($cycle, 'PRIVATE-ID-1', 'BSIT', 6, 90, 90);
+        $waitlisted = $this->applicant($cycle, 'PRIVATE-ID-2', 'BSIT', 5, 80, 80);
+        $nonQualified = $this->applicant($cycle, 'PRIVATE-ID-3', 'BSIT', 1, 70, 70);
+        $pending = $this->applicant($cycle, 'PRIVATE-ID-4', 'BSIT', null, null, null);
+        foreach ([$qualified, $waitlisted, $nonQualified, $pending] as $applicant) $applicant->update(['first_name' => 'Student']);
+        DB::table('admission_course_quotas')->insert(['admission_cycle_id' => $cycle->id, 'course_code' => 'BSIT', 'seats' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $roster = app(AdmissionReportService::class)->roster($cycle, 'psu-cat-qualifiers');
+        $export = app(\App\Services\AdmissionReportExportService::class);
+        $columns = $export->columns('psu-cat-qualifiers');
+        $this->assertNotContains('Application No.', $columns);
+        $this->assertSame('Status', end($columns));
+        $expected = [$qualified->id => 'Qualified for Enrollment', $waitlisted->id => 'Waitlisted', $nonQualified->id => 'Not Qualified for Interview', $pending->id => 'Pending exam result'];
+        foreach ($roster['groups']['BSIT'] as $item) {
+            $values = $export->values($item, 'psu-cat-qualifiers');
+            $this->assertCount(count($columns), $values);
+            $this->assertNotContains($item['applicant']->application_number, $values);
+            $this->assertSame($expected[$item['applicant']->id], end($values));
+        }
+        $html = view('admin.admission.reports.document', ['cycle' => $cycle, 'type' => 'psu-cat-qualifiers', 'roster' => $roster, 'batch' => null])->render();
+        $this->assertStringContainsString('<th>Status</th>', $html);
+        $this->assertStringNotContainsString('PRIVATE-ID-', $html);
+        $this->get(route('admin.admission.reports.psu-cat-qualifiers', ['format' => 'pdf']))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->get(route('admin.admission.reports.psu-cat-qualifiers', ['format' => 'docx']))->assertOk()->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $this->assertContains('Application No.', $export->columns('interview-qualifiers'));
+    }
+
     public function test_cutoff_migration_recovers_a_table_left_by_failed_mysql_index_creation(): void
     {
         Schema::dropIfExists('admission_interview_cutoffs');

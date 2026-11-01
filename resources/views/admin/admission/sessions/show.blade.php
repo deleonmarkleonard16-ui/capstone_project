@@ -328,7 +328,9 @@
                         <tr>
                             <th class="ps-3" style="width: 45px;">#</th>
                             <th>Application #</th>
-                            <th>Full Name</th>
+                            <th>Last Name</th>
+                            <th>Given Name</th>
+                            <th>Middle Name</th>
                             <th>Course Choice</th>
                             <th>GWA</th>
                             <th>Attendance / Live Status</th>
@@ -355,7 +357,7 @@
                                     <span class="fw-bold font-monospace text-dark">{{ $applicant->application_number }}</span>
                                 </td>
                                 <td>
-                                    <div class="fw-semibold text-dark">{{ $applicant->full_name }}</div>
+                                    <div class="fw-semibold text-dark">{{ $applicant->last_name }}</div>
                                     <div class="text-muted small" style="font-size: 11px;">
                                         {{ $applicant->sex ?: 'N/A' }}
                                         @if($applicant->checked_in_at)
@@ -363,6 +365,8 @@
                                         @endif
                                     </div>
                                 </td>
+                                <td class="fw-semibold text-dark">{{ $applicant->first_name }}</td>
+                                <td class="fw-semibold text-dark">{{ $applicant->middle_name ?: '—' }}</td>
                                 <td>
                                     <span class="badge bg-light text-dark border">{{ $applicant->course_choice }}</span>
                                 </td>
@@ -477,7 +481,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-5">
+                                <td colspan="11" class="text-center text-muted py-5">
                                     <i class="bi bi-people fs-1 d-block mb-2 text-secondary opacity-50"></i>
                                     No examinees currently assigned to this session.
                                 </td>

@@ -36,13 +36,19 @@ class AdmissionCheckinTest extends TestCase
         ]);
         AdmissionApplicant::create([
             'admission_cycle_id' => $cycle->id, 'admission_session_id' => $session->id,
-            'application_number' => 'CAT-OMR-001', 'first_name' => 'Ana', 'last_name' => 'Cruz',
+            'application_number' => 'CAT-OMR-001', 'first_name' => 'Ana', 'middle_name' => 'Santos', 'last_name' => 'Cruz',
             'course_choice' => 'BSIT',
         ]);
 
         $this->get(route('admin.admission.sessions.show', $session))
             ->assertOk()
             ->assertSee('OMR Web Scanner')
+            ->assertSee('<th>Last Name</th>', false)
+            ->assertSee('<th>Given Name</th>', false)
+            ->assertSee('<th>Middle Name</th>', false)
+            ->assertDontSee('<th>Full Name</th>', false)
+            ->assertSee('<td class="fw-semibold text-dark">Ana</td>', false)
+            ->assertSee('<td class="fw-semibold text-dark">Santos</td>', false)
             ->assertSee('Scan OMR')
             ->assertSee(route('admin.admission.sessions.scan-omr'), false);
     }

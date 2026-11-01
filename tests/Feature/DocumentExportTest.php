@@ -160,6 +160,30 @@ class DocumentExportTest extends TestCase
         $this->assertSame(['Applicants' => 4, 'Qualified' => 1, 'Non-Qualified' => 1, 'Waitlisted' => 1, 'Pending' => 1], $document['summary']);
     }
 
+    public function test_admission_certificate_renders_one_letterhead_page_without_blank_pages(): void
+    {
+        $this->login();
+        $cycle = $this->cycle();
+        $cycle->update(['is_active' => true, 'is_archived' => false, 'status' => 'Active']);
+        $applicant = $this->applicant($cycle, ['stanine_score' => 9, 'sex' => 'Male']);
+        $query = [
+            'applicant' => $applicant->id, 'format' => 'pdf', 'purpose' => 'SCHOLARSHIP',
+            'requestor_name' => 'MR. REYES', 'issued_date' => '2026-11-02',
+            'or_number' => 'OR-CERT-123', 'or_date' => '2026-11-02',
+        ];
+        $response = $this->get(route('admin.admission.applicants.certificate', $query))
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $pdf = $response->getContent();
+        $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $pdf));
+        $this->assertStringContainsString('/Subtype /Image', $pdf);
+        $this->assertMatchesRegularExpression('/\/MediaBox\s*\[0(?:\.0+)?\s+0(?:\.0+)?\s+612(?:\.0+)?\s+792(?:\.0+)?\]/', $pdf);
+        $query['format'] = 'print';
+        $this->get(route('admin.admission.applicants.certificate', $query))
+            ->assertOk()->assertSee('data:image/png;base64,', false)
+            ->assertSee('CERTIFICATE OF ADMISSION TEST RESULT')->assertSee('SCHOLARSHIP')
+            ->assertSee('MR. REYES')->assertSee('OR-CERT-123')->assertSee('NOEMI C. CARLOS, RGC');
+    }
+
     public function test_certificate_eligibility_is_enforced_on_the_server(): void
     {
         $this->login('staff');

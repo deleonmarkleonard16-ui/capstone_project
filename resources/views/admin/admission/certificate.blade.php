@@ -6,7 +6,7 @@
     <style>
         @page {
             size: letter portrait;
-            margin: 0;
+            margin: 50mm 13mm 28mm;
         }
         * {
             box-sizing: border-box;
@@ -47,8 +47,22 @@
         @else
         .cert-paper {
             width: 100%;
-            min-height: 11in;
             position: relative;
+        }
+        @endif
+
+        /* This must apply to PDF output too, outside the preview-only branch. */
+        .page-letterhead {
+            position: fixed;
+            top: -50mm;
+            left: -13mm;
+            width: 215.9mm;
+            height: 279.4mm;
+            z-index: -1000;
+        }
+        @if(request('format') !== 'pdf')
+        @media screen {
+            .page-letterhead { position: absolute; top: 0; left: 0; z-index: 0; }
         }
         @endif
 
@@ -168,13 +182,19 @@
 
         /* BODY CONTENT CONTAINER */
         .content-body {
-            padding: 155px 52px 105px 52px;
+            padding: 0;
             position: relative;
             z-index: 1;
         }
+        @if(request('format') !== 'pdf')
+        @media screen {
+            .content-body { padding: 195px 52px 105px; }
+        }
+        @endif
 
         /* Subtle Center Watermark */
         .watermark-container {
+            display: none;
             position: absolute;
             top: 110px;
             left: 50%;
@@ -452,12 +472,6 @@
 
     <div class="cert-paper">
         @if($letterheadSrc)<img class="page-letterhead" src="{{ $letterheadSrc }}" alt="">@endif
-        {{-- Background Watermark --}}
-        @if($watermarkSrc)
-            <div class="watermark-container">
-                <img src="{{ $watermarkSrc }}" alt="PSU Watermark" class="watermark-img">
-            </div>
-        @endif
 
         {{-- 1. OFFICIAL FULL-WIDTH YELLOW HEADER BAND --}}
         <div class="header-band" style="display:none">

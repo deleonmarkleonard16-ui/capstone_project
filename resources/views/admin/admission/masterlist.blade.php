@@ -493,11 +493,6 @@
                                                     onclick="openApplicantCert({{ $applicant->id }}, 'pdf')">
                                                 <i class="bi bi-download me-1"></i> Download PDF
                                             </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                    onclick="openApplicantCert({{ $applicant->id }}, 'print')"
-                                                    title="Print Preview">
-                                                <i class="bi bi-printer"></i>
-                                            </button>
                                         </div>
                                     </div>
                                     <div class="col-md-3">

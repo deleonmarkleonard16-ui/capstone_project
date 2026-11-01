@@ -6,7 +6,7 @@ Hello {{ $account->name }},
 An administrator created your **{{ ucfirst($account->role) }}** account for {{ config('app.name') }}.
 
 **Email:** {{ $account->email }}<br>
-**Temporary password:** `{{ $temporaryPassword }}`
+**Temporary password:** {{ $temporaryPassword }}
 
 <x-mail::button :url="$loginUrl">
 Sign in

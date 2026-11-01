@@ -161,7 +161,9 @@ class GuidanceSettingsController extends Controller
             'admin_password.current_password' => 'The administrator password is incorrect. The account was not approved.',
         ]);
 
-        $temporaryPassword = Str::password(14, symbols: true);
+        // Email-safe while retaining strong entropy; avoids copy/paste issues caused by
+        // HTML-sensitive symbols in temporary credentials.
+        $temporaryPassword = Str::password(16, symbols: false);
 
         $account = User::create([
             'name' => trim($data['name']),

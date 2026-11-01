@@ -56,6 +56,15 @@ class GuidanceSettingsTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('replacement-secret-123', $staff->fresh()->password));
     }
 
+    public function test_account_email_does_not_double_encode_temporary_password(): void
+    {
+        $account = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
+        $html = (new \App\Mail\AccountCreatedMail($account, 'Example&Password'))->render();
+
+        $this->assertStringContainsString('Example&amp;Password', $html);
+        $this->assertStringNotContainsString('Example&amp;amp;Password', $html);
+    }
+
     public function test_failed_brevo_delivery_removes_inactive_account_and_allows_retry(): void
     {
         $admin = User::factory()->create([

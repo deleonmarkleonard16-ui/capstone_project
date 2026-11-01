@@ -4,25 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }}</title>
-    <style>
-        @include('guidance.partials.psychological-report-css')
-        @page { size: A4 portrait; margin: 50mm 13mm 30mm; }
-        .personality-letterhead { position: fixed; top: -50mm; left: -13mm; width: 210mm; height: 297mm; z-index: -1000; }
-        body { font-size: 10px; }
-        .career-matrix .career-description, .career-matrix .career-interpretation { font-size: 9px; }
-        .career-matrix thead th:nth-child(1), .career-matrix .scale { width: 24%; }
-        .career-matrix thead th:nth-child(2) { width: 33%; }
-        .career-matrix thead th:nth-child(8) { width: 18%; }
-        .career-matrix th, .career-matrix td { overflow-wrap: break-word; }
-        .office-heading h3 { font-size: 14px; }
-    </style>
+    <style>@include('guidance.partials.psychological-report-css')</style>
 </head>
 <body>
-    @php
-        $letterheadPath = public_path('images/admission/download-letterhead.png');
-        $letterheadSrc = 'data:image/png;base64,'.base64_encode(file_get_contents($letterheadPath));
-    @endphp
-    <img class="personality-letterhead" src="{{ $letterheadSrc }}" alt="Pangasinan State University — San Carlos City Campus letterhead">
+    @include('guidance.partials.assessment-letterhead')
     @if($format === 'html')
         <nav class="no-print" aria-label="Assessment actions">
             <a href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener">View / Print PDF</a>

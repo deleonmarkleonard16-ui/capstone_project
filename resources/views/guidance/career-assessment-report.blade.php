@@ -7,6 +7,7 @@
     <style>@include('guidance.partials.psychological-report-css')</style>
 </head>
 <body>
+    @include('guidance.partials.assessment-letterhead')
     @if($format === 'html')
         <nav class="no-print" aria-label="Report actions">
             <a href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener">View / Print PDF</a>

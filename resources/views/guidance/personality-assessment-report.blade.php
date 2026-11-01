@@ -4,9 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }}</title>
-    <style>@include('guidance.partials.psychological-report-css')</style>
+    <style>
+        @include('guidance.partials.psychological-report-css')
+        @page { size: A4 portrait; margin: 50mm 13mm 30mm; }
+        .personality-letterhead { position: fixed; top: -50mm; left: -13mm; width: 210mm; height: 297mm; z-index: -1000; }
+        body { font-size: 10px; }
+        .career-matrix .career-description, .career-matrix .career-interpretation { font-size: 9px; }
+        .office-heading h3 { font-size: 14px; }
+    </style>
 </head>
 <body>
+    @php
+        $letterheadPath = public_path('images/admission/download-letterhead.png');
+        $letterheadSrc = 'data:image/png;base64,'.base64_encode(file_get_contents($letterheadPath));
+    @endphp
+    <img class="personality-letterhead" src="{{ $letterheadSrc }}" alt="Pangasinan State University — San Carlos City Campus letterhead">
     @if($format === 'html')
         <nav class="no-print" aria-label="Assessment actions">
             <a href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener">View / Print PDF</a>
@@ -16,16 +28,6 @@
         </nav>
     @endif
     <article class="assessment-report career-report">
-        <header class="letterhead">
-            <div class="letterhead-copy">
-                <span class="republic">Republic of the Philippines</span>
-                @if($brand['universityTitle'])<img class="university-title" src="{{ $brand['universityTitle'] }}" alt="Pangasinan State University">
-                @else<h1 class="university-name">Pangasinan State University</h1>@endif
-                <strong>{{ $brand['campus'] }}</strong>
-                <span>Website: {{ $brand['website'] }} &nbsp; Telephone: {{ $brand['telephone'] }} &nbsp; Telefax: {{ $brand['telefax'] }}</span>
-            </div>
-            @if($brand['seal'])<img class="university-seal" src="{{ $brand['seal'] }}" alt="Pangasinan State University seal">@endif
-        </header>
         <div class="office-heading"><h2>OFFICE OF ADMISSION AND GUIDANCE SERVICES</h2><h3>PERSONALITY ASSESSMENT</h3></div>
         <table class="profile" aria-label="Student profile">
             @foreach(array_chunk($fields, 2, true) as $pair)<tr>@foreach($pair as $label => $value)<td><strong>{{ $label }}:</strong> <span class="field">{{ $value }}</span></td>@endforeach</tr>@endforeach
@@ -45,7 +47,7 @@
         <section class="remarks"><h3>II. Remarks:</h3><p>{{ $remarks }}</p>@unless($complete)<p class="incomplete">Some ratings are unavailable; counselor review is required.</p>@endunless</section>
         <p class="note">Should you wish to further understand these results, please consult the Guidance Counselor/Psychologist.</p>
         <table class="signatures"><tr><td>Administered and interpreted by:<div class="signature-line">{{ $administeredBy }}</div><div class="signature-line">{{ $administeredPosition }}</div></td><td>Reviewed and certified by:<div class="signature-line">{{ $counselor }}</div><div>Guidance Counselor</div></td></tr></table>
-        <footer><strong>*NOT VALID WITHOUT UNIVERSITY SEAL</strong><p>O.R. #: {{ $orNumber }} &nbsp; Date: {{ $orDate }} &nbsp; Doc. Stamp Tax Paid</p><div class="footer-accent">Pangasinan State University · San Carlos Campus</div></footer>
+        <footer><strong>*NOT VALID WITHOUT UNIVERSITY SEAL</strong><p>O.R. #: {{ $orNumber }} &nbsp; Date: {{ $orDate }} &nbsp; Doc. Stamp Tax Paid</p></footer>
     </article>
     @if($autoPrint && $format === 'html')<script>window.onload = function () { window.print(); };</script>@endif
 </body>

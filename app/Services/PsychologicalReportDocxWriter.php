@@ -79,8 +79,8 @@ class PsychologicalReportDocxWriter
         $signatures->addRow(null, ['cantSplit' => true]);
         $administered = $signatures->addCell(5000);
         $administered->addText('Administered and interpreted by:');
-        $administered->addText('____________________________', [], ['spaceBefore' => 180]);
-        $administered->addText('____________________________ (Position)');
+        $administered->addText($document['administeredBy'], [], ['spaceBefore' => 180]);
+        $administered->addText($document['administeredPosition']);
         $reviewed = $signatures->addCell(5000);
         $reviewed->addText('Reviewed and certified by:');
         $reviewed->addText($document['counselor'] ?: '____________________________', [], ['spaceBefore' => 180]);

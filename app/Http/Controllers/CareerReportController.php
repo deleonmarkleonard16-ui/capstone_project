@@ -22,6 +22,10 @@ class CareerReportController extends Controller
         $fallback = route($request->user()->role.'.exports.index');
         try {
             $document = app(CareerAssessmentReportService::class)->build($appointment);
+            $document['administeredBy'] = $request->user()->name;
+            $document['administeredPosition'] = $request->user()->roleLookup?->name
+                ?? str((string) $request->user()->role)->headline()->toString();
+            $document['counselor'] = 'Noemi C. Carlos, RGC';
             if (! collect($document['rows'])->contains(fn (array $row): bool => $row['selected'] !== null)) {
                 return redirect($fallback)->with('error', 'A scored career assessment is required.');
             }

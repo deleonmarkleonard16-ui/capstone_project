@@ -18,7 +18,10 @@ class GuidanceReportTest extends TestCase
 
     private function login(string $role = 'admin'): void
     {
-        $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', $role)->value('id')]));
+        $this->actingAs(User::factory()->create([
+            'name' => 'Juan Dela Cruz',
+            'role_id' => Role::where('slug', $role)->value('id'),
+        ]));
     }
 
     private function appointment(?array $tests = null): GuidanceAppointment
@@ -58,6 +61,7 @@ class GuidanceReportTest extends TestCase
             ->assertSee('OFFICE OF ADMISSION AND GUIDANCE SERVICES')->assertSee('Ana & <Student> Santos')->assertDontSee('<Student>', false)
             ->assertSee('3A')->assertSee('Practicum')->assertSee('OR-12345')->assertSee('September 28, 2026')
             ->assertSee('[X] Fit for deployment')->assertSee('NOT VALID WITHOUT UNIVERSITY SEAL')
+            ->assertSee('Juan Dela Cruz')->assertSee('Noemi C. Carlos, RGC')
             ->assertSee('Depression: Very Low selected')->assertSee('PHQ-9: Minimal selected')->assertSee('GAD-7: Minimal selected')
             ->assertSee('@media print', false)->assertSee('window.print()', false);
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));

@@ -44,7 +44,7 @@
         </section>
         <section class="remarks"><h3>II. Remarks:</h3><p>{{ $remarks }}</p>@unless($complete)<p class="incomplete">Some ratings are unavailable; counselor review is required.</p>@endunless</section>
         <p class="note">Should you wish to further understand these results, please consult the Guidance Counselor/Psychologist.</p>
-        <table class="signatures"><tr><td>Administered and interpreted by:<div class="signature-line">&nbsp;</div><div class="signature-line">(Position)</div></td><td>Reviewed and certified by:<div class="signature-line">{{ $counselor }}</div><div>Guidance Counselor</div></td></tr></table>
+        <table class="signatures"><tr><td>Administered and interpreted by:<div class="signature-line">{{ $administeredBy }}</div><div class="signature-line">{{ $administeredPosition }}</div></td><td>Reviewed and certified by:<div class="signature-line">{{ $counselor }}</div><div>Guidance Counselor</div></td></tr></table>
         <footer><strong>*NOT VALID WITHOUT UNIVERSITY SEAL</strong><p>O.R. #: {{ $orNumber }} &nbsp; Date: {{ $orDate }} &nbsp; Doc. Stamp Tax Paid</p><div class="footer-accent">Pangasinan State University · San Carlos Campus</div></footer>
     </article>
     @if($autoPrint && $format === 'html')<script>window.onload = function () { window.print(); };</script>@endif

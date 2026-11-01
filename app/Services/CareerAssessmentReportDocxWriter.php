@@ -69,8 +69,8 @@ class CareerAssessmentReportDocxWriter
         $signatures->addRow(null, ['cantSplit' => true]);
         $administered = $signatures->addCell(5100);
         $administered->addText('Administered and interpreted by:');
-        $administered->addText('____________________________', [], ['spaceBefore' => 120]);
-        $administered->addText('(Position)');
+        $administered->addText($document['administeredBy'], [], ['spaceBefore' => 120]);
+        $administered->addText($document['administeredPosition']);
         $reviewed = $signatures->addCell(5100);
         $reviewed->addText('Reviewed and certified by:');
         $reviewed->addText($document['counselor'], [], ['spaceBefore' => 120]);

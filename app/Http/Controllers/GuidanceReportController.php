@@ -35,6 +35,10 @@ class GuidanceReportController extends Controller
             $document = $isPersonality
                 ? app(PersonalityAssessmentReportService::class)->build($appointment)
                 : app(PsychologicalReportService::class)->build($appointment);
+            $document['administeredBy'] = $request->user()->name;
+            $document['administeredPosition'] = $request->user()->roleLookup?->name
+                ?? str((string) $request->user()->role)->headline()->toString();
+            $document['counselor'] = 'Noemi C. Carlos, RGC';
             $hasScoredResult = $isPersonality
                 ? collect($document['rows'])->contains(fn ($row) => $row['selected'] !== null)
                 : collect($document['matrices'])->pluck('rows')->flatten(1)->contains(fn ($row) => $row['selected'] !== null);

@@ -177,6 +177,31 @@ class DocumentExportTest extends TestCase
         $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $pdf));
         $this->assertStringContainsString('/Subtype /Image', $pdf);
         $this->assertMatchesRegularExpression('/\/MediaBox\s*\[0(?:\.0+)?\s+0(?:\.0+)?\s+612(?:\.0+)?\s+792(?:\.0+)?\]/', $pdf);
+        // A one-page PDF can still be wrong if the letterhead is off-page.
+        $boxes = [];
+        $renderer = new \Dompdf\Dompdf();
+        $renderer->setCallbacks([['event' => 'end_frame', 'f' => function ($frame) use (&$boxes) {
+            $node = $frame->get_node();
+            if ($node instanceof \DOMElement && in_array($node->getAttribute('class'), ['page-letterhead', 'content-body', 'results-table'], true)) {
+                $boxes[$node->getAttribute('class')] = $frame->get_border_box();
+            }
+        }]]);
+        $renderer->loadHtml(view('admin.admission.certificate', [
+            'applicant' => $applicant, 'cycle' => $cycle, 'salutation' => 'MR.',
+            'remarks' => $applicant->certificate_remarks, 'purpose' => 'SCHOLARSHIP',
+            'requestorName' => 'MR. REYES', 'issuedDay' => '2nd', 'issuedMonth' => 'November',
+            'issuedYear' => '2026', 'orNumber' => 'OR-CERT-123', 'orDate' => '2026-11-02',
+        ])->render());
+        $renderer->setPaper('letter', 'portrait');
+        $renderer->render();
+        $this->assertEqualsWithDelta(0, $boxes['page-letterhead']['x'], 0.1);
+        $this->assertEqualsWithDelta(0, $boxes['page-letterhead']['y'], 0.1);
+        $this->assertEqualsWithDelta(612, $boxes['page-letterhead']['w'], 0.1);
+        $this->assertEqualsWithDelta(792, $boxes['page-letterhead']['h'], 0.1);
+        $this->assertGreaterThanOrEqual(140, $boxes['content-body']['y']);
+        $this->assertGreaterThanOrEqual(42, $boxes['results-table']['x']);
+        $this->assertLessThanOrEqual(570, $boxes['results-table']['x'] + $boxes['results-table']['w']);
+        $this->assertLessThan(710, $boxes['content-body']['y'] + $boxes['content-body']['h']);
         $query['format'] = 'print';
         $this->get(route('admin.admission.applicants.certificate', $query))
             ->assertOk()->assertSee('data:image/png;base64,', false)

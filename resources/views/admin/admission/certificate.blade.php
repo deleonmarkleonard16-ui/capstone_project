@@ -37,9 +37,17 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
             position: relative;
         }
+        .page-letterhead {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
         @else
         .cert-paper {
             width: 100%;
+            min-height: 11in;
             position: relative;
         }
         @endif
@@ -160,8 +168,9 @@
 
         /* BODY CONTENT CONTAINER */
         .content-body {
-            padding: 18px 52px 10px 52px;
+            padding: 155px 52px 105px 52px;
             position: relative;
+            z-index: 1;
         }
 
         /* Subtle Center Watermark */
@@ -419,6 +428,9 @@
         $watermarkPath = public_path('images/psu-template/watermark.jpg');
         if (!is_file($watermarkPath)) $watermarkPath = public_path('images/psu-template/image1.png');
         $watermarkSrc = is_file($watermarkPath) ? 'data:image/' . (str_ends_with($watermarkPath, '.png') ? 'png' : 'jpeg') . ';base64,' . base64_encode(file_get_contents($watermarkPath)) : '';
+
+        $letterheadPath = public_path('images/admission/download-letterhead.png');
+        $letterheadSrc = is_file($letterheadPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($letterheadPath)) : '';
     @endphp
 
     @if(request('format') === 'print' || !request()->has('format'))
@@ -439,6 +451,7 @@
     @endif
 
     <div class="cert-paper">
+        @if($letterheadSrc)<img class="page-letterhead" src="{{ $letterheadSrc }}" alt="">@endif
         {{-- Background Watermark --}}
         @if($watermarkSrc)
             <div class="watermark-container">
@@ -447,7 +460,7 @@
         @endif
 
         {{-- 1. OFFICIAL FULL-WIDTH YELLOW HEADER BAND --}}
-        <div class="header-band">
+        <div class="header-band" style="display:none">
             <table class="header-table">
                 <tr>
                     {{-- Left Column: Official PSU Seal --}}
@@ -584,7 +597,7 @@
 
         {{-- 3. OFFICIAL FULL-WIDTH YELLOW FOOTER BANNER --}}
         @if($footerSrc)
-            <div class="footer-band">
+            <div class="footer-band" style="display:none">
                 <img src="{{ $footerSrc }}" alt="Accreditation Banner" class="footer-banner-img">
             </div>
         @endif

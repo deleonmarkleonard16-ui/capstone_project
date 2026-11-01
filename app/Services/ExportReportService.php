@@ -26,6 +26,7 @@ class ExportReportService
     public function build(string $module, array $filters): array
     {
         $document = [
+            'module' => $module,
             'office' => $module === 'admission' ? 'Testing and Admission Office' : 'Guidance and Counseling Office',
             'metadata' => ['Selected Batch' => $filters['batch_name'] ?? 'All batches / Individual requests', 'Date Generated' => now()->timezone('Asia/Manila')->format('F j, Y g:i A').' (Asia/Manila)'],
             'summary' => [], 'certificates' => [], 'orientation' => 'landscape',

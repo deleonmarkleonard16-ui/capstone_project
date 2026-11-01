@@ -71,10 +71,25 @@ class DocumentExportService
         }
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(10);
-        $section = $word->addSection(['orientation' => $document['orientation'], 'marginTop' => 720, 'marginBottom' => 720, 'marginLeft' => 720, 'marginRight' => 720]);
+        $isAdmission = ($document['module'] ?? null) === 'admission';
+        $section = $word->addSection([
+            'orientation' => $document['orientation'],
+            'marginTop' => $isAdmission ? 2200 : 720,
+            'marginBottom' => $isAdmission ? 1200 : 720,
+            'marginLeft' => 720,
+            'marginRight' => 720,
+            'headerHeight' => $isAdmission ? 120 : 720,
+            'footerHeight' => $isAdmission ? 120 : 720,
+        ]);
         $header = $section->addHeader();
-        $header->addText(self::UNIVERSITY, ['bold' => true, 'color' => '17305F'], ['alignment' => 'center']);
-        $header->addText($document['office'], [], ['alignment' => 'center']);
+        $letterheadHeader = public_path('images/admission/download-letterhead-header.png');
+        if ($isAdmission && is_file($letterheadHeader)) {
+            $header->addImage($letterheadHeader, ['width' => 700, 'height' => 164, 'alignment' => 'center']);
+            $header->addText(self::UNIVERSITY, ['size' => 1, 'color' => 'FFFFFF'], ['spaceAfter' => 0]);
+        } else {
+            $header->addText(self::UNIVERSITY, ['bold' => true, 'color' => '17305F'], ['alignment' => 'center']);
+            $header->addText($document['office'], [], ['alignment' => 'center']);
+        }
         $section->addText($document['title'], ['bold' => true, 'size' => 14], ['alignment' => 'center']);
         foreach ($document['metadata'] as $label => $value) {
             $section->addText($label.': '.$value, ['size' => 9]);
@@ -108,7 +123,12 @@ class DocumentExportService
             }
             $this->signatures($section);
         }
-        $section->addFooter()->addPreserveText('DMSGTA | Page {PAGE} of {NUMPAGES}', ['size' => 8], ['alignment' => 'center']);
+        $footer = $section->addFooter();
+        $letterheadFooter = public_path('images/admission/download-letterhead-footer.png');
+        if ($isAdmission && is_file($letterheadFooter)) {
+            $footer->addImage($letterheadFooter, ['width' => 700, 'height' => 94, 'alignment' => 'center']);
+        }
+        $footer->addPreserveText('DMSGTA | Page {PAGE} of {NUMPAGES}', ['size' => 8], ['alignment' => 'center']);
 
         return $this->wordBytes($word);
     }

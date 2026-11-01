@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <title>{{ $title }}</title>
     <style>
-        @page { size: A4 {{ $orientation }}; margin: {{ count($certificates) ? '9mm 13mm' : '16mm 12mm' }}; }
+        @page { size: A4 {{ $orientation }}; margin: {{ ($module ?? null) === 'admission' ? '40mm 12mm 25mm' : (count($certificates) ? '9mm 13mm' : '16mm 12mm') }}; }
         body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 10px; color: #111; }
+        .admission-letterhead { position: fixed; top: -40mm; left: -12mm; width: calc(100% + 24mm); height: calc(100% + 65mm); z-index: -1000; }
         .document-header { text-align: center; border-bottom: 2px solid #17305f; padding-bottom: 10px; }
         h1 { font-size: 16px; color: #17305f; } h2 { font-size: 14px; }
         .metadata { margin: 12px 0; } .metadata p { margin: 3px 0; }
@@ -46,6 +47,13 @@
     </style>
 </head>
 <body>
+    @if(($module ?? null) === 'admission')
+        @php
+            $letterheadPath = public_path('images/admission/download-letterhead.png');
+            $letterheadSrc = is_file($letterheadPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($letterheadPath)) : '';
+        @endphp
+        @if($letterheadSrc)<img class="admission-letterhead" src="{{ $letterheadSrc }}" alt="">@endif
+    @endif
     @if($format === 'html')
         <div class="no-print"><button type="button" onclick="window.print()">Print document</button></div>
     @endif

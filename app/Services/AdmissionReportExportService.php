@@ -45,6 +45,10 @@ class AdmissionReportExportService
         $word->setDefaultFontSize(8);
         $section = $word->addSection(['orientation' => 'landscape', 'marginTop' => 1900, 'marginBottom' => 1150, 'marginLeft' => 500, 'marginRight' => 500, 'headerHeight' => 200, 'footerHeight' => 200]);
         $header = $section->addHeader();
+        $letterheadHeader = $this->firstAsset('images/admission/download-letterhead-header.png');
+        if ($letterheadHeader) {
+            $header->addImage($letterheadHeader, ['width' => 700, 'height' => 164, 'alignment' => 'center']);
+        } else {
         $headerTable = $header->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 45]);
         $headerTable->addRow(1050);
         $sealCell = $headerTable->addCell(1800, ['bgColor' => 'FFF900', 'valign' => 'center']);
@@ -63,6 +67,7 @@ class AdmissionReportExportService
         $bagongCell = $headerTable->addCell(1900, ['bgColor' => 'FFF900', 'valign' => 'center']);
         $bagongPath = $this->firstAsset('images/psu-template/bagong_pilipinas.png');
         if ($bagongPath) $bagongCell->addImage($bagongPath, ['width' => 70, 'height' => 52, 'alignment' => 'center']);
+        }
         $section->addText(self::TITLES[$type], ['bold' => true, 'size' => 13], ['alignment' => 'center']);
         $section->addText('Admission Cycle: '.$cycle->displayName.' | Academic Year: '.$cycle->academic_year.' | Batch: '.($batch ?: 'All').' | Records: '.$roster['count'], ['size' => 8], ['alignment' => 'center']);
         $section->addText('Generated: '.now()->format('F j, Y g:i A'), ['size' => 8], ['alignment' => 'center']);
@@ -83,12 +88,17 @@ class AdmissionReportExportService
         }
         if ($roster['count'] === 0) $section->addText('No applicants matched this report.');
         $footer = $section->addFooter();
+        $letterheadFooter = $this->firstAsset('images/admission/download-letterhead-footer.png');
+        if ($letterheadFooter) {
+            $footer->addImage($letterheadFooter, ['width' => 700, 'height' => 94, 'alignment' => 'center']);
+        } else {
         $footerTable = $footer->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 25]);
         $footerTable->addRow();
         $footerCell = $footerTable->addCell(14300, ['bgColor' => 'FFF900', 'valign' => 'center']);
         $footerPath = $this->firstAsset('images/psu-template/image8.png', 'images/psu-template/image8.jpg');
         if ($footerPath) $footerCell->addImage($footerPath, ['width' => 690, 'height' => 34, 'alignment' => 'center']);
         $footerCell->addText('Alaminos City · Asingan · Bayambang · Binmaley · Infanta · San Carlos City · Sta. Maria · Urdaneta City | School of Advanced Studies · Open University Systems', ['size' => 5], ['alignment' => 'center', 'spaceAfter' => 0]);
+        }
         $footer->addPreserveText('Page {PAGE} of {NUMPAGES}', ['size' => 7], ['alignment' => 'center']);
         $path = tempnam(sys_get_temp_dir(), 'admission_report_');
         if ($path === false) throw new \RuntimeException('Could not create a temporary report file.');

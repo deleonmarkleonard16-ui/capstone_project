@@ -5,7 +5,8 @@
     <style>
         @page { margin: 37mm 10mm 24mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 7px; color: #18253b; }
-        .official-header { position: fixed; top: -37mm; left: -10mm; right: -10mm; height: 31mm; padding: 3mm 10mm 2mm; background: #fff900; border-top: 1.2mm solid #101010; border-bottom: 1mm solid #d8d8d8; }
+        .page-letterhead { position: fixed; top: -37mm; left: -10mm; width: calc(100% + 20mm); height: calc(100% + 61mm); z-index: -1000; }
+        .official-header { display: none; }
         .official-header table { border: 0; }
         .official-header td { padding: 0; border: 0; vertical-align: middle; }
         .seal { width: 24mm; height: 24mm; object-fit: contain; }
@@ -15,7 +16,7 @@
         .university-fallback { font: bold 18px DejaVu Serif, serif; }
         .campus { margin-top: 1px; font-family: DejaVu Serif, serif; font-size: 7px; }
         .contacts { margin-top: 2px; font-size: 5.5px; }
-        .official-footer { position: fixed; right: -10mm; bottom: -24mm; left: -10mm; height: 17mm; padding: 2mm 5mm 1mm; background: #fff900; text-align: center; }
+        .official-footer { display: none; }
         .official-footer img { width: 100%; height: 8mm; object-fit: contain; }
         .footer-text { margin-top: 1mm; font-size: 5px; }
         .report-heading { text-align: center; border-bottom: 2px solid #183861; padding-bottom: 8px; margin-bottom: 10px; }
@@ -45,7 +46,9 @@
     $titleImage = $assetData(['images/psu-template/psu_title_gothic.png']);
     $bagong = $assetData(['images/psu-template/bagong_pilipinas.png']);
     $footer = $assetData(['images/psu-template/image8.png', 'images/psu-template/image8.jpg']);
+    $letterhead = $assetData(['images/admission/download-letterhead.png']);
 @endphp
+@if($letterhead)<img class="page-letterhead" src="{{ $letterhead }}" alt="">@endif
 <header class="official-header">
     <table><tr>
         <td style="width:26mm">@if($seal)<img class="seal" src="{{ $seal }}" alt="Pangasinan State University seal">@endif</td>

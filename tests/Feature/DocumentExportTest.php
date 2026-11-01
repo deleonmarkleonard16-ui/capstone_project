@@ -136,6 +136,30 @@ class DocumentExportTest extends TestCase
         $this->assertMatchesRegularExpression('/\/MediaBox\s*\[0(?:\.0+)?\s+0(?:\.0+)?\s+595\.28\d*\s+841\.89\d*\]/', $response->getContent());
     }
 
+    public function test_archive_evaluation_orders_official_results_before_pending(): void
+    {
+        $this->login();
+        $cycle = $this->cycle();
+        $active = $this->cycle();
+        $active->update(['is_active' => true, 'is_archived' => false, 'status' => 'Active']);
+        $this->applicant($cycle, ['application_number' => 'ORDER-PENDING', 'total_score' => 100]);
+        $this->applicant($cycle, ['application_number' => 'ORDER-WAITLIST', 'stanine_score' => 5, 'exam_score' => 70, 'interview_score' => 80, 'total_score' => 80]);
+        $this->applicant($cycle, ['application_number' => 'ORDER-NONQUALIFIED', 'stanine_score' => 1, 'total_score' => 95]);
+        $this->applicant($cycle, ['application_number' => 'ORDER-QUALIFIED', 'stanine_score' => 6, 'exam_score' => 80, 'interview_score' => 90, 'total_score' => 90]);
+        \Illuminate\Support\Facades\DB::table('admission_course_quotas')->insert([
+            'admission_cycle_id' => $cycle->id, 'course_code' => 'BSIT', 'seats' => 1,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->get(route('admin.admission.archive'))->assertOk()
+            ->assertSee('View / Print Evaluation PDF')->assertSee('target="_blank"', false)
+            ->assertDontSee('Export Evaluation DOCX');
+        $this->get(route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'html']))
+            ->assertOk()->assertSeeInOrder(['ORDER-QUALIFIED', 'ORDER-NONQUALIFIED', 'ORDER-WAITLIST', 'ORDER-PENDING'])
+            ->assertSee('Qualified for Enrollment')->assertSee('Not Qualified for Interview')->assertSee('Waitlisted')->assertSee('Pending exam result');
+        $document = app(\App\Services\ExportReportService::class)->build('admission', ['cycle_id' => $cycle->id, 'type' => 'summary']);
+        $this->assertSame(['Applicants' => 4, 'Qualified' => 1, 'Non-Qualified' => 1, 'Waitlisted' => 1, 'Pending' => 1], $document['summary']);
+    }
+
     public function test_certificate_eligibility_is_enforced_on_the_server(): void
     {
         $this->login('staff');

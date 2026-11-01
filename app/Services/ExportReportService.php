@@ -59,16 +59,34 @@ class ExportReportService
             ->when(in_array($type, ['qualified', 'not-qualified'], true), fn ($q) => $q->where('qualification_status', $type === 'qualified' ? 'Qualified' : 'Not Qualified'))
             ->when($type !== 'session', fn ($q) => $q->orderBy('course_choice')->orderByDesc('total_score'))
             ->orderBy('last_name')->orderBy('first_name')->get();
+        $outcomes = $type === 'summary' ? app(AdmissionReportService::class)->outcomes($cycle) : [];
+        if ($type === 'summary') {
+            $records = $records->sortBy(fn ($r) => match ($outcomes[$r->id]['remark'] ?? '') {
+                'Qualified for Enrollment', 'Qualified for Interview' => 0,
+                'Not Qualified for Interview' => 1,
+                'Waitlisted' => 2,
+                default => 3,
+            })->values();
+        }
         $columns = $type === 'session'
             ? ['Full Name', 'First Choice', 'Second Choice', 'GWA']
             : ['Application Number', 'Name', 'Sex', 'Course Choice', 'GWA', 'Exam Score', 'Stanine', 'Interview', 'Total Score', 'Status'];
-        $rows = $records->map(function ($r) use ($type) {
+        $rows = $records->map(function ($r) use ($type, $outcomes) {
             if ($type === 'session') {
                 return [$r->full_name ?? 'N/A', $r->course_choice_1 ?: $r->course_choice ?: 'N/A', $r->course_choice_2 ?: $r->second_course_choice ?: '-', $r->gwa !== null ? number_format((float) $r->gwa, 2) : '-'];
             }
 
-            return [$r->application_number ?? '-', $r->full_name ?? 'N/A', $r->sex ?? '-', $r->course_choice ?? 'N/A', $r->gwa ?? '-', $r->exam_score ?? '-', $r->stanine_score ?? '-', $r->interview_score ?? '-', $r->total_score ?? '-', $r->qualification_status ?? 'Pending'];
+            return [$r->application_number ?? '-', $r->full_name ?? 'N/A', $r->sex ?? '-', $r->course_choice ?? 'N/A', $r->gwa ?? '-', $r->exam_score ?? '-', $r->stanine_score ?? '-', $r->interview_score ?? '-', $r->total_score ?? '-', $type === 'summary' ? ($outcomes[$r->id]['remark'] ?? 'Pending exam result') : ($r->qualification_status ?? 'Pending')];
         });
+        $summary = $type === 'summary'
+            ? [
+                'Applicants' => $records->count(),
+                'Qualified' => $records->filter(fn ($r) => in_array($outcomes[$r->id]['remark'] ?? '', ['Qualified for Enrollment', 'Qualified for Interview'], true))->count(),
+                'Non-Qualified' => $records->filter(fn ($r) => ($outcomes[$r->id]['remark'] ?? '') === 'Not Qualified for Interview')->count(),
+                'Waitlisted' => $records->filter(fn ($r) => ($outcomes[$r->id]['remark'] ?? '') === 'Waitlisted')->count(),
+                'Pending' => $records->filter(fn ($r) => ($outcomes[$r->id]['remark'] ?? 'Pending exam result') === 'Pending exam result')->count(),
+            ]
+            : ['Applicants' => $records->count(), 'Qualified' => $records->where('qualification_status', 'Qualified')->count(), 'Non-Qualified' => $records->where('qualification_status', 'Not Qualified')->count(), 'Pending' => $records->where('qualification_status', 'Pending')->count()];
 
         return [
             'title' => match ($type) {
@@ -82,7 +100,7 @@ class ExportReportService
             'evaluationSummary' => $type === 'summary',
             'orientation' => $type === 'summary' ? 'portrait' : 'landscape',
             'metadata' => ['Admission Cycle' => $cycle->display_name, 'Academic Year' => $cycle->academic_year ?? 'N/A', 'Session' => $session?->session_name ?? 'All sessions', 'Room' => $session?->room ?? '-', 'Schedule' => $session?->start_time?->timezone('Asia/Manila')->format('F j, Y g:i A') ?? '-', 'Date Generated' => now()->timezone('Asia/Manila')->format('F j, Y g:i A').' (Asia/Manila)'],
-            'summary' => ['Applicants' => $records->count(), 'Qualified' => $records->where('qualification_status', 'Qualified')->count(), 'Non-Qualified' => $records->where('qualification_status', 'Not Qualified')->count(), 'Pending' => $records->where('qualification_status', 'Pending')->count()],
+            'summary' => $summary,
         ];
     }
 

@@ -37,13 +37,9 @@
                        href="{{ route('admin.admission.analytics', ['cycle_id' => $cycle->id]) }}">
                         <i class="bi bi-bar-chart-line me-1"></i>View Analytics
                     </a>
-                    <a class="btn btn-sm btn-primary"
-                       href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'docx']) }}">
-                        <i class="bi bi-file-earmark-word me-1"></i>Export Evaluation DOCX
-                    </a>
                     <a class="btn btn-sm btn-outline-danger"
-                       href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'pdf']) }}">
-                        <i class="bi bi-file-earmark-pdf me-1"></i>Export Evaluation PDF
+                       href="{{ route('admin.admission.report', ['cycle_id' => $cycle->id, 'type' => 'summary', 'format' => 'pdf']) }}" target="_blank" rel="noopener">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>View / Print Evaluation PDF
                     </a>
                 </div>
             </td>

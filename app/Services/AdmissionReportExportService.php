@@ -80,10 +80,10 @@ class AdmissionReportExportService
             $section->addText($course.' - '.count($items).' applicant(s)'.$meta, ['bold' => true, 'size' => 9]);
             $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20, 'layout' => 'autofit']);
             $table->addRow(null, ['tblHeader' => true]);
-            foreach ($columns as $column) $table->addCell(null, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 5.5]);
+            foreach ($columns as $column) $table->addCell(null, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 7]);
             foreach ($items as $item) {
                 $table->addRow(null, ['cantSplit' => true]);
-                foreach ($this->values($item, $type) as $value) $table->addCell()->addText($value, ['size' => 5.5]);
+                foreach ($this->values($item, $type) as $value) $table->addCell()->addText($value, ['size' => 7]);
             }
         }
         if ($roster['count'] === 0) $section->addText('No applicants matched this report.');

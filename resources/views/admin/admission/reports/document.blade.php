@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 50mm 10mm 28mm; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 5.5px; color: #18253b; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #18253b; }
         .page-letterhead { position: fixed; top: -50mm; left: -10mm; width: calc(100% + 20mm); height: calc(100% + 78mm); z-index: -1000; }
         .official-header { display: none; }
         .official-header table { border: 0; }
@@ -20,14 +20,14 @@
         .official-footer img { width: 100%; height: 8mm; object-fit: contain; }
         .footer-text { margin-top: 1mm; font-size: 5px; }
         .report-heading { text-align: center; border-bottom: 2px solid #183861; padding-bottom: 8px; margin-bottom: 10px; }
-        h1 { font-size: 15px; margin: 6px 0 3px; }
-        h2 { font-size: 11px; margin: 16px 0 5px; background: #e8edf5; padding: 6px; }
-        .meta { font-size: 8px; line-height: 1.6; }
+        h1 { font-size: 18px; margin: 6px 0 3px; }
+        h2 { font-size: 12px; margin: 16px 0 5px; background: #e8edf5; padding: 6px; }
+        .meta { font-size: 9px; line-height: 1.4; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .roster-table { width: auto; max-width: 100%; margin: 0 auto; table-layout: auto; }
         th, td { border: 1px solid #b7c2d4; overflow-wrap: break-word; }
-        th { background: #183861; color: white; font-size: 5px; padding: 2px 1px; line-height: 1.05; }
-        tbody td { padding: 1.5px 1px; line-height: 1.05; vertical-align: middle; }
+        th { background: #183861; color: white; font-size: 8px; padding: 2px 1px; line-height: 1.1; }
+        tbody td { padding: 1.5px 1px; line-height: 1.15; vertical-align: middle; }
         tr { page-break-inside: avoid; }
     </style>
 </head>

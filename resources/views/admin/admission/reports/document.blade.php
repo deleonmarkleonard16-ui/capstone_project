@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 37mm 10mm 24mm; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 7px; color: #18253b; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 5.5px; color: #18253b; }
         .page-letterhead { position: fixed; top: -37mm; left: -10mm; width: calc(100% + 20mm); height: calc(100% + 61mm); z-index: -1000; }
         .official-header { display: none; }
         .official-header table { border: 0; }
@@ -24,9 +24,10 @@
         h2 { font-size: 11px; margin: 16px 0 5px; background: #e8edf5; padding: 6px; }
         .meta { font-size: 8px; line-height: 1.6; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .roster-table { width: 100%; margin: 0 auto; table-layout: fixed; }
         th, td { border: 1px solid #b7c2d4; overflow-wrap: break-word; }
-        th { background: #183861; color: white; font-size: 6.5px; padding: 3px; line-height: 1.1; }
-        tbody td { padding: 1.5px 3px; line-height: 1.05; vertical-align: middle; }
+        th { background: #183861; color: white; font-size: 5px; padding: 2px 1px; line-height: 1.05; }
+        tbody td { padding: 1.5px 1px; line-height: 1.05; vertical-align: middle; }
         tr { page-break-inside: avoid; }
     </style>
 </head>
@@ -76,8 +77,17 @@
         @if(str_starts_with($type, 'interview-')) | Top limit: {{ $roster['cutoffs'][$course] ?? 'All' }}
         @elseif(str_starts_with($type, 'final-')) | Seats: {{ $roster['quotas'][$course] ?? 0 }} @endif
     </h2>
-    <table>
-        <thead><tr>@foreach(app(\App\Services\AdmissionReportExportService::class)->columns($type) as $column)<th>{{ $column }}</th>@endforeach</tr></thead>
+    @php
+        $columns = app(\App\Services\AdmissionReportExportService::class)->columns($type);
+        $columnWidths = count($columns) === 13
+            ? [4, 8, 13, 8, 5, 9, 7, 6, 6, 5, 8, 10, 11]
+            : [4, 9, 14, 9, 5, 10, 8, 7, 7, 6, 9, 12];
+    @endphp
+    <table class="roster-table">
+        <colgroup>
+            @foreach($columnWidths as $width)<col style="width:{{ $width }}%">@endforeach
+        </colgroup>
+        <thead><tr>@foreach($columns as $column)<th>{{ $column }}</th>@endforeach</tr></thead>
         <tbody>
         @foreach($items as $item)
             <tr>@foreach(app(\App\Services\AdmissionReportExportService::class)->values($item, $type) as $value)<td>{{ $value }}</td>@endforeach</tr>

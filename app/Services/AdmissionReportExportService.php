@@ -32,7 +32,7 @@ class AdmissionReportExportService
         $options->set('defaultFont', 'DejaVu Sans');
         $pdf = new Dompdf($options);
         $pdf->loadHtml(view('admin.admission.reports.document', compact('cycle', 'type', 'roster', 'batch'))->render(), 'UTF-8');
-        $pdf->setPaper('A4', 'landscape');
+        $pdf->setPaper('A4', 'portrait');
         $pdf->render();
         return $pdf->output();
     }
@@ -43,11 +43,11 @@ class AdmissionReportExportService
         \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(8);
-        $section = $word->addSection(['orientation' => 'landscape', 'marginTop' => 1900, 'marginBottom' => 1150, 'marginLeft' => 500, 'marginRight' => 500, 'headerHeight' => 200, 'footerHeight' => 200]);
+        $section = $word->addSection(['orientation' => 'portrait', 'marginTop' => 1900, 'marginBottom' => 1150, 'marginLeft' => 500, 'marginRight' => 500, 'headerHeight' => 200, 'footerHeight' => 200]);
         $header = $section->addHeader();
         $letterheadHeader = $this->firstAsset('images/admission/download-letterhead-header.png');
         if ($letterheadHeader) {
-            $header->addImage($letterheadHeader, ['width' => 700, 'height' => 164, 'alignment' => 'center']);
+            $header->addImage($letterheadHeader, ['width' => 520, 'height' => 122, 'alignment' => 'center']);
         } else {
         $headerTable = $header->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 45]);
         $headerTable->addRow(1050);
@@ -80,17 +80,17 @@ class AdmissionReportExportService
             $section->addText($course.' - '.count($items).' applicant(s)'.$meta, ['bold' => true, 'size' => 9]);
             $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20]);
             $table->addRow(null, ['tblHeader' => true]);
-            foreach ($columns as $column) $table->addCell(1200, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 7]);
+            foreach ($columns as $column) $table->addCell(750, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 5.5]);
             foreach ($items as $item) {
                 $table->addRow(null, ['cantSplit' => true]);
-                foreach ($this->values($item, $type) as $value) $table->addCell(1200)->addText($value, ['size' => 7]);
+                foreach ($this->values($item, $type) as $value) $table->addCell(750)->addText($value, ['size' => 5.5]);
             }
         }
         if ($roster['count'] === 0) $section->addText('No applicants matched this report.');
         $footer = $section->addFooter();
         $letterheadFooter = $this->firstAsset('images/admission/download-letterhead-footer.png');
         if ($letterheadFooter) {
-            $footer->addImage($letterheadFooter, ['width' => 700, 'height' => 94, 'alignment' => 'center']);
+            $footer->addImage($letterheadFooter, ['width' => 520, 'height' => 70, 'alignment' => 'center']);
         } else {
         $footerTable = $footer->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 25]);
         $footerTable->addRow();

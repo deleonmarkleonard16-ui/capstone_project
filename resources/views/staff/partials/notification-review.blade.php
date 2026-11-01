@@ -30,7 +30,7 @@
 @if(in_array($moduleType, ['good-moral', 'exit-form'], true))
     @if($entry->status === 'ready')
         <form method="post" action="{{ route(auth()->user()->role.'.'.$entry->service.'.update', $entry) }}"
-              onsubmit="return confirm('Mark this document as claimed and completed?');">
+              data-confirm="Mark this document as claimed and completed?">
             @csrf
             @method('PATCH')
             <input type="hidden" name="action" value="claim">

@@ -205,7 +205,7 @@ async function refresh() {
 
 async function unterminateApplicant(applicantId, name) {
     if (!applicantId) return;
-    if (!confirm(`Unlock exam session and reset strikes for ${name}?`)) return;
+    if (!await AppConfirm(`Unlock exam session and reset strikes for ${name}?`)) return;
 
     try {
         const res = await fetch(`/admin/admission/sessions/unterminate/${applicantId}`, {

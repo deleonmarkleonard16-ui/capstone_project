@@ -31,7 +31,7 @@
                                     <a href="{{ route(auth()->user()->role.'.sessions.answer-key.edit', $session) }}" class="btn btn-outline-dark btn-sm">Answer Key</a>
                                     <a href="{{ route(auth()->user()->role.'.sessions.results.index', $session) }}" class="btn btn-outline-success btn-sm">Results</a>
                                     <a href="{{ route(auth()->user()->role.'.sessions.monitoring.show', $session) }}" class="btn btn-primary btn-sm">Monitor</a>
-                                    <form method="POST" action="{{ route(auth()->user()->role.'.sessions.destroy', $session) }}" class="d-inline" onsubmit="return confirm('Delete this test session? This will also remove its assignments, answer sheets, attendance logs, and answer key.');">
+                                    <form method="POST" action="{{ route(auth()->user()->role.'.sessions.destroy', $session) }}" class="d-inline" data-confirm="Delete this test session? This will also remove its assignments, answer sheets, attendance logs, and answer key.">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>

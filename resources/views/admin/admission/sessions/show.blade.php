@@ -45,7 +45,7 @@
                     @csrf
                     <input type="hidden" name="status" value="In-Progress">
                     <button type="submit" class="btn btn-success btn-sm fw-bold shadow-sm px-3"
-                            onclick="return confirm('Start test and launch session \'{{ $session->session_name }}\'? Examinees in the waiting room will immediately begin their exam, and late arrivals can still sign in and take the test.');">
+                            data-confirm="Start test and launch session '{{ $session->session_name }}'? Examinees in the waiting room will immediately begin their exam, and late arrivals can still sign in and take the test.">
                         <i class="bi bi-play-circle-fill me-1"></i> Start Test / Launch Session
                     </button>
                 </form>
@@ -54,7 +54,7 @@
             {{-- 2. END TEST / END SESSION (Inside Monitor) --}}
             @if($session->status === 'In-Progress' && !$cycle->isCompleted())
                 <form method="POST" action="{{ route('admin.admission.sessions.complete', $session) }}" class="d-inline"
-                      onsubmit="return confirm('End this test session now? All active exams will be concluded and marked as Completed.');">
+                      data-confirm="End this test session now? All active exams will be concluded and marked as Completed.">
                     @csrf
                     <button type="submit" class="btn btn-danger btn-sm fw-bold shadow-sm px-3">
                         <i class="bi bi-stop-circle-fill me-1"></i> End Test / End Session
@@ -437,7 +437,7 @@
                                                 @endif
                                                 {{-- Manual check-in (e.g. late arrival with phone issue) --}}
                                                 <form method="POST" action="{{ route('admin.admission.sessions.checkin-applicant', [$session, $applicant]) }}" class="d-inline"
-                                                      onsubmit="return confirm('Manually mark {{ $applicant->full_name }} as Present / Checked-in?');">
+                                                      data-confirm="Manually mark {{ $applicant->full_name }} as Present / Checked-in?">
                                                     @csrf
                                                     <button type="submit" class="btn btn-outline-success btn-sm" title="Manual Check-In / Sign In">
                                                         <i class="bi bi-box-arrow-in-right"></i> Sign In
@@ -446,7 +446,7 @@
                                             @elseif($status === 'Ready')
                                                 {{-- Undo check-in --}}
                                                 <form method="POST" action="{{ route('admin.admission.sessions.mark-absent-applicant', [$session, $applicant]) }}" class="d-inline"
-                                                      onsubmit="return confirm('Mark {{ $applicant->full_name }} as Absent (undo check-in)?');">
+                                                      data-confirm="Mark {{ $applicant->full_name }} as Absent (undo check-in)?">
                                                     @csrf
                                                     <button type="submit" class="btn btn-outline-secondary btn-sm" title="Mark Absent">
                                                         <i class="bi bi-person-x"></i> Absent
@@ -854,7 +854,7 @@
 
     async function unterminateCurrentApplicant() {
         if (!currentSecurityApplicantId) return;
-        if (!confirm('Unlock exam and grant re-entry to this examinee? Their strikes will be reset to 0 and their exam access will be restored immediately.')) {
+        if (!await AppConfirm('Unlock exam and grant re-entry to this examinee? Their strikes will be reset to 0 and their exam access will be restored immediately.')) {
             return;
         }
 

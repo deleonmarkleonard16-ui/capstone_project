@@ -176,6 +176,7 @@
         }
     </style>
     <link href="{{ asset('css/executive-responsive.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/confirmation-dialog.css') }}">
     @stack('styles')
 </head>
 <body class="@yield('body_class')">
@@ -348,6 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+<script src="{{ asset('js/confirmation-dialog.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

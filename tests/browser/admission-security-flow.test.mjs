@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 // Exercise the actual exam script with a controlled DOM/network, including
 // the period before the server acknowledges an incident.
-function setup() {
+function setup(confirmation = async () => true) {
     const elements = new Map();
     function element(id) {
         if (!elements.has(id)) {
@@ -29,8 +29,8 @@ function setup() {
     const requests = [];
     const context = vm.createContext({document, window: new EventTarget(), history: {pushState() {}},
         location: {href: '/exam', replace() {}}, installAdmissionFocusGuard() {},
-        setTimeout() {}, setInterval() {}, clearInterval() {}, confirm: () => true,
-        INITIAL_STRIKES: 0, STRIKE_URL: '/strike', CSRF: 'test',
+        setTimeout() {}, setInterval() {}, clearInterval() {}, AppConfirm: Object.assign(confirmation, {dismiss() {}}),
+        INITIAL_STRIKES: 0, STRIKE_URL: '/strike', SUBMIT_URL: '/submit', COMPLETE_URL: '/complete', CSRF: 'test',
         fetch: (url, options) => new Promise(resolve => requests.push({url, options, resolve})),
     });
     const blade = readFileSync(new URL('../../resources/views/admin/admission/take.blade.php', import.meta.url), 'utf8');
@@ -67,6 +67,34 @@ test('blackout hides and disables answers before reporting finishes, with one re
     assert.equal(guard.requests.length, 2);
     guard.requests[1].resolve({ok: true, json: async () => ({strikes: 2, terminated: false})});
     await second;
+});
+
+test('submission dialog does not suppress security incidents', async () => {
+    let confirm;
+    const guard = setup(() => new Promise(resolve => { confirm = resolve; }));
+    const submission = guard.run('submitExam(false)');
+    const incident = guard.run("reportIncident('focus_loss')");
+    assert.equal(guard.requests.length, 1);
+    assert.equal(guard.requests[0].url, '/strike');
+    confirm(true);
+    await submission;
+    assert.equal(guard.requests.length, 1, 'Confirmation cannot submit a security-locked exam');
+    guard.requests[0].resolve({ok: true, json: async () => ({strikes: 1, terminated: false})});
+    await incident;
+});
+
+test('timeout submits once even while the submission dialog is open', async () => {
+    let confirm;
+    const guard = setup(() => new Promise(resolve => { confirm = resolve; }));
+    const manual = guard.run('submitExam(false)');
+    const timeout = guard.run('submitExam(true)');
+    assert.equal(guard.requests.length, 1);
+    assert.equal(guard.requests[0].url, '/submit');
+    confirm(true);
+    await manual;
+    assert.equal(guard.requests.length, 1);
+    guard.requests[0].resolve({ok: true});
+    await timeout;
 });
 
 test('failed reporting keeps answers protected and shows a reporting error', async () => {

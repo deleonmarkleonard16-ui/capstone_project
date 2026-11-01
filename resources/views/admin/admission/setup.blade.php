@@ -98,7 +98,7 @@
                     <i class="bi bi-people me-1"></i> Examinee Roster ({{ $active->applicants()->count() }})
                 </a>
                 <form method="post" action="{{ route('admin.admission.cycles.complete', $active) }}"
-                      onsubmit="return confirm('Are you sure you want to mark cycle \'{{ $active->displayName }}\' as Completed and Archive it? This will lock all applicant entries and exam scores from further modification.');">
+                      data-confirm="Are you sure you want to mark cycle '{{ $active->displayName }}' as Completed and Archive it? This will lock all applicant entries and exam scores from further modification.">
                     @csrf
                     <button class="btn btn-warning btn-sm fw-semibold">
                         <i class="bi bi-archive-fill me-1"></i> Mark Cycle as Completed / Archive Cycle
@@ -273,7 +273,7 @@
                                             {{-- ── MAINTENANCE MODE TOGGLE ── --}}
                                             @if($cycle->status === 'Maintenance')
                                                 <form method="post" action="{{ route('admin.admission.cycles.activate', $cycle) }}"
-                                                      onsubmit="return confirm('Exit Maintenance Mode and re-activate this cycle?');">
+                                                      data-confirm="Exit Maintenance Mode and re-activate this cycle?">
                                                     @csrf
                                                     <button class="btn btn-sm btn-warning fw-semibold" title="Exit Maintenance Mode">
                                                         <i class="bi bi-cone-striped me-1"></i> Exit Maintenance
@@ -281,7 +281,7 @@
                                                 </form>
                                             @elseif($cycle->isActive())
                                                 <form method="post" action="{{ route('admin.admission.cycles.save', $cycle) }}"
-                                                      onsubmit="return confirm('Put this cycle in Maintenance Mode? The encoding sheet and masterlist will be locked until you exit maintenance.');">
+                                                      data-confirm="Put this cycle in Maintenance Mode? The encoding sheet and masterlist will be locked until you exit maintenance.">
                                                     @csrf
                                                     <input type="hidden" name="status" value="Maintenance">
                                                     <button class="btn btn-sm btn-outline-warning" title="Enable Maintenance Mode">
@@ -291,7 +291,7 @@
                                             @endif
 
                                             <form method="post" action="{{ route('admin.admission.cycles.archive', $cycle) }}"
-                                                  onsubmit="return confirm('Archive this cycle? It will become read-only.');"
+                                                  data-confirm="Archive this cycle? It will become read-only."
                                                   >
                                                 @csrf
                                                 <button class="btn btn-sm btn-outline-danger" title="Archive cycle">

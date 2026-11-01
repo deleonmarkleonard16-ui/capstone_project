@@ -41,12 +41,12 @@
 @if($batch->status === 'Pending Registration')
 <form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="start"><button class="btn btn-primary">Start Batch Assessment</button></form>
 @elseif($batch->status === 'In-Progress')
-<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('End this batch assessment now? Active tests will be submitted for counselor review, and students who have not started will be marked absent.')">@csrf<input type="hidden" name="action" value="end"><button class="btn btn-danger"><i class="bi bi-stop-circle me-1"></i>End Assessment</button></form>
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" data-confirm="End this batch assessment now? Active tests will be submitted for counselor review, and students who have not started will be marked absent.">@csrf<input type="hidden" name="action" value="end"><button class="btn btn-danger"><i class="bi bi-stop-circle me-1"></i>End Assessment</button></form>
 @elseif($batch->status === 'Under review')
-<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('Finish reviewing and evaluating this batch, then move its completed results to Archives?')">@csrf<input type="hidden" name="action" value="finish-review"><button class="btn btn-success" @disabled($pendingReviewCount > 0)><i class="bi bi-archive me-1"></i>Done reviewing and evaluation</button></form>
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" data-confirm="Finish reviewing and evaluating this batch, then move its completed results to Archives?">@csrf<input type="hidden" name="action" value="finish-review"><button class="btn btn-success" @disabled($pendingReviewCount > 0)><i class="bi bi-archive me-1"></i>Done reviewing and evaluation</button></form>
 @if($pendingReviewCount > 0)<span class="align-self-center small text-muted">{{ $pendingReviewCount }} submitted assessment(s) still need review.</span>@endif
 @endif
-@if($batch->status === 'Pending Registration')<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" onsubmit="return confirm('Archive this unused batch?')">@csrf<input type="hidden" name="action" value="archive"><button class="btn btn-outline-secondary">Archive Batch</button></form>@endif
+@if($batch->status === 'Pending Registration')<form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}" data-confirm="Archive this unused batch?">@csrf<input type="hidden" name="action" value="archive"><button class="btn btn-outline-secondary">Archive Batch</button></form>@endif
 @endunless
 </div>
 <div class="row g-3 mb-4">

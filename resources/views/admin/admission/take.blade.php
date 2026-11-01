@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>PSU-CAT Digital Exam – {{ $applicant->application_number }}</title>
+    <link rel="stylesheet" href="{{ asset('css/confirmation-dialog.css') }}">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; background-color: #ffffff !important; color: #111827; font-family: Arial, Helvetica, sans-serif; }
@@ -243,6 +244,7 @@
     </div>
 </div>
 
+<script src="{{ asset('js/confirmation-dialog.js') }}"></script>
 <script src="{{ asset('js/admission-focus-guard.js') }}?v={{ filemtime(public_path('js/admission-focus-guard.js')) }}"></script>
 <script>
 const SUBMIT_URL      = @json(route('admission.submit', $token));
@@ -419,7 +421,8 @@ document.getElementById('strike-continue').addEventListener('click', async () =>
 
 // ── INCIDENT REPORTING ─────────────────────────────────────
 async function reportIncident(type) {
-    if (!started || sending || confirmingSubmission || pendingIncident || securityLockActive) return;
+    if (!started || sending || pendingIncident || securityLockActive) return;
+    AppConfirm.dismiss();
 
     pendingIncident = true;
     securityLockActive = true;
@@ -474,19 +477,21 @@ async function reportIncident(type) {
 
 // ── SUBMIT EXAM ─────────────────────────────────────────────
 async function submitExam(timedOut = false) {
-    if (sending || !started) return;
+    if (sending || !started || (!timedOut && confirmingSubmission)) return;
     if (!timedOut && (securityLockActive || pendingIncident)) return;
     if (!timedOut) {
-        // Native confirmation dialogs may blur the page on some browsers.
+        // The in-page dialog keeps fullscreen and focus monitoring active.
         confirmingSubmission = true;
         let confirmed;
         try {
-            confirmed = confirm('Are you sure you want to submit your exam? This cannot be undone.');
+            confirmed = await AppConfirm('Are you sure you want to submit your exam? This cannot be undone.');
         } finally {
             confirmingSubmission = false;
         }
-        if (!confirmed) return;
+        if (!confirmed || sending || securityLockActive || pendingIncident) return;
     }
+
+    if (timedOut) AppConfirm.dismiss();
 
     sending = true;
     submitBtn.disabled = true;
@@ -537,7 +542,7 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 
 // ── FOCUS-LOSS / TAB-SWITCH BLACKOUT ───────────────────────
 installAdmissionFocusGuard({
-    active: () => started && !sending && !confirmingSubmission && !securityLockActive,
+    active: () => started && !sending && !securityLockActive,
     report: reportIncident,
 });
 

@@ -144,7 +144,7 @@
                 </div>
                 <button class="btn btn-success fw-semibold px-4"
                         type="submit"
-                        onclick="return confirm('Submit these answers and compute the exam score for {{ $applicant->application_number }}? This cannot be undone.')">
+                        data-confirm="Submit these answers and compute the exam score for {{ $applicant->application_number }}? This cannot be undone.">
                     <i class="bi bi-calculator me-1"></i> Score Answer Sheet
                 </button>
             </div>
@@ -185,8 +185,8 @@ function updateCount() {
 }
 
 document.querySelectorAll('.answer-radio').forEach(r => r.addEventListener('change', updateCount));
-document.getElementById('clearAllBtn').addEventListener('click', () => {
-    if (!confirm('Clear all selected answers?')) return;
+document.getElementById('clearAllBtn').addEventListener('click', async () => {
+    if (!await AppConfirm('Clear all selected answers?')) return;
     document.querySelectorAll('.answer-radio').forEach(r => { r.checked = false; });
     updateCount();
 });

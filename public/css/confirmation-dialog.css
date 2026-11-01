@@ -1,0 +1,17 @@
+.app-confirm-dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; margin: auto; border: 1px solid #d5dae2; border-radius: 9px; background: #fff; color: #17305f; box-shadow: 0 16px 48px #0003; font: 16px/1.5 Arial, sans-serif; text-align: left; overflow: auto; box-sizing: border-box; }
+.app-confirm-dialog::backdrop { background: #0008; }
+.app-confirm-dialog * { box-sizing: border-box; }
+.app-confirm-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; border-bottom: 1px solid #d9dee7; }
+.app-confirm-dialog .app-confirm-title { margin: 0; font-size: 21px; line-height: 1.3; font-weight: 600; color: #17305f; }
+.app-confirm-close { border: 0; padding: 0 4px; background: transparent; color: #707780; font-size: 28px; line-height: 1; cursor: pointer; }
+.app-confirm-body { padding: 18px; }
+.app-confirm-dialog .app-confirm-message { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.app-confirm-dialog .app-confirm-detail { margin: 10px 0 0; padding: 16px; border-radius: 14px; font-size: 14px; background: #fff3cd; color: #664d03; white-space: pre-wrap; overflow-wrap: anywhere; }
+.app-confirm-dialog[data-tone="danger"] .app-confirm-detail { background: #f8d7da; color: #842029; }
+.app-confirm-dialog[data-tone="primary"] .app-confirm-detail { background: #e7efff; color: #17305f; }
+.app-confirm-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding: 18px; border-top: 1px solid #d9dee7; }
+.app-confirm-dialog .app-confirm-button { border: 1px solid #6c757d; border-radius: 5px; padding: 8px 14px; font: inherit; cursor: pointer; background: white; color: #606a74; }
+.app-confirm-dialog .app-confirm-accept { background: #1749aa; border-color: #1749aa; color: white; }
+.app-confirm-dialog[data-tone="danger"] .app-confirm-accept { background: #dc3545; border-color: #dc3545; }
+.app-confirm-button:focus-visible, .app-confirm-close:focus-visible { outline: 3px solid #92b4ef; outline-offset: 2px; }
+@media print { .app-confirm-dialog { display: none !important; } }

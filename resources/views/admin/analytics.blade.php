@@ -683,8 +683,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ── Toggle Emergency Proctor Override ──
-function toggleEmergencyProctorOverride() {
-    if (!confirm('Are you sure you want to toggle the campus-wide Emergency Proctor Override? This will pause/resume all active online test sessions.')) {
+async function toggleEmergencyProctorOverride() {
+    if (!await AppConfirm('Are you sure you want to toggle the campus-wide Emergency Proctor Override? This will pause/resume all active online test sessions.')) {
         return;
     }
 
@@ -753,9 +753,9 @@ function quickUpdateIntervention(appointmentId, status) {
 }
 
 // ── Send Proctor Remote Action (Warn, Pause, Force Terminate) ──
-function sendProctorAction(appointmentId, action) {
+async function sendProctorAction(appointmentId, action) {
     const actionLabel = action === 'force_terminate' ? 'FORCE TERMINATE' : action.toUpperCase();
-    if (!confirm(`Are you sure you want to ${actionLabel} this examination session?`)) {
+    if (!await AppConfirm(`Are you sure you want to ${actionLabel} this examination session?`)) {
         return;
     }
 

@@ -169,7 +169,7 @@
                                         <a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener" href="{{ route('admin.admission.batches.print-masterlist', $batch) }}"><i class="bi bi-printer"></i> Masterlist</a>
                                         @unless($cycle->isCompleted())
                                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editBatchModal{{ $batch->id }}"><i class="bi bi-pencil"></i></button>
-                                            <form method="POST" action="{{ route('admin.admission.batches.destroy', $batch) }}" onsubmit="return confirm('Delete batch {{ $batch->batch_name }} and all {{ $batch->sessions_count }} session(s) inside it? Assigned applicants will be returned to the masterlist.')">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm" title="Delete batch and all sessions inside"><i class="bi bi-trash"></i></button></form>
+                                            <form method="POST" action="{{ route('admin.admission.batches.destroy', $batch) }}" data-confirm="Delete batch {{ $batch->batch_name }} and all {{ $batch->sessions_count }} session(s) inside it? Assigned applicants will be returned to the masterlist.">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm" title="Delete batch and all sessions inside"><i class="bi bi-trash"></i></button></form>
                                         @endunless
                                     </div>
                             </td>
@@ -285,7 +285,7 @@
                                         <form method="POST"
                                               action="{{ route('admin.admission.sessions.destroy', $session) }}"
                                               class="d-inline"
-                                              onsubmit="return confirm('Delete session \'{{ $session->session_name }}\'? Assigned examinees will be unlinked.');">
+                                              data-confirm="Delete session '{{ $session->session_name }}'? Assigned examinees will be unlinked.">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Session">

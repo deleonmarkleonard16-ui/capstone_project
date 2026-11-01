@@ -12,7 +12,7 @@
 <span class="badge text-bg-danger">Terminated - Violation</span>
 @if($appointment->termination_reason)<div class="small text-danger fw-semibold">{{ $appointment->termination_reason }}</div>@endif
 @if($appointment->status === 'Terminated' && (!$appointment->batch_id || $appointment->batch?->status === 'In-Progress'))
-<form method="post" action="{{ route(auth()->user()->role.'.guidance-appointments.resume', $appointment) }}" class="mt-2" onsubmit="return confirm('Unlock this assessment and let the student continue from saved answers?')">
+<form method="post" action="{{ route(auth()->user()->role.'.guidance-appointments.resume', $appointment) }}" class="mt-2" data-confirm="Unlock this assessment and let the student continue from saved answers?">
     @csrf
     <button type="submit" class="btn btn-outline-warning btn-sm"><i class="bi bi-unlock me-1"></i>Unlock &amp; Resume</button>
 </form>

@@ -174,7 +174,7 @@
                     <tr>
                         <th class="ps-3">RANK</th>
                         <th>LAST NAME</th>
-                        <th>FIRST NAME</th>
+                        <th>GIVEN NAME</th>
                         <th>MIDDLE NAME</th>
                         <th>1ST COURSE CHOICE</th>
                         <th>2ND COURSE CHOICE</th>
@@ -350,7 +350,7 @@
                                    class="form-control form-control-sm" required @disabled($isLocked)>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label form-label-sm fw-semibold">First Name</label>
+                            <label class="form-label form-label-sm fw-semibold">Given Name</label>
                             <input name="first_name" value="{{ $applicant->first_name }}"
                                    class="form-control form-control-sm" required @disabled($isLocked)>
                         </div>

@@ -3,9 +3,9 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 37mm 10mm 24mm; }
+        @page { margin: 50mm 10mm 28mm; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 5.5px; color: #18253b; }
-        .page-letterhead { position: fixed; top: -37mm; left: -10mm; width: calc(100% + 20mm); height: calc(100% + 61mm); z-index: -1000; }
+        .page-letterhead { position: fixed; top: -50mm; left: -10mm; width: calc(100% + 20mm); height: calc(100% + 78mm); z-index: -1000; }
         .official-header { display: none; }
         .official-header table { border: 0; }
         .official-header td { padding: 0; border: 0; vertical-align: middle; }
@@ -80,8 +80,8 @@
     @php
         $columns = app(\App\Services\AdmissionReportExportService::class)->columns($type);
         $columnWidths = count($columns) === 13
-            ? [4, 8, 13, 8, 5, 9, 7, 6, 6, 5, 8, 10, 11]
-            : [4, 9, 14, 9, 5, 10, 8, 7, 7, 6, 9, 12];
+            ? [3, 8, 14, 8, 5, 9, 7, 6, 6, 5, 8, 10, 11]
+            : [3, 9, 15, 9, 5, 10, 8, 7, 7, 6, 9, 12];
     @endphp
     <table class="roster-table">
         <colgroup>

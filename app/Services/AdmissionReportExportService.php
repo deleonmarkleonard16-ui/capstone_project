@@ -80,10 +80,13 @@ class AdmissionReportExportService
             $section->addText($course.' - '.count($items).' applicant(s)'.$meta, ['bold' => true, 'size' => 9]);
             $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20]);
             $table->addRow(null, ['tblHeader' => true]);
-            foreach ($columns as $column) $table->addCell(750, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 5.5]);
+            $cellWidths = count($columns) === 13
+                ? [300, 650, 1100, 650, 400, 750, 550, 500, 500, 400, 700, 900, 800]
+                : [300, 700, 1200, 700, 400, 800, 600, 550, 550, 450, 750, 1000];
+            foreach ($columns as $index => $column) $table->addCell($cellWidths[$index], ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 5.5]);
             foreach ($items as $item) {
                 $table->addRow(null, ['cantSplit' => true]);
-                foreach ($this->values($item, $type) as $value) $table->addCell(750)->addText($value, ['size' => 5.5]);
+                foreach ($this->values($item, $type) as $index => $value) $table->addCell($cellWidths[$index])->addText($value, ['size' => 5.5]);
             }
         }
         if ($roster['count'] === 0) $section->addText('No applicants matched this report.');
@@ -114,7 +117,7 @@ class AdmissionReportExportService
 
     public function columns(string $type): array
     {
-        $columns = ['Rank', 'Application Number', 'Full Name', 'Course Choice', 'Sex', '4Ps/OSY/IP/PWD/SP', 'CMFL', 'GWA', 'Exam Score', 'Stanine', 'Interview Score', 'Total Score'];
+        $columns = ['No.', 'Application Number', 'Full Name', 'Course Choice', 'Sex', '4Ps/OSY/IP/PWD/SP', 'CMFL', 'GWA', 'Exam Score', 'Stanine', 'Interview Score', 'Total Score'];
         if ($type !== 'psu-cat-qualifiers') $columns[] = 'Result';
         return $columns;
     }

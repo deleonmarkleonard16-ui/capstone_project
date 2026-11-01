@@ -47,6 +47,12 @@ footer { font-size: 8px; margin-top: 8px; }
 .footer-accent { display: none; }
 .no-print { padding: 15px; text-align: center; }
 .no-print a, .no-print button { margin: 0 6px; }
+.assessment-result-details { page-break-before: always; }
+.assessment-result-details h2 { font-size: 14px; color: #17305f; margin: 5mm 0 3mm; page-break-after: avoid; }
+.result-detail-table { margin-bottom: 4mm; }
+.result-detail-table th, .result-detail-table td { border: 1px solid #999; padding: 4px; overflow-wrap: break-word; }
+.result-detail-table th { background: #e8edf5; text-align: left; }
+.raw-item-choices th:first-child { width: 18%; }
 @media print {
     .no-print { display: none !important; }
     body { margin: 0; }

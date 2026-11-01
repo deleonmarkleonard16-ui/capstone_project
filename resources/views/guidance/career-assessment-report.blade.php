@@ -72,6 +72,7 @@
         </tr></table>
         <footer><strong>*NOT VALID WITHOUT UNIVERSITY SEAL</strong><p>O.R. #: {{ $orNumber }} &nbsp; Date: {{ $orDate }} &nbsp; Doc. Stamp Tax Paid</p><div class="footer-accent">Pangasinan State University · San Carlos Campus</div></footer>
     </article>
+    @include('guidance.partials.assessment-result-details')
     @if($autoPrint && $format === 'html')<script>window.onload = function() { window.print(); };</script>@endif
 </body>
 </html>

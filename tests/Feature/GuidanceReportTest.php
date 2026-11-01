@@ -53,6 +53,28 @@ class GuidanceReportTest extends TestCase
         $this->get('/staff/guidance/report/download/'.$appointment->getKey().'?format=docx')->assertOk()->assertDownload();
     }
 
+    public function test_all_assessment_pdfs_include_scores_and_paginated_raw_choices(): void
+    {
+        foreach ([
+            [\App\Services\PsychologicalReportService::class, 'dass21', $this->normalTests()],
+            [\App\Services\PersonalityAssessmentReportService::class, 'bfpi', ['bfpi' => ['scores' => ['Extraversion' => 3], 'raw_sums' => ['Extraversion' => 30], 'interpretation' => ['Extraversion' => 'Average'], 'total_items' => 50]]],
+            [\App\Services\CareerAssessmentReportService::class, 'career', ['career' => ['scores' => ['Realistic' => 4], 'interpretation' => ['Realistic' => 'High'], 'total_items' => 60]]],
+        ] as [$service, $test, $summaries]) {
+            $appointment = $this->appointment($summaries);
+            $appointment->response->update(['answers' => [$test => [1 => 0, 2 => 2]]]);
+            $document = app($service)->build($appointment);
+            $document += ['format' => 'pdf', 'autoPrint' => false, 'administeredBy' => 'Guidance Staff', 'administeredPosition' => 'Staff'];
+            $html = view($document['view'], $document)->render();
+            $this->assertStringContainsString('Assessment Rubric &amp; Interpretation', $html);
+            $this->assertStringContainsString('Raw Item Choices', $html);
+            $this->assertStringContainsString('<td>1</td><td>0</td>', $html);
+            $this->assertStringContainsString('Unanswered', $html);
+            $pdf = app(DocumentExportService::class)->render($document, 'pdf');
+            $this->assertStringStartsWith('%PDF-', $pdf);
+            $this->assertGreaterThanOrEqual(2, preg_match_all('/\/Type\s*\/Page\b/', $pdf));
+        }
+    }
+
     public function test_official_preview_populates_profile_marks_and_print_controls(): void
     {
         $this->login();

@@ -23,6 +23,9 @@
         $badgeLabel = 'Official psychological assessment report';
         $docHeader = 'CONFIDENTIAL PSYCHOLOGICAL ASSESSMENT REPORT';
     }
+    $printAssessmentUrl = $certificateModule === 'career'
+        ? route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'pdf'])
+        : route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']);
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     <div>
@@ -38,9 +41,9 @@
     </div>
     <div class="d-flex gap-2">
         <a href="{{ route(auth()->user()->role.'.guidance-appointments.completed') }}" class="btn btn-outline-secondary">← Completed List</a>
-        <button type="button" class="btn btn-primary" onclick="window.print()">
+        <a class="btn btn-primary" href="{{ $printAssessmentUrl }}" target="_blank" rel="noopener">
             <i class="bi bi-printer me-1" aria-hidden="true"></i> Print Assessment Result
-        </button>
+        </a>
     </div>
 </div>
 

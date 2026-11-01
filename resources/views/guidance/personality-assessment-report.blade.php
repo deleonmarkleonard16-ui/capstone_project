@@ -10,6 +10,10 @@
         .personality-letterhead { position: fixed; top: -50mm; left: -13mm; width: 210mm; height: 297mm; z-index: -1000; }
         body { font-size: 10px; }
         .career-matrix .career-description, .career-matrix .career-interpretation { font-size: 9px; }
+        .career-matrix thead th:nth-child(1), .career-matrix .scale { width: 24%; }
+        .career-matrix thead th:nth-child(2) { width: 33%; }
+        .career-matrix thead th:nth-child(8) { width: 18%; }
+        .career-matrix th, .career-matrix td { overflow-wrap: break-word; }
         .office-heading h3 { font-size: 14px; }
     </style>
 </head>

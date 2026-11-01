@@ -24,7 +24,7 @@
         h2 { font-size: 12px; margin: 16px 0 5px; background: #e8edf5; padding: 6px; }
         .meta { font-size: 9px; line-height: 1.4; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .roster-table { width: auto; max-width: 100%; margin: 0 auto; table-layout: auto; }
+        .roster-table { width: 100%; max-width: 100%; margin: 0 auto; table-layout: auto; }
         th, td { border: 1px solid #b7c2d4; overflow-wrap: break-word; }
         th { background: #183861; color: white; font-size: 8px; padding: 2px 1px; line-height: 1.1; }
         tbody td { padding: 1.5px 1px; line-height: 1.15; vertical-align: middle; }

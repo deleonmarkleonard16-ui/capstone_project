@@ -13,7 +13,7 @@ class PsychologicalReportDocxWriter
         $word->setDefaultParagraphStyle(['spaceAfter' => 60]);
         $section = $word->addSection(['paperSize' => 'A4', 'marginTop' => 480, 'marginBottom' => 480, 'marginLeft' => 737, 'marginRight' => 737]);
         $brand = $document['brand'] ?? [];
-        $letterhead = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'borderBottomSize' => 14, 'borderBottomColor' => '17305F']);
+        $letterhead = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 0, 'borderBottomSize' => 14, 'borderBottomColor' => '17305F']);
         $letterhead->addRow(null, ['cantSplit' => true]);
         $brandCell = $letterhead->addCell(12000, ['bgColor' => 'F6DC4B', 'valign' => 'center']);
         $brandCell->addText('Republic of the Philippines', ['size' => 8], ['alignment' => 'center', 'spaceAfter' => 0]);
@@ -30,7 +30,7 @@ class PsychologicalReportDocxWriter
         }
         $section->addText('OFFICE OF ADMISSION AND GUIDANCE SERVICES', ['bold' => true, 'size' => 10, 'underline' => 'single'], ['alignment' => 'center', 'spaceBefore' => 90, 'spaceAfter' => 40]);
         $section->addText('PSYCHOLOGICAL ASSESSMENT', ['bold' => true, 'size' => 11], ['alignment' => 'center', 'spaceAfter' => 120]);
-        $profile = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct']);
+        $profile = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct']);
         foreach (array_chunk($document['fields'], 2, true) as $pair) {
             $profile->addRow(null, ['cantSplit' => true]);
             foreach ($pair as $label => $value) {
@@ -39,7 +39,7 @@ class PsychologicalReportDocxWriter
         }
         foreach ($document['matrices'] as $matrix) {
             $section->addText($matrix['title'], ['bold' => true], ['spaceBefore' => 120, 'keepNext' => true]);
-            $table = $section->addTable(['borderSize' => 6, 'borderColor' => '222222', 'cellMargin' => 60, 'layout' => 'fixed', 'width' => 100, 'unit' => 'pct']);
+            $table = $section->addTable(['borderSize' => 6, 'borderColor' => '222222', 'cellMargin' => 60, 'layout' => 'fixed', 'width' => 5000, 'unit' => 'pct']);
             $table->addRow(null, ['tblHeader' => true, 'cantSplit' => true]);
             $table->addCell(4200)->addText('SCALE', ['bold' => true], ['alignment' => 'center']);
             $width = (int) (5600 / count($matrix['columns']));
@@ -75,7 +75,7 @@ class PsychologicalReportDocxWriter
             $section->addText('Incomplete assessment: blank cells indicate unavailable results. Counselor review required.', ['size' => 8]);
         }
         $section->addText(PsychologicalReportService::NOTE, ['size' => 8], ['spaceBefore' => 100, 'spaceAfter' => 180]);
-        $signatures = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct']);
+        $signatures = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct']);
         $signatures->addRow(null, ['cantSplit' => true]);
         $administered = $signatures->addCell(5000);
         $administered->addText('Administered and interpreted by:');
@@ -87,7 +87,7 @@ class PsychologicalReportDocxWriter
         $reviewed->addText('Guidance Counselor');
         $section->addText('*NOT VALID WITHOUT UNIVERSITY SEAL', ['bold' => true, 'size' => 8], ['spaceBefore' => 100]);
         $section->addText('O.R. #: '.$document['orNumber'].'    Date: '.$document['orDate'].'    Doc. Stamp Tax Paid', ['size' => 8]);
-        $footer = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 0]);
+        $footer = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 0]);
         $footer->addRow();
         $footer->addCell(13800, ['bgColor' => 'F6DC4B'])->addText('Pangasinan State University · San Carlos Campus', ['bold' => true, 'size' => 8, 'color' => '17305F'], ['alignment' => 'center']);
     }

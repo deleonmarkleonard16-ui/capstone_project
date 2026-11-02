@@ -76,6 +76,7 @@ class DocumentExportService
         }
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(10);
+        $word->setDefaultParagraphStyle(['spaceAfter' => 60]);
         $portrait = $document['orientation'] === 'portrait';
         $contentWidth = $portrait ? 10432 : 15364;
         $imageWidth = $contentWidth / 20;
@@ -119,7 +120,8 @@ class DocumentExportService
             $section->addText('Guidance Counselor', [], ['alignment' => 'right']);
         }
         if ($document['columns'] !== []) {
-            $table = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60]);
+            // Word stores percentage widths in fiftieths: 5000 means 100%.
+            $table = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60]);
             $table->addRow(null, ['tblHeader' => true]);
             $width = (int) ($contentWidth / count($document['columns']));
             foreach ($document['columns'] as $column) {

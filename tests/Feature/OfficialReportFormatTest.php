@@ -15,8 +15,8 @@ class OfficialReportFormatTest extends TestCase
                 'module' => 'guidance-testing', 'office' => 'Guidance and Counseling Office',
                 'title' => 'Testing Completion Report', 'orientation' => $orientation,
                 'metadata' => ['Active Filters' => 'All tests'], 'summary' => [],
-                'certificates' => [], 'columns' => ['Student', 'Status'],
-                'rows' => array_fill(0, 100, ['Sample Student', 'Completed']),
+                'certificates' => [], 'columns' => ['Application Number', 'Name', 'Sex', 'Course Choice', 'GWA', 'Exam Score', 'Stanine', 'Interview', 'Total Score', 'Status'],
+                'rows' => array_fill(0, 100, ['CAT-2026-001', 'Sample Student', 'Male', 'BSIT', '90', '72', '9', '85', '88', 'Completed']),
                 'format' => 'html', 'autoPrint' => false,
             ];
             $html = $exporter->render($document, 'html');
@@ -40,6 +40,19 @@ class OfficialReportFormatTest extends TestCase
                 $xml = $zip->getFromName('word/document.xml');
                 $this->assertNotFalse(simplexml_load_string($xml));
                 $this->assertStringContainsString('w:tblHeader', $xml);
+                $dom = new \DOMDocument();
+                $dom->loadXML($xml);
+                $xpath = new \DOMXPath($dom);
+                $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+                $tableWidth = $xpath->query('//w:tbl/w:tblPr/w:tblW')->item(0);
+                $this->assertSame('pct', $tableWidth->getAttribute('w:type'));
+                $this->assertSame('5000', $tableWidth->getAttribute('w:w'));
+                $gridWidth = 0;
+                foreach ($xpath->query('//w:tbl/w:tblGrid/w:gridCol') as $column) {
+                    $gridWidth += (int) $column->getAttribute('w:w');
+                }
+                $this->assertEqualsWithDelta($orientation === 'portrait' ? 10432 : 15364, $gridWidth, count($document['columns']));
+
                 $this->assertStringContainsString('w:left="737"', $xml);
                 $this->assertStringContainsString('w:top="'.($orientation === 'portrait' ? '2835' : '4252').'"', $xml);
                 $this->assertStringContainsString('v:imagedata', $zip->getFromName('word/header1.xml'));

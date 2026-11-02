@@ -81,6 +81,8 @@ class GuidanceAnalyticsExportTest extends TestCase
                     $xml = $zip->getFromName('word/document.xml');
                     $this->assertStringContainsString($type === 'summary' ? 'Good Moral Total' : $record->reference, $xml);
                     $this->assertStringContainsString('w:top="2835"', $xml);
+                    $this->assertStringContainsString('<w:tblW w:w="5000" w:type="pct"', $xml);
+                    $this->assertStringNotContainsString('<w:tblW w:w="100" w:type="pct"', $xml);
                     $this->assertStringContainsString('<v:imagedata', $zip->getFromName('word/header1.xml'));
                     $this->assertStringContainsString('<v:imagedata', $zip->getFromName('word/footer1.xml'));
                     $images = [];

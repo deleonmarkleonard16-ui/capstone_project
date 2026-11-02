@@ -51,7 +51,7 @@ class GuidanceAnalyticsDocxWriter
 
     private function table($section, array $headings)
     {
-        $table = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 6, 'borderColor' => 'B7C1CE', 'cellMargin' => 80]);
+        $table = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 6, 'borderColor' => 'B7C1CE', 'cellMargin' => 80]);
         $this->row($table, $headings, true);
 
         return $table;

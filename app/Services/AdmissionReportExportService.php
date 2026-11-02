@@ -49,7 +49,7 @@ class AdmissionReportExportService
         if ($letterheadHeader) {
             $header->addImage($letterheadHeader, ['width' => 520, 'height' => 122, 'alignment' => 'center']);
         } else {
-        $headerTable = $header->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 45]);
+        $headerTable = $header->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 45]);
         $headerTable->addRow(1050);
         $sealCell = $headerTable->addCell(1800, ['bgColor' => 'FFF900', 'valign' => 'center']);
         $sealPath = $this->firstAsset('images/psu-template/image1.png', 'images/psu-logo.png');
@@ -92,7 +92,7 @@ class AdmissionReportExportService
         if ($letterheadFooter) {
             $footer->addImage($letterheadFooter, ['width' => 520, 'height' => 70, 'alignment' => 'center']);
         } else {
-        $footerTable = $footer->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 25]);
+        $footerTable = $footer->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'bgColor' => 'FFF900', 'cellMargin' => 25]);
         $footerTable->addRow();
         $footerCell = $footerTable->addCell(14300, ['bgColor' => 'FFF900', 'valign' => 'center']);
         $footerPath = $this->firstAsset('images/psu-template/image8.png', 'images/psu-template/image8.jpg');

@@ -14,7 +14,7 @@ class CareerAssessmentReportDocxWriter
         $section = $word->addSection(['paperSize' => 'A4', 'marginTop' => 480, 'marginBottom' => 480, 'marginLeft' => 737, 'marginRight' => 737]);
         $brand = $document['brand'] ?? [];
 
-        $letterhead = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'borderBottomSize' => 14, 'borderBottomColor' => '17305F']);
+        $letterhead = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 0, 'borderBottomSize' => 14, 'borderBottomColor' => '17305F']);
         $letterhead->addRow(null, ['cantSplit' => true]);
         $brandCell = $letterhead->addCell(8800, ['bgColor' => 'F6DC4B', 'valign' => 'center']);
         $brandCell->addText('Republic of the Philippines', ['size' => 7], ['alignment' => 'center', 'spaceAfter' => 0]);
@@ -31,7 +31,7 @@ class CareerAssessmentReportDocxWriter
         $section->addText('OFFICE OF ADMISSION AND GUIDANCE SERVICES', ['bold' => true, 'size' => 9, 'underline' => 'single'], ['alignment' => 'center', 'spaceBefore' => 75, 'spaceAfter' => 35]);
         $section->addText('CAREER ASSESSMENT', ['bold' => true, 'size' => 10], ['alignment' => 'center', 'spaceAfter' => 100]);
 
-        $profile = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct']);
+        $profile = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct']);
         foreach (array_chunk($document['fields'], 2, true) as $pair) {
             $profile->addRow(null, ['cantSplit' => true]);
             foreach ($pair as $label => $value) $profile->addCell(5100)->addText($label.': '.$value, ['size' => 8]);
@@ -39,7 +39,7 @@ class CareerAssessmentReportDocxWriter
 
         $section->addText('I. Summary of Career Interest Profile', ['bold' => true, 'size' => 9], ['spaceBefore' => 100, 'keepNext' => true]);
         $section->addText('RIASEC Interest Code: '.($document['topCode'] ?: 'Pending counselor review'), ['bold' => true, 'size' => 8]);
-        $table = $section->addTable(['borderSize' => 5, 'borderColor' => '222222', 'cellMargin' => 35, 'layout' => 'fixed', 'width' => 100, 'unit' => 'pct']);
+        $table = $section->addTable(['borderSize' => 5, 'borderColor' => '222222', 'cellMargin' => 35, 'layout' => 'fixed', 'width' => 5000, 'unit' => 'pct']);
         $table->addRow(null, ['tblHeader' => true, 'cantSplit' => true]);
         $table->addCell(1700, ['bgColor' => 'F2F2F2'])->addText('Interest Area', ['bold' => true, 'size' => 7]);
         $table->addCell(3800, ['bgColor' => 'F2F2F2'])->addText('Description', ['bold' => true, 'size' => 7]);
@@ -65,7 +65,7 @@ class CareerAssessmentReportDocxWriter
         $section->addText($document['recommendation']);
         $section->addText('Career interest results support educational and career exploration. Discuss the profile with the Guidance Counselor for further interpretation.', ['size' => 7], ['spaceBefore' => 75]);
 
-        $signatures = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct']);
+        $signatures = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct']);
         $signatures->addRow(null, ['cantSplit' => true]);
         $administered = $signatures->addCell(5100);
         $administered->addText('Administered and interpreted by:');
@@ -77,7 +77,7 @@ class CareerAssessmentReportDocxWriter
         $reviewed->addText('Guidance Counselor');
         $section->addText('*NOT VALID WITHOUT UNIVERSITY SEAL', ['bold' => true, 'size' => 7], ['spaceBefore' => 100]);
         $section->addText('O.R. #: '.$document['orNumber'].'    Date: '.$document['orDate'].'    Doc. Stamp Tax Paid', ['size' => 7]);
-        $footer = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 0]);
+        $footer = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 0]);
         $footer->addRow();
         $footer->addCell(10400, ['bgColor' => 'F6DC4B'])->addText('Pangasinan State University · San Carlos Campus', ['bold' => true, 'size' => 7, 'color' => '17305F'], ['alignment' => 'center']);
     }

@@ -16,7 +16,7 @@ class DocumentCertificateDocxWriter
 
         foreach ($document['certificates'] as $index => $certificate) {
             if ($index > 0) $section->addPageBreak();
-            $header = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 0, 'borderBottomSize' => 16, 'borderBottomColor' => 'D1B900']);
+            $header = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 0, 'borderBottomSize' => 16, 'borderBottomColor' => 'D1B900']);
             $header->addRow(null, ['cantSplit' => true]);
             $seal = $header->addCell(1800, ['bgColor' => 'F2D83D', 'valign' => 'center']);
             if (! empty($brand['sealPath'])) $seal->addImage($brand['sealPath'], ['width' => 67, 'height' => 67, 'alignment' => 'center']);

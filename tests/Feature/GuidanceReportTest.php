@@ -447,6 +447,8 @@ class GuidanceReportTest extends TestCase
             $zip = new \ZipArchive();
             $this->assertTrue($zip->open($path));
             $xml = $zip->getFromName('word/document.xml');
+            $this->assertStringContainsString('<w:tblW w:w="5000" w:type="pct"', $xml);
+            $this->assertStringNotContainsString('<w:tblW w:w="100" w:type="pct"', $xml);
             $this->assertNotFalse(simplexml_load_string($xml));
             $this->assertStringContainsString('OFFICE OF ADMISSION AND GUIDANCE SERVICES', $xml);
             $this->assertStringContainsString('Ana &amp; &lt;Student&gt; Santos', $xml);

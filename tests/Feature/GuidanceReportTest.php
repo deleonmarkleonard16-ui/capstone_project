@@ -75,7 +75,7 @@ class GuidanceReportTest extends TestCase
         }
     }
 
-    public function test_archive_actions_open_only_the_matching_official_pdf_for_admin_and_staff(): void
+    public function test_archive_actions_open_results_and_the_matching_official_pdf_for_admin_and_staff(): void
     {
         foreach (['admin', 'staff'] as $role) {
             $this->login($role);
@@ -89,7 +89,8 @@ class GuidanceReportTest extends TestCase
                 $pdfUrl = route($role.($category === 'career' ? '.guidance-appointments.career-report' : '.guidance.report.download'), ['appointment' => $appointment->getKey(), 'format' => 'pdf']);
                 foreach ([$role.'.guidance-appointments.archive', $role.'.'.$category.'.archive'] as $route) {
                     $this->get(route($route))->assertOk()->assertSee('View / Print PDF')
-                        ->assertSee($pdfUrl, false)->assertDontSee('Review Result');
+                        ->assertSee($pdfUrl, false)->assertSee('Review Result')
+                        ->assertSee(route($role.'.guidance-appointments.show-results', $appointment), false);
                 }
                 $this->get($pdfUrl)->assertOk()->assertHeader('Content-Type', 'application/pdf')
                     ->assertHeader('Cache-Control', 'no-store, private');

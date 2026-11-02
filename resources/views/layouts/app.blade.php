@@ -142,6 +142,29 @@
         .question-block{ border:1px solid #dbe4ff; border-radius:1rem; background:linear-gradient(180deg,#fff 0%,#f8fbff 100%); padding:1rem; }
         .timer-box{ position:sticky; top:1rem; z-index:1000; }
 
+        /* System pagination */
+        .system-pagination { gap: .75rem 1rem; margin-top: 1rem; }
+        .system-pagination .pagination { gap: .3rem; margin: 0; }
+        .system-pagination .page-link {
+            min-width: 2.25rem; height: 2.25rem; padding: .4rem .65rem;
+            display: inline-flex; align-items: center; justify-content: center; gap: .3rem;
+            color: #3f4650; background: #fff; border: 1px solid #e1e4e8 !important;
+            border-radius: .25rem !important; font-size: .78rem; line-height: 1;
+            text-decoration: none; box-shadow: 0 1px 2px rgba(15,23,42,.03);
+        }
+        .system-pagination .page-link:hover { color: #111; background: #f7f7f7; border-color: #cfd3d8 !important; }
+        .system-pagination .page-item.active .page-link { color: #fff; background: #050505; border-color: #050505 !important; font-weight: 700; }
+        .system-pagination .page-item.disabled .page-link { color: #aeb3ba; background: #fff; opacity: .65; }
+        .system-pagination .pagination-summary { margin: 0; color: #535b66; font-size: .78rem; white-space: nowrap; }
+        .system-pagination .pagination-direction .page-link { min-width: auto; padding-inline: .8rem; }
+        @media (max-width: 575.98px) {
+            .system-pagination { align-items: stretch !important; }
+            .system-pagination .pagination { justify-content: space-between; width: 100%; }
+            .system-pagination .pagination-direction { flex: 1; }
+            .system-pagination .pagination-direction:last-child .page-link { justify-content: flex-end; }
+            .system-pagination .pagination-direction .page-link { width: 100%; }
+        }
+
         /* ── Module nav tabs ── */
         .module-tabs {
             display: flex; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;

@@ -105,7 +105,6 @@
             </table>
         </div>
         <div class="audit-footer d-flex flex-wrap align-items-center gap-3">
-            <span>Showing {{ $logs->firstItem() ?? 0 }}–{{ $logs->lastItem() ?? 0 }} of {{ $logs->total() }} entries</span>
             {{ $logs->onEachSide(1)->links() }}
         </div>
     </div>

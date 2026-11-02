@@ -45,13 +45,20 @@ class OfficialReportFormatTest extends TestCase
                 $xpath = new \DOMXPath($dom);
                 $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
                 $tableWidth = $xpath->query('//w:tbl/w:tblPr/w:tblW')->item(0);
-                $this->assertSame('pct', $tableWidth->getAttribute('w:type'));
-                $this->assertSame('5000', $tableWidth->getAttribute('w:w'));
+                $contentWidth = $orientation === 'portrait' ? 10432 : 15364;
+                $inset = (int) round($contentWidth * 11 / 1024);
+                $expectedWidth = $contentWidth - 2 * $inset;
+                $this->assertSame('dxa', $tableWidth->getAttribute('w:type'));
+                $this->assertSame((string) $expectedWidth, $tableWidth->getAttribute('w:w'));
+                $this->assertSame('center', $xpath->query('//w:tbl/w:tblPr/w:jc')->item(0)->getAttribute('w:val'));
+                $metadataIndent = $xpath->query('//w:p[w:r/w:t[contains(., "Active Filters:")]]/w:pPr/w:ind')->item(0);
+                $this->assertSame((string) $inset, $metadataIndent->getAttribute('w:left'));
+                $this->assertSame((string) $inset, $metadataIndent->getAttribute('w:right'));
                 $gridWidth = 0;
                 foreach ($xpath->query('//w:tbl/w:tblGrid/w:gridCol') as $column) {
                     $gridWidth += (int) $column->getAttribute('w:w');
                 }
-                $this->assertEqualsWithDelta($orientation === 'portrait' ? 10432 : 15364, $gridWidth, count($document['columns']));
+                $this->assertEqualsWithDelta($expectedWidth, $gridWidth, count($document['columns']));
 
                 $this->assertStringContainsString('w:left="737"', $xml);
                 $this->assertStringContainsString('w:top="'.($orientation === 'portrait' ? '2835' : '4252').'"', $xml);

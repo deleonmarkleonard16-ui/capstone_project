@@ -80,7 +80,12 @@ class DocumentExportService
         $portrait = $document['orientation'] === 'portrait';
         $contentWidth = $portrait ? 10432 : 15364;
         $imageWidth = $contentWidth / 20;
+        // The official images include an 11px white border on each side.
+        $contentInset = (int) round($contentWidth * 11 / 1024);
+        $tableWidth = $contentWidth - 2 * $contentInset;
+        $bodyParagraph = ['indentation' => ['left' => $contentInset, 'right' => $contentInset]];
         $section = $word->addSection([
+            'paperSize' => 'A4',
             'orientation' => $document['orientation'],
             'marginTop' => $portrait ? 2835 : 4252,
             'marginBottom' => $portrait ? 1701 : 2551,
@@ -101,16 +106,16 @@ class DocumentExportService
         $section->addText($document['office'], ['size' => 9], ['alignment' => 'center']);
         $section->addText($document['title'], ['bold' => true, 'size' => 14], ['alignment' => 'center']);
         foreach ($document['metadata'] as $label => $value) {
-            $section->addText($label.': '.$value, ['size' => 9]);
+            $section->addText($label.': '.$value, ['size' => 9], $bodyParagraph);
         }
         foreach ($document['summary'] as $label => $value) {
-            $section->addText($label.': '.$value, ['bold' => true, 'size' => 9]);
+            $section->addText($label.': '.$value, ['bold' => true, 'size' => 9], $bodyParagraph);
         }
         foreach ($document['certificates'] as $index => $certificate) {
             if ($index > 0) {
                 $section->addPageBreak();
                 $section->addText($document['title'], ['bold' => true, 'size' => 14], ['alignment' => 'center']);
-                foreach ($document['metadata'] as $label => $value) $section->addText($label.': '.$value, ['size' => 9]);
+                foreach ($document['metadata'] as $label => $value) $section->addText($label.': '.$value, ['size' => 9], $bodyParagraph);
             }
             $section->addText('This certifies that '.$certificate['name'].', student number '.$certificate['student_number'].', enrolled in '.$certificate['course'].', '.$certificate['statement'], [], ['spaceAfter' => 180]);
             $section->addText('Purpose: '.$certificate['purpose'], ['bold' => true]);
@@ -120,10 +125,10 @@ class DocumentExportService
             $section->addText('Guidance Counselor', [], ['alignment' => 'right']);
         }
         if ($document['columns'] !== []) {
-            // Word stores percentage widths in fiftieths: 5000 means 100%.
-            $table = $section->addTable(['layout' => 'fixed', 'width' => 5000, 'unit' => 'pct', 'borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60]);
+            // Match the visible letterhead edges rather than its white image border.
+            $table = $section->addTable(['layout' => 'fixed', 'alignment' => 'center', 'width' => $tableWidth, 'unit' => 'dxa', 'borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60]);
             $table->addRow(null, ['tblHeader' => true]);
-            $width = (int) ($contentWidth / count($document['columns']));
+            $width = (int) ($tableWidth / count($document['columns']));
             foreach ($document['columns'] as $column) {
                 $table->addCell($width, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 8]);
             }
@@ -131,7 +136,7 @@ class DocumentExportService
                 $table->addRow(null, ['cantSplit' => true]);
                 foreach ($row as $value) $table->addCell($width)->addText((string) ($value ?? '-'), ['size' => 8]);
             }
-            $this->signatures($section);
+            $this->signatures($section, $bodyParagraph);
         }
         $footer = $section->addFooter();
         $letterheadFooter = public_path('images/admission/download-letterhead-footer.png');
@@ -158,11 +163,11 @@ class DocumentExportService
         }
     }
 
-    private function signatures($section): void
+    private function signatures($section, array $paragraphStyle = []): void
     {
         $section->addTextBreak(2);
-        $section->addText('Prepared by: ___________________________    Guidance Staff');
-        $section->addText('Approved by: ___________________________    Guidance Counselor');
+        $section->addText('Prepared by: ___________________________    Guidance Staff', [], $paragraphStyle);
+        $section->addText('Approved by: ___________________________    Guidance Counselor', [], $paragraphStyle);
     }
 
     private function csv(array $document): string

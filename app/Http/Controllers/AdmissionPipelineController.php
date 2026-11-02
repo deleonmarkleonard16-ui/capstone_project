@@ -797,12 +797,14 @@ class AdmissionPipelineController extends Controller
         $cycle = $this->active();
         if (!$cycle) return response()->json(['error' => 'No active cycle'], 409);
         $data = $request->validate(['code' => 'required|string|max:100']);
-        $applicant = $cycle->applicants()->where('application_number', $data['code'])->firstOrFail();
+        $applicant = $cycle->applicants()->with('admissionSession.batch')->where('application_number', $data['code'])->firstOrFail();
         abort_if($applicant->submitted_at, 409, 'This applicant has already submitted an exam.');
         return response()->json([
             'url' => route('admin.admission.encode', $applicant),
             'name' => $applicant->full_name,
             'application_number' => $applicant->application_number,
+            'session' => $applicant->admissionSession?->session_name ?: $applicant->session_label,
+            'batch' => $applicant->admissionSession?->batch?->batch_name ?: $applicant->batch_group,
             'course' => CourseCatalog::label($applicant->course_choice),
         ]);
     }

@@ -59,12 +59,17 @@ class AnalyticsController extends Controller
             }
             if ($records->isEmpty()) return redirect($fallback)->with('error', 'No eligible records found for the selected filters.');
             $document = [
+                'view' => 'exports.guidance-analytics',
+                'reportType' => $filters['type'] ?? 'summary',
                 'title' => ($filters['type'] ?? 'summary') === 'records' ? 'Guidance Testing and Services Records Report' : 'Guidance Analytics Summary',
                 'office' => 'Guidance and Counseling Office',
                 'metadata' => ['Academic Year' => GuidanceSetting::valueOf('academic_year', date('Y').'-'.(date('Y') + 1)), 'Guidance / Documents' => 'All batches and requests', 'Date Generated' => now()->timezone('Asia/Manila')->format('F j, Y g:i A').' (Asia/Manila)', 'Active Filters' => 'Guidance / Documents: All'],
-                'summary' => [], 'certificates' => [], 'orientation' => 'landscape', 'columns' => $columns, 'rows' => $records,
+                'summary' => [], 'certificates' => [], 'orientation' => 'portrait', 'columns' => $columns, 'rows' => $records,
                 'format' => $format, 'autoPrint' => (bool) ($filters['auto_print'] ?? false),
             ];
+            $document['reportSections'] = $document['reportType'] === 'summary'
+                ? $records->groupBy(fn ($row) => str_contains($row[0], ' / ') ? \Illuminate\Support\Str::before($row[0], ' / ') : 'Overview')
+                : collect();
             $bytes = app(\App\Services\DocumentExportService::class)->render($document, $format);
             $mime = match ($format) { 'pdf' => 'application/pdf', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'csv' => 'text/csv; charset=UTF-8', default => 'text/html; charset=UTF-8' };
             $headers = ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store'];

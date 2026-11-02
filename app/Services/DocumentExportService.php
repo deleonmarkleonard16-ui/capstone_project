@@ -54,6 +54,11 @@ class DocumentExportService
         }
         $word = new PhpWord();
         \PhpOffice\PhpWord\Settings::setOutputEscapingEnabled(true);
+        if (($document['view'] ?? null) === 'exports.guidance-analytics') {
+            app(GuidanceAnalyticsDocxWriter::class)->write($word, $document);
+
+            return $this->wordBytes($word);
+        }
         if (($document['view'] ?? null) === 'guidance.psychological-report') {
             app(PsychologicalReportDocxWriter::class)->write($word, $document);
 

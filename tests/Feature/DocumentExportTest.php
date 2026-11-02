@@ -291,7 +291,7 @@ class DocumentExportTest extends TestCase
             $response = $this->get('/admin/analytics/export?format='.$format)->assertOk();
             if ($format === 'pdf') $this->assertStringStartsWith('%PDF-', $response->getContent());
             elseif ($format === 'docx') $this->assertStringStartsWith('PK', $response->getContent());
-            else $response->assertSee('Executive Institutional Analytics Summary')->assertSee('Good Moral Total');
+            else $response->assertSee('Guidance Analytics Summary')->assertSee('Good Moral Total');
         }
         $this->get('/admin/analytics/export/excel')->assertOk()->assertSee($record->reference);
         $this->get('/admin/analytics/export/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');

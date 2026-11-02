@@ -68,16 +68,23 @@ class GuidanceNotificationController extends Controller
 
     public function details(Request $request, ServiceRequest $serviceRequest)
     {
-        $data = $request->validate(['module_type' => ['required', Rule::in(['psychological', 'personality', 'career', 'good-moral', 'exit-form'])]]);
-        $moduleType = $data['module_type'];
-        abort_unless($serviceRequest->batch_id === null && ($serviceRequest->service === 'testing'
-            ? in_array($moduleType, $serviceRequest->tests ?: [], true)
-            : $moduleType === $serviceRequest->service), 404);
+        $data = $request->validate(['module_type' => ['nullable', Rule::in(['psychological', 'personality', 'career', 'good-moral', 'exit-form'])]]);
+        $modules = $serviceRequest->service === 'testing'
+            ? array_values(array_intersect($serviceRequest->tests ?: [], array_keys(\App\Services\GuidanceCategories::LABELS)))
+            : array_values(array_intersect([$serviceRequest->service], ['good-moral', 'exit-form']));
+        if ($serviceRequest->service === 'testing' && $modules === []) {
+            $modules = $serviceRequest->guidanceAppointments()->get()->map(fn ($appointment) => $appointment->test_category ?: match ($appointment->test_type) {
+                'dass21', 'phq9', 'gad7' => 'psychological', 'bfpi' => 'personality', 'career' => 'career', default => null,
+            })->filter(fn ($module) => array_key_exists($module ?? '', \App\Services\GuidanceCategories::LABELS))->unique()->values()->all();
+        }
+        $moduleType = $data['module_type'] ?? ($modules[0] ?? null);
+        abort_unless($serviceRequest->batch_id === null && in_array($moduleType, $modules, true), 404);
         $entry = $serviceRequest;
         $appointment = $entry->service === 'testing'
-            ? $entry->guidanceAppointments()->where('test_category', $moduleType)->first()
+            ? $entry->guidanceAppointments()->where(fn ($query) => $query->where('test_category', $moduleType)
+                ->orWhere(fn ($legacy) => $legacy->whereNull('test_category')->whereIn('test_type', \App\Services\GuidanceCategories::TESTS[$moduleType])))->first()
             : null;
-        return response()->view('staff.partials.notification-review', compact('entry', 'moduleType', 'appointment'))
+        return response()->view($request->ajax() ? 'staff.partials.notification-review' : 'staff.request-details', compact('entry', 'moduleType', 'appointment', 'modules'))
             ->header('Cache-Control', 'private, no-store');
     }
 

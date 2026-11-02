@@ -151,10 +151,7 @@
                             @endif
                         </td>
                         <td>
-                            <a class="btn btn-sm btn-outline-secondary"
-                               href="{{ route($archiveRole.'.requests.details', $req) }}">
-                                Open
-                            </a>
+                            @include('admin.partials.archive-request-action')
                         </td>
                     </tr>
                 @endforeach
@@ -261,10 +258,7 @@
                         <td>{{ $req->scheduled_at ? $req->scheduled_at->timezone('Asia/Manila')->format('M d, Y g:i A') : 'May 05, 2026 11:06 AM' }}</td>
                         <td>{{ $req->claimed_at ? $req->claimed_at->timezone('Asia/Manila')->format('M d, Y g:i A') : ($req->updated_at ? $req->updated_at->timezone('Asia/Manila')->format('M d, Y g:i A') : '—') }}</td>
                         <td>
-                            <a class="btn btn-sm btn-outline-secondary"
-                               href="{{ route($archiveRole.'.requests.details', $req) }}">
-                                Open
-                            </a>
+                            @include('admin.partials.archive-request-action')
                         </td>
                     </tr>
                 @empty
@@ -370,10 +364,7 @@
                         <td>{{ $req->scheduled_at ? $req->scheduled_at->timezone('Asia/Manila')->format('M d, Y g:i A') : '—' }}</td>
                         <td>{{ $req->claimed_at ? $req->claimed_at->timezone('Asia/Manila')->format('M d, Y g:i A') : ($req->updated_at ? $req->updated_at->timezone('Asia/Manila')->format('M d, Y g:i A') : '—') }}</td>
                         <td>
-                            <a class="btn btn-sm btn-outline-secondary"
-                               href="{{ route($archiveRole.'.requests.details', $req) }}">
-                                Open
-                            </a>
+                            @include('admin.partials.archive-request-action')
                         </td>
                     </tr>
                 @empty

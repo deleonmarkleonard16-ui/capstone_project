@@ -46,7 +46,7 @@
 @elseif($appointment)
     <button type="button" class="btn btn-primary btn-sm"
             data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"
-            data-bs-dismiss="modal">
+            @unless($detailsPage ?? false) data-bs-dismiss="modal" @endunless>
         <i class="bi bi-card-checklist me-1"></i> Open assessment details
     </button>
 @endif

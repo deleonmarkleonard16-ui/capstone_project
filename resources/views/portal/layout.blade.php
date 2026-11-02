@@ -257,6 +257,9 @@
     </style>
 </head>
 <body data-service="{{ $entry->service ?? $selectedService ?? 'testing' }}">
+@if(request()->routeIs('portal.index'))
+    @include('partials.psu-intro')
+@endif
 <header><img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo"><div><strong>Pangasinan State University – San Carlos Campus</strong><small>Student &amp; Alumni Services</small></div></header>
 <main>
     @if($errors->any())<div class="error" role="alert"><strong>Please check your details.</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif

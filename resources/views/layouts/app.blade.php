@@ -203,6 +203,9 @@
     @stack('styles')
 </head>
 <body class="@yield('body_class')">
+@if(request()->routeIs('login'))
+    @include('partials.psu-intro')
+@endif
 @php
     $isGuestRoute = ($isGuestView ?? false)
         || request()->routeIs(

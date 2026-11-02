@@ -19,23 +19,31 @@ class AuditActivity
 
     public function handle(Request $request, Closure $next): Response
     {
+        // Global coverage also captures failures before route middleware runs.
+        // Avoid duplicate entries if a route explicitly includes this middleware.
+        if ($request->attributes->get('audit_activity_running')) {
+            return $next($request);
+        }
+        $request->attributes->set('audit_activity_running', true);
         $response = $next($request);
         $user = $request->user();
+        $status = $this->outcomeStatus($request, $response);
+        $failed = $status >= 400;
 
-        if (! $user || ! in_array($user->role, ['admin', 'staff'], true)
-            || (! in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)
-                && $response->getStatusCode() < 400)) {
+        if (! $failed && (! $user || ! in_array($user->role, ['admin', 'staff'], true)
+            || ! in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true))) {
             return $response;
         }
 
         $route = $request->route();
         $routeName = $route?->getName();
 
-        if (in_array($routeName, self::IGNORED_ROUTES, true)) {
+        if (! $failed && in_array($routeName, self::IGNORED_ROUTES, true)) {
             return $response;
         }
 
-        $action = $routeName ? str_replace(['.', '-', '_'], ' ', $routeName) : $request->method().' '.$request->path();
+        // Route templates avoid recording bearer tokens or personal data in URLs.
+        $action = $routeName ? str_replace(['.', '-', '_'], ' ', $routeName) : $request->method().' '.($route?->uri() ?? 'unmatched route');
         $subject = [];
         foreach (($route?->parameters() ?? []) as $key => $value) {
             if (is_object($value) && method_exists($value, 'getKey')) {
@@ -48,14 +56,14 @@ class AuditActivity
 
         try {
             AuditLog::create([
-                'user_id' => $user->getKey(),
-                'user_name' => $user->name,
-                'user_role' => $user->role,
-                'action' => ucfirst($action),
+                'user_id' => $user?->getKey(),
+                'user_name' => $user?->name ?? 'Guest (unauthenticated)',
+                'user_role' => $user?->role ?? 'guest',
+                'action' => ucfirst(substr($action, 0, 160)),
                 'method' => $request->method(),
                 'route' => $routeName,
                 'subject' => $subject ?: null,
-                'response_status' => $request->attributes->get('audit_response_status', $response->getStatusCode()),
+                'response_status' => $status,
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);
@@ -64,5 +72,38 @@ class AuditActivity
         }
 
         return $response;
+    }
+
+    private function outcomeStatus(Request $request, Response $response): int
+    {
+        $status = (int) $request->attributes->get('audit_response_status', $response->getStatusCode());
+        if ($status >= 400) {
+            return $status;
+        }
+
+        if ($response instanceof \Illuminate\Http\JsonResponse) {
+            $data = $response->getData(true);
+            if (is_array($data) && (($data['success'] ?? null) === false || ($data['ok'] ?? null) === false)) {
+                return 422;
+            }
+        }
+
+        if ($response->isRedirection() && $request->hasSession()) {
+            // StartSession has already aged flash data: only this response's
+            // flashed keys remain. Old errors must not taint the next activity.
+            $session = $request->session();
+            $flashed = array_merge($session->get('_flash.new', []), $session->get('_flash.old', []));
+            if (in_array('errors', $flashed, true) && $session->get('errors')?->any()) {
+                return $request->routeIs('login.store') ? 401 : 422;
+            }
+            if (in_array('error', $flashed, true) && $session->has('error')) {
+                return 422;
+            }
+            if (in_array('warning', $flashed, true) && $session->has('warning')) {
+                return 409;
+            }
+        }
+
+        return $status;
     }
 }

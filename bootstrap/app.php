@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->appendToGroup('web', \App\Http\Middleware\AuditActivity::class);
+        $middleware->prepend(\App\Http\Middleware\AuditActivity::class);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request): string {
             $role = $request->user()->role;
@@ -47,6 +47,18 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->respond(function ($response, \Throwable $exception, \Illuminate\Http\Request $request) {
+            // Exception responses can redirect (validation, authentication, expired sessions).
+            $request->attributes->set('audit_response_status', match (true) {
+                $exception instanceof \Illuminate\Auth\AuthenticationException => 401,
+                $exception instanceof \Illuminate\Validation\ValidationException => $exception->status,
+                $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface => $exception->getStatusCode(),
+                default => $response->getStatusCode() >= 400 ? $response->getStatusCode() : 500,
+            });
+
+            return $response;
+        });
+
         // Handle CSRF / session-expiry (419 Page Expired) gracefully.
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
             $status = $e->getStatusCode();

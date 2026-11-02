@@ -57,6 +57,7 @@
                 <option value="">All roles</option>
                 <option value="admin" @selected(($filters['role'] ?? '') === 'admin')>Administrator</option>
                 <option value="staff" @selected(($filters['role'] ?? '') === 'staff')>Staff</option>
+                <option value="guest" @selected(($filters['role'] ?? '') === 'guest')>Guest (unauthenticated)</option>
             </select>
             <select id="status" name="status" class="form-select" style="width:auto" aria-label="Filter by status">
                 <option value="">All statuses</option>

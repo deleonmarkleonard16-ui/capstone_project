@@ -19,7 +19,7 @@ class AdminAuditLogController extends Controller
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:120'],
-            'role' => ['nullable', 'in:admin,staff'],
+            'role' => ['nullable', 'in:admin,staff,guest'],
             'status' => ['nullable', 'in:success,denied,failed'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
@@ -42,7 +42,9 @@ class AdminAuditLogController extends Controller
     {
         $query = AuditLog::query()
             ->with('user:id,name')
-            ->whereNotIn('route', self::HIDDEN_BACKGROUND_ROUTES)
+            ->where(fn (Builder $query) => $query->whereNull('route')
+                ->orWhereNotIn('route', self::HIDDEN_BACKGROUND_ROUTES)
+                ->orWhere('response_status', '>=', 400))
             ->orderByDesc('created_at')
             ->orderByDesc('id');
         if (! empty($filters['search'])) {

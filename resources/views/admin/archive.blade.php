@@ -70,8 +70,8 @@
                 <label class="form-label form-label-sm text-muted small">Request Type</label>
                 <select name="request_type" class="form-select form-select-sm">
                     <option value="">All requests</option>
-                    <option value="individual">Individual</option>
-                    <option value="batch">Batch / Bundled</option>
+                    <option value="individual" @selected(request('request_type') === 'individual')>Individual</option>
+                    <option value="batch" @selected(request('request_type') === 'batch')>Batch / Bundled</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -100,7 +100,23 @@
                     </tr>
                 </thead>
                 <tbody>
-                @forelse($testingRequests as $req)
+                @foreach($testingBatches as $batch)
+                    <tr>
+                        <td>
+                            <strong>{{ mb_strtoupper($batch->batch_name) }}</strong>
+                            <div class="small text-muted">Batch / Bundled · {{ $batch->courseLabel() }} · {{ $batch->year_section }} · {{ $batch->appointments_count + $batch->makeup_appointments_count }} students</div>
+                        </td>
+                        <td>{{ $batch->test_type }}</td>
+                        <td><span class="badge bg-success">{{ $batch->status }}</span></td>
+                        <td>{{ $batch->started_at?->timezone('Asia/Manila')->format('M d, Y g:i A') ?? '—' }}</td>
+                        <td><span class="text-muted">—</span></td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-secondary"
+                               href="{{ route($archiveRole.'.guidance-batches.index', ['archived' => 1, 'category' => array_search($batch->test_type, \App\Services\GuidanceCategories::LABELS, true), 'q' => $batch->batch_name]) }}">Open</a>
+                        </td>
+                    </tr>
+                @endforeach
+                @foreach($testingRequests as $req)
                     <tr>
                         <td>
                             <strong>{{ mb_strtoupper($req->first_name . ' ' . $req->last_name) }}</strong>
@@ -141,13 +157,14 @@
                             </a>
                         </td>
                     </tr>
-                @empty
+                @endforeach
+                @if($testingRequests->isEmpty() && $testingBatches->isEmpty())
                     <tr>
                         <td colspan="6" class="text-center text-muted py-4">
                             No archived testing requests match the selected filters.
                         </td>
                     </tr>
-                @endforelse
+                @endif
                 </tbody>
             </table>
         </div>
@@ -199,8 +216,8 @@
                 <label class="form-label form-label-sm text-muted small">Request Type</label>
                 <select name="request_type" class="form-select form-select-sm">
                     <option value="">All requests</option>
-                    <option value="individual">Individual</option>
-                    <option value="batch">Batch / Bundled</option>
+                    <option value="individual" @selected(request('request_type') === 'individual')>Individual</option>
+                    <option value="batch" @selected(request('request_type') === 'batch')>Batch / Bundled</option>
                 </select>
             </div>
             <div class="col-md-4">
@@ -308,8 +325,8 @@
                 <label class="form-label form-label-sm text-muted small">Request Type</label>
                 <select name="request_type" class="form-select form-select-sm">
                     <option value="">All requests</option>
-                    <option value="individual">Individual</option>
-                    <option value="batch">Batch / Bundled</option>
+                    <option value="individual" @selected(request('request_type') === 'individual')>Individual</option>
+                    <option value="batch" @selected(request('request_type') === 'batch')>Batch / Bundled</option>
                 </select>
             </div>
             <div class="col-md-4">

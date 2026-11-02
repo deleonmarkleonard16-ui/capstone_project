@@ -91,7 +91,7 @@
                         <td class="audit-id">LOG-{{ str_pad($log->id, 4, '0', STR_PAD_LEFT) }}</td>
                         <td class="fw-semibold text-nowrap">{{ $log->user?->name ?? $log->user_name ?? 'Deleted user' }}</td>
                         <td><span class="audit-role audit-role-{{ $log->user_role === 'admin' ? 'admin' : 'staff' }}">{{ $log->user_role === 'admin' ? 'Administrator' : ucfirst($log->user_role ?: 'Unknown') }}</span></td>
-                        <td>{{ $log->action }}</td>
+                        <td>{{ $log->activityDescription() }}</td>
                         <td class="text-nowrap">{{ $module }}</td>
                         <td class="text-nowrap">{{ $log->created_at?->format('M j, Y, h:i A') }}</td>
                         <td class="text-nowrap">{{ $log->ip_address ?: '—' }}</td>

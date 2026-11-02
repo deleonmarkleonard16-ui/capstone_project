@@ -79,7 +79,7 @@ class AdminAuditLogController extends Controller
                         'LOG-'.str_pad((string) $log->id, 4, '0', STR_PAD_LEFT),
                         $log->user?->name ?? $log->user_name ?? 'Deleted user',
                         ucfirst((string) $log->user_role),
-                        $log->action,
+                        $log->activityDescription(),
                         $log->route,
                         $log->method,
                         $log->created_at?->format('Y-m-d h:i:s A'),

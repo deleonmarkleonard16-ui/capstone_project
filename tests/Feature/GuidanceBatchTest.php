@@ -214,7 +214,7 @@ class GuidanceBatchTest extends TestCase
         }
 
         $archive = $this->get(route('staff.guidance-batches.index', ['archived' => 1]))->assertOk();
-        $archive->assertSee('Review Result')->assertSee('Download Assessment')
+        $archive->assertDontSee('Review Result')->assertSee('View / Print PDF')
             ->assertDontSee('Review &amp; Evaluate')->assertDontSee('View Scores')->assertDontSee('Review Submission');
     }
 

@@ -7,7 +7,6 @@
     <style>
         @include('guidance.partials.psychological-report-css')
         .batch-report + .batch-report { page-break-before: always; break-before: page; }
-        .assessment-result-details { page-break-before: always; }
     </style>
 </head>
 <body>

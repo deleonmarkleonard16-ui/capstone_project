@@ -53,16 +53,7 @@
         <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-eye me-1"></i>Review Details</button><br>
         @endunless
         @if($appointment->is_archived && $appointment->response)
-            <a class="btn btn-sm btn-success mb-2" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Result</a><br>
-            @if($appointment->test_category === 'psychological')
-                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF</a>
-            @elseif($appointment->test_category === 'personality' || $appointment->test_type === 'bfpi')
-                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF</a>
-            @elseif($appointment->test_category === 'career')
-                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF</a>
-            @else
-                <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.personality.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
-            @endif
+            @include('guidance.partials.assessment-pdf-action')
         @elseif($appointment->response && in_array($appointment->status, ['Under review', 'Completed'], true))
             <a class="btn btn-sm btn-success" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Student Submission</a>
         @elseif(!$appointment->response)

@@ -67,11 +67,12 @@ class GuidanceBatchPrintTest extends TestCase
                 $this->assertStringContainsString('Makeup Santos', $html);
                 $this->assertStringNotContainsString('Absent Santos', $html);
                 $this->assertStringNotContainsString('Unrelated Santos', $html);
-                $this->assertStringContainsString('Assessment Rubric &amp; Interpretation', $html);
+                $this->assertStringNotContainsString('Assessment Rubric &amp; Interpretation', $html);
+                $this->assertStringNotContainsString('Raw Item Choices', $html);
                 $this->assertSame(1, substr_count($html, '<!doctype html>'));
                 $this->assertStringNotContainsString('window.print()', $html);
                 $this->assertSame(1, substr_count($html, '<img class="assessment-letterhead"'));
-                $this->assertStringContainsString('.assessment-result-details { page-break-before: always; }', $html);
+
 
                 return true;
             })->andReturn('%PDF-test');
@@ -96,7 +97,7 @@ class GuidanceBatchPrintTest extends TestCase
         }
     }
 
-    public function test_real_batch_pdf_has_separate_report_and_appendix_pages_for_all_test_types(): void
+    public function test_real_batch_pdf_has_one_official_report_page_per_student_for_all_test_types(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'staff']));
         foreach (array_keys(GuidanceCategories::LABELS) as $category) {
@@ -106,7 +107,7 @@ class GuidanceBatchPrintTest extends TestCase
             $response = $this->get(route('staff.guidance-batches.print', $batch))
                 ->assertOk()->assertHeader('Content-Type', 'application/pdf');
             $this->assertStringStartsWith('%PDF-', $response->getContent());
-            $this->assertGreaterThanOrEqual(4, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
+            $this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
         }
     }
 

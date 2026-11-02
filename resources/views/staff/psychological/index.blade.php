@@ -34,14 +34,7 @@
         <tr><td>{{ $appointment->applicant?->full_name }}</td><td>{{ $appointment->request_code }}</td><td>{{ $appointment->testLabel() }}</td>
             <td>
                 <div class="d-flex flex-wrap gap-2">
-                    <a class="btn btn-sm btn-outline-primary" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Result</a>
-                    @if(in_array($appointment->test_category, ['psychological', 'personality'], true) || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7', 'bfpi'], true))
-                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF</a>
-                    @elseif($appointment->test_category === 'career')
-                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF</a>
-                    @else
-                        <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.'.$moduleKey.'.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
-                    @endif
+                    @include('guidance.partials.assessment-pdf-action')
                 </div>
             </td>
         </tr>

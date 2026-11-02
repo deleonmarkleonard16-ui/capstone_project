@@ -53,7 +53,7 @@ class GuidanceReportTest extends TestCase
         $this->get('/staff/guidance/report/download/'.$appointment->getKey().'?format=docx')->assertOk()->assertDownload();
     }
 
-    public function test_all_assessment_pdfs_include_scores_and_paginated_raw_choices(): void
+    public function test_all_assessment_pdfs_contain_only_the_official_single_page_report(): void
     {
         foreach ([
             [\App\Services\PsychologicalReportService::class, 'dass21', $this->normalTests()],
@@ -65,13 +65,35 @@ class GuidanceReportTest extends TestCase
             $document = app($service)->build($appointment);
             $document += ['format' => 'pdf', 'autoPrint' => false, 'administeredBy' => 'Guidance Staff', 'administeredPosition' => 'Staff'];
             $html = view($document['view'], $document)->render();
-            $this->assertStringContainsString('Assessment Rubric &amp; Interpretation', $html);
-            $this->assertStringContainsString('Raw Item Choices', $html);
-            $this->assertStringContainsString('<td>1</td><td>0</td>', $html);
-            $this->assertStringContainsString('Unanswered', $html);
+            $this->assertStringNotContainsString('Assessment Rubric &amp; Interpretation', $html);
+            $this->assertStringNotContainsString('Raw Item Choices', $html);
+            $this->assertStringContainsString('OFFICE OF ADMISSION AND GUIDANCE SERVICES', $html);
+            $this->assertStringContainsString('assessment-letterhead', $html);
             $pdf = app(DocumentExportService::class)->render($document, 'pdf');
             $this->assertStringStartsWith('%PDF-', $pdf);
-            $this->assertGreaterThanOrEqual(2, preg_match_all('/\/Type\s*\/Page\b/', $pdf));
+            $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $pdf));
+        }
+    }
+
+    public function test_archive_actions_open_only_the_matching_official_pdf_for_admin_and_staff(): void
+    {
+        foreach (['admin', 'staff'] as $role) {
+            $this->login($role);
+            foreach (['psychological' => ['dass21', $this->normalTests()],
+                'personality' => ['bfpi', ['bfpi' => ['scores' => ['Extraversion' => 3], 'interpretation' => ['Extraversion' => 'Average']]]],
+                'career' => ['career', ['career' => ['scores' => ['Realistic' => 4], 'interpretation' => ['Realistic' => 'High']]]],
+            ] as $category => [$type, $summaries]) {
+                $appointment = $this->appointment($summaries);
+                $appointment->update(['test_category' => $category, 'test_type' => $type, 'test_types' => [$type], 'is_archived' => true, 'archived_at' => now()]);
+                $appointment->serviceRequest->update(['tests' => [$category], 'archived_at' => now()]);
+                $pdfUrl = route($role.($category === 'career' ? '.guidance-appointments.career-report' : '.guidance.report.download'), ['appointment' => $appointment->getKey(), 'format' => 'pdf']);
+                foreach ([$role.'.guidance-appointments.archive', $role.'.'.$category.'.archive'] as $route) {
+                    $this->get(route($route))->assertOk()->assertSee('View / Print PDF')
+                        ->assertSee($pdfUrl, false)->assertDontSee('Review Result');
+                }
+                $this->get($pdfUrl)->assertOk()->assertHeader('Content-Type', 'application/pdf')
+                    ->assertHeader('Cache-Control', 'no-store, private');
+            }
         }
     }
 

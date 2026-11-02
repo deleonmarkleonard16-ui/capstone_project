@@ -93,22 +93,7 @@
         <hr>
         <h3 class="h5"><i class="bi bi-archive me-2"></i>Archived Assessment Actions</h3>
         <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-outline-primary" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}">
-                <i class="bi bi-file-earmark-text me-1"></i>Review Result
-            </a>
-            @if($appointment->test_category === 'psychological')
-                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF
-                </a>
-            @elseif($appointment->test_category === 'career')
-                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>View / Print PDF
-                </a>
-            @else
-                <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.personality.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener">
-                    <i class="bi bi-award me-1"></i>Print Certificate
-                </a>
-            @endif
+            @include('guidance.partials.assessment-pdf-action')
         </div>
     </section>
     @endif

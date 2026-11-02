@@ -53,6 +53,14 @@ class GuidanceAppointment extends Model
             ?? \App\Services\GuidanceCategories::LABELS[$this->test_type]
             ?? $this->testLabel();
     }
+    public function defaultEvaluationRemarks(): string
+    {
+        return match ($this->test_category ?: $this->test_type) {
+            'personality', 'bfpi' => "The personality profile describes the student's reported traits. Discuss the identified strengths and areas for development during counselor feedback.",
+            'career' => 'Interest ratings describe career preferences. Discuss courses and occupations aligned with the recorded interests; review all tied RIASEC traits.',
+            default => "Psychological assessment responses are recorded for counselor review. Interpret the screening results together with the student's interview and current concerns.",
+        };
+    }
     public function applicant(): BelongsTo
     {
         return $this->belongsTo(Applicant::class);

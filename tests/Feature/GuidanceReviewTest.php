@@ -102,6 +102,7 @@ class GuidanceReviewTest extends TestCase
         $this->assertStringContainsString(route('guidance.take', $token), $review->json('html'));
         $this->postJson(route('guidance.start', $token))->assertOk();
         $this->submitGuidanceSections($token, ['dass21' => array_fill(1, 21, 3), 'phq9' => array_fill(1, 9, 3), 'gad7' => array_fill(1, 7, 3)])->assertOk();
+        $this->assertSame($appointment->defaultEvaluationRemarks(), $appointment->fresh()->remarks);
         $review = $this->getJson($url)->assertOk();
         $this->assertStringContainsString('Raw item answers (JSON)', $review->json('html'));
         $this->assertStringContainsString('DASS-21 · Depression, Anxiety &amp; Stress', $review->json('html'));
@@ -132,6 +133,7 @@ class GuidanceReviewTest extends TestCase
         $this->get(route('guidance.take', $token))->assertOk()->assertSee('Item #01')->assertDontSee('I like to work with tools')->assertDontSee('Extremely interested');
         $this->postJson(route('guidance.start', $token))->assertOk();
         $this->submitGuidanceSections($token, ['career' => [1 => 1, 2 => 5, 3 => 4, 4 => 5, 5 => 2, 6 => 3]])->assertOk();
+        $this->assertSame($appointment->defaultEvaluationRemarks(), $appointment->fresh()->remarks);
         $result = $appointment->fresh()->response->score_summary['tests']['career'];
         $this->assertSame('Investigative - Social - Artistic', $result['interpretation']['top_traits']);
         $this->assertSame(5, $result['scores']['Social']);

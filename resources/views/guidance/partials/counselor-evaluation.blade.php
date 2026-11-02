@@ -17,7 +17,7 @@
                     IV. Remarks <span class="text-muted fw-normal">(Counselor notes)</span>
                 </label>
                 <textarea class="form-control" id="eval-remarks-{{ $appointment->getKey() }}" name="remarks" rows="4" maxlength="5000"
-                          placeholder="Enter your clinical remarks here…">{{ old('remarks', $appointment->remarks) }}</textarea>
+                          placeholder="Enter your clinical remarks here…">{{ old('remarks', filled($appointment->remarks) ? $appointment->remarks : $appointment->defaultEvaluationRemarks()) }}</textarea>
             </div>
             <div class="mb-3">
                 <label class="form-label fw-bold">V. Recommendation</label>

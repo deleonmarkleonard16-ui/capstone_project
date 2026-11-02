@@ -225,11 +225,7 @@ class GuidanceAssessmentSessionService
         }
         $appointment->response()->create(['applicant_id' => $appointment->applicant_id, 'answers' => $storedAnswers, 'score_summary' => $summary]);
 
-        $defaultRemarks = match ($appointment->test_category ?? $appointment->test_type) {
-            'personality', 'bfpi' => 'No significant manifestation of personality disorder or gross mental disturbance at the time of examination.',
-            'career' => 'Interest ratings, not clinical severity. Equal scores are listed in RIASEC order; review all tied traits.',
-            default => 'No significant manifestation of psychological disorder or gross mental disturbance at the time of examination.',
-        };
+        $defaultRemarks = $appointment->defaultEvaluationRemarks();
 
         $defaultRec = 'Fit for deployment';
         if (($appointment->test_category ?? $appointment->test_type) === 'career') {

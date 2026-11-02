@@ -186,6 +186,45 @@ class GuidanceReportTest extends TestCase
         }
     }
 
+    public function test_evaluation_prefills_editable_test_specific_remarks_and_preserves_counselor_changes(): void
+    {
+        $defaults = [
+            'psychological' => "Psychological assessment responses are recorded for counselor review. Interpret the screening results together with the student's interview and current concerns.",
+            'personality' => "The personality profile describes the student's reported traits. Discuss the identified strengths and areas for development during counselor feedback.",
+            'career' => 'Interest ratings describe career preferences. Discuss courses and occupations aligned with the recorded interests; review all tied RIASEC traits.',
+        ];
+        foreach (['admin', 'staff'] as $role) {
+            $this->login($role);
+            foreach (['psychological' => 'dass21', 'personality' => 'bfpi', 'career' => 'career'] as $category => $type) {
+                $appointment = $this->appointment([]);
+                $appointment->update(['status' => 'Under review', 'test_category' => $category, 'test_type' => $type, 'remarks' => null]);
+                $resultsUrl = route($role.'.guidance-appointments.show-results', $appointment);
+                $this->get($resultsUrl)->assertOk()->assertSee($defaults[$category])
+                    ->assertSee('name="remarks"', false)->assertSee('Save Remarks and Recommendation');
+                $review = $this->getJson(route($role.'.guidance-appointments.review', $appointment))->assertOk();
+                $this->assertStringContainsString(e($defaults[$category]), $review->json('html'));
+                $this->assertNull($appointment->fresh()->remarks);
+
+                $this->from($resultsUrl)->post(route($role.'.guidance-appointments.evaluate', $appointment), [
+                    'action' => 'save', 'remarks' => 'Counselor revised these notes.',
+                ])->assertRedirect($resultsUrl)->assertSessionHasNoErrors();
+                $this->assertSame('Counselor revised these notes.', $appointment->fresh()->remarks);
+                $this->get($resultsUrl)->assertOk()->assertSee('Counselor revised these notes.')
+                    ->assertDontSee($defaults[$category]);
+
+                // Previously entered text survives validation errors, including an intentionally cleared field.
+                foreach (['Unsaved counselor draft.', ''] as $draft) {
+                    $page = $this->withSession(['_old_input' => ['remarks' => $draft]])->get($resultsUrl)->assertOk();
+                    preg_match('/<textarea[^>]*name="remarks"[^>]*>(.*?)<\/textarea>/s', $page->getContent(), $matches);
+                    $this->assertSame(e($draft), $matches[1] ?? null);
+                    session()->forget('_old_input');
+                }
+                $appointment->update(['test_category' => null]);
+                $this->assertSame($defaults[$category], $appointment->defaultEvaluationRemarks());
+            }
+        }
+    }
+
     public function test_archived_results_are_read_only_and_reject_direct_evaluation_updates(): void
     {
         foreach (['admin', 'staff'] as $role) {

@@ -40,14 +40,16 @@
                     </button>
 
                     {{-- Export Actions --}}
-                    <div class="btn-group btn-group-sm shadow-sm" role="group">
-                        <a href="{{ route($role . '.analytics.export.pdf') }}" target="_blank" class="btn btn-outline-danger d-flex align-items-center gap-1">
+                    <div class="d-flex flex-wrap gap-2" role="group" aria-label="Analytics reports">
+                        <a href="{{ route($role.'.analytics.export', ['format' => 'html', 'type' => 'summary', 'preview' => 1]) }}" class="btn btn-sm btn-outline-primary">Preview summary</a>
+                        <a href="{{ route($role.'.analytics.export', ['format' => 'html', 'type' => 'records', 'preview' => 1]) }}" class="btn btn-sm btn-outline-primary">Preview records</a>
+                        <a href="{{ route($role . '.analytics.export.pdf') }}" target="_blank" rel="noopener" aria-label="View / Print PDF" class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1">
                             <i class="bi bi-file-earmark-pdf-fill"></i>
                             <span class="d-none d-md-inline">PDF</span>
                         </a>
-                        <a href="{{ route($role . '.analytics.export.excel') }}" class="btn btn-success d-flex align-items-center gap-1">
-                            <i class="bi bi-file-earmark-excel-fill"></i>
-                            <span class="d-none d-md-inline">Excel</span>
+                        <a href="{{ route($role . '.analytics.export.excel') }}" class="btn btn-sm btn-success d-flex align-items-center gap-1" aria-label="Download CSV" title="Download CSV">
+                            <i class="bi bi-filetype-csv"></i>
+                            <span class="d-none d-md-inline">Download CSV</span>
                         </a>
                     </div>
                 </div>

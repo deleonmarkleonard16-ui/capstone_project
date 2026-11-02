@@ -18,6 +18,12 @@ class DocumentExportController extends Controller
     {
         $modules = ExportReportService::TYPES + ['analytics' => ['summary', 'records']];
         if ($request->user()->role !== 'admin') unset($modules['admission']);
+        $request->validate([
+            'module' => ['nullable', Rule::in(array_keys($modules))],
+            'type' => 'nullable|string|max:100', 'course' => 'nullable|string|max:100', 'status' => 'nullable|string|max:100',
+            'cycle_id' => 'nullable|integer|min:1', 'session_id' => 'nullable|integer|min:1',
+            'batch_id' => 'nullable|integer|min:1', 'request_id' => 'nullable|integer|min:1',
+        ]);
 
         return view('exports.index', [
             'modules' => $modules,
@@ -73,7 +79,12 @@ class DocumentExportController extends Controller
             }
             $document['format'] = $format;
             $document['autoPrint'] = $format === 'html' && (bool) ($filters['auto_print'] ?? false);
+            if ($format === 'html' && $request->boolean('preview')) $document['autoPrint'] = false;
             $bytes = app(DocumentExportService::class)->render($document, $format);
+            if ($format === 'html' && $request->boolean('preview')) {
+                return response()->view('exports.preview', ['document' => $document, 'previewHtml' => $bytes])
+                    ->header('Cache-Control', 'private, no-store');
+            }
             $mime = match ($format) {
                 'pdf' => 'application/pdf',
                 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

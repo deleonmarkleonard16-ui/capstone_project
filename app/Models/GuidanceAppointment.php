@@ -61,6 +61,11 @@ class GuidanceAppointment extends Model
             default => "Psychological assessment responses are recorded for counselor review. Interpret the screening results together with the student's interview and current concerns.",
         };
     }
+    public function evaluationIsComplete(): bool
+    {
+        return $this->reviewed_at !== null && $this->reviewed_by !== null
+            && trim((string) $this->remarks) !== '' && trim((string) $this->recommendations) !== '';
+    }
     public function applicant(): BelongsTo
     {
         return $this->belongsTo(Applicant::class);

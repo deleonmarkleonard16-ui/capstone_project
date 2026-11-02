@@ -202,6 +202,10 @@
                 @endif
 
                 {{-- ── 6. ARCHIVE ── --}}
+                <a class="sidebar-link {{ request()->routeIs($role.'.exports.index') || (request()->boolean('preview') && request()->routeIs($role.'.*.export')) ? 'active' : '' }}"
+                   href="{{ route($role.'.exports.index') }}">
+                    <i class="bi bi-file-earmark-bar-graph"></i> Reports
+                </a>
                 <a class="sidebar-link {{ request()->routeIs($role.'.archive') && request()->query('section') !== 'admission' ? 'active' : '' }}"
                    href="{{ route($role.'.archive') }}">
                     <i class="bi bi-archive-fill"></i> Archive

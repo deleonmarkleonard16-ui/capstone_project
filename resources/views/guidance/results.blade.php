@@ -76,6 +76,12 @@
             </div>
         </div>
 
+        <dl class="row g-3 mb-4 no-print" aria-label="Evaluation history">
+            <div class="col-md-4"><dt class="small text-muted">Reviewed by</dt><dd>{{ $appointment->reviewed_at ? ($appointment->reviewer?->name ?: 'Not recorded') : 'Not yet confirmed' }}</dd></div>
+            <div class="col-md-4"><dt class="small text-muted">Reviewed on</dt><dd>{{ $appointment->reviewed_at?->timezone('Asia/Manila')->format('M d, Y g:i A') ?? 'Not recorded' }}</dd></div>
+            <div class="col-md-4"><dt class="small text-muted">Archived on</dt><dd>{{ $appointment->archived_at?->timezone('Asia/Manila')->format('M d, Y g:i A') ?? 'Not recorded' }}</dd></div>
+        </dl>
+
         @php
             $summary = $appointment->response?->score_summary ?? [];
             $tests = $appointment->response?->testSummaries() ?? [];

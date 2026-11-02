@@ -154,6 +154,7 @@ class AdminGuidanceController extends Controller
         $data = $request->validate([
             'remarks' => 'nullable|string|max:5000',
             'recommendations' => 'nullable|string|max:500',
+            'review_confirmed' => 'nullable|boolean',
             'action' => ['required', Rule::in(['save', 'move_to_review', 'archive', 'complete_and_archive'])],
         ]);
 
@@ -162,15 +163,27 @@ class AdminGuidanceController extends Controller
 
             abort_if($locked->is_archived || $locked->archived_at, 409, 'Archived assessment evaluations are read-only.');
 
+            $finalizing = in_array($data['action'], ['archive', 'complete_and_archive'], true);
+            abort_if($locked->batch_id && $finalizing, 409,
+                'Batch assessments are archived together after staff completes the batch review.');
+            if ($finalizing || $request->boolean('review_confirmed')) {
+                abort_unless($locked->response()->exists() && in_array($locked->status, ['Under review', 'Completed'], true), 409,
+                    'A submitted assessment is required before confirming evaluation.');
+                \Illuminate\Support\Facades\Validator::make([
+                    'remarks' => array_key_exists('remarks', $data) ? $data['remarks'] : $locked->remarks,
+                    'recommendations' => array_key_exists('recommendations', $data) ? $data['recommendations'] : $locked->recommendations,
+                    'review_confirmed' => $request->input('review_confirmed'),
+                ], ['remarks' => 'required|string|max:5000', 'recommendations' => 'required|string|max:500', 'review_confirmed' => 'accepted'], [
+                    'review_confirmed.accepted' => 'Confirm that you reviewed the results, remarks, and recommendation before finalizing evaluation.',
+                ])->validate();
+            }
+
             $update = [
                 'remarks' => array_key_exists('remarks', $data) ? $data['remarks'] : $locked->remarks,
                 'recommendations' => array_key_exists('recommendations', $data) ? $data['recommendations'] : $locked->recommendations,
                 'reviewed_by' => $request->user()->id,
             ];
-            if ($data['action'] !== 'move_to_review') $update['reviewed_at'] = now();
-
-            abort_if($locked->batch_id && in_array($data['action'], ['archive', 'complete_and_archive'], true), 409,
-                'Batch assessments are archived together after staff completes the batch review.');
+            if ($data['action'] !== 'move_to_review') $update['reviewed_at'] = $request->boolean('review_confirmed') ? now() : null;
 
             if ($data['action'] === 'move_to_review') {
                 abort_unless($locked->status === 'Terminated', 409, 'Only a terminated assessment can be moved to Under Review.');
@@ -246,7 +259,7 @@ class AdminGuidanceController extends Controller
     public function showResults(GuidanceAppointment $appointment)
     {
         abort_unless($appointment->response && in_array($appointment->status, ['Under review', 'Completed'], true), 404);
-        $appointment->load(['applicant', 'response', 'serviceRequest', 'batch', 'sourceBatch']);
+        $appointment->load(['applicant', 'response', 'serviceRequest', 'batch', 'sourceBatch', 'reviewer']);
         return view('guidance.results', compact('appointment'));
     }
 

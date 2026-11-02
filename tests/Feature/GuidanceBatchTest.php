@@ -190,6 +190,11 @@ class GuidanceBatchTest extends TestCase
             'action' => 'complete_and_archive', 'remarks' => 'Cannot individually archive a batch result.',
         ])->assertConflict();
         foreach ($appointments as $appointment) {
+            $this->postJson(route('staff.guidance-appointments.evaluate', $appointment), [
+                'action' => 'save', 'remarks' => 'Draft batch review.', 'recommendations' => 'Fit for deployment',
+            ])->assertOk();
+            $this->assertNull($appointment->fresh()->reviewed_at);
+            $this->postJson(route('staff.guidance-batches.action', $batch), ['action' => 'finish-review'])->assertConflict();
             $reviewUrl = route('staff.guidance-appointments.review', $appointment);
             $html = $this->getJson($reviewUrl)->assertOk()->json('html');
             $this->assertStringContainsString('Save Remarks and Recommendation', $html);
@@ -199,7 +204,7 @@ class GuidanceBatchTest extends TestCase
                 ->assertDontSee('Save &amp; Move to Archive', false);
             $this->postJson(route('staff.guidance-appointments.evaluate', $appointment), [
                 'action' => 'save',
-                'remarks' => 'Reviewed for batch archive.',
+                'remarks' => 'Reviewed for batch archive.', 'review_confirmed' => 1,
                 'recommendations' => 'Fit for deployment',
             ])->assertOk()->assertJsonPath('is_archived', false);
         }

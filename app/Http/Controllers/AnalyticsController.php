@@ -70,7 +70,12 @@ class AnalyticsController extends Controller
             $document['reportSections'] = $document['reportType'] === 'summary'
                 ? $records->groupBy(fn ($row) => str_contains($row[0], ' / ') ? \Illuminate\Support\Str::before($row[0], ' / ') : 'Overview')
                 : collect();
+            if ($format === 'html' && $request->boolean('preview')) $document['autoPrint'] = false;
             $bytes = app(\App\Services\DocumentExportService::class)->render($document, $format);
+            if ($format === 'html' && $request->boolean('preview')) {
+                return response()->view('exports.preview', ['document' => $document, 'previewHtml' => $bytes])
+                    ->header('Cache-Control', 'private, no-store');
+            }
             $mime = match ($format) { 'pdf' => 'application/pdf', 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'csv' => 'text/csv; charset=UTF-8', default => 'text/html; charset=UTF-8' };
             $headers = ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store'];
             if ($format !== 'html') $headers['Content-Disposition'] = ($format === 'pdf' ? 'inline' : 'attachment').'; filename="DMSGTA-guidance-analytics-'.now()->format('Y-m-d').'.'.$format.'"';

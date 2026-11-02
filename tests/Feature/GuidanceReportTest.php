@@ -175,7 +175,7 @@ class GuidanceReportTest extends TestCase
                 $this->assertSame($recommendation, $appointment->recommendations);
 
                 $this->from($resultsUrl)->post($evaluateUrl, [
-                    'action' => 'complete_and_archive', 'remarks' => 'Final notes.', 'recommendations' => $recommendation,
+                    'action' => 'complete_and_archive', 'review_confirmed' => 1, 'remarks' => 'Final notes.', 'recommendations' => $recommendation,
                 ])->assertRedirect($resultsUrl)->assertSessionHasNoErrors();
                 $appointment->refresh();
                 $this->assertSame('Completed', $appointment->status);
@@ -259,6 +259,33 @@ class GuidanceReportTest extends TestCase
         }
     }
 
+    public function test_archiving_requires_a_complete_explicitly_confirmed_evaluation_and_shows_history(): void
+    {
+        foreach (['admin', 'staff'] as $role) {
+            $this->login($role);
+            $appointment = $this->appointment([]);
+            $appointment->update(['status' => 'Under review', 'remarks' => 'Previously saved notes.', 'recommendations' => 'For Counseling']);
+            $url = route($role.'.guidance-appointments.evaluate', $appointment);
+            $this->get(route($role.'.guidance-appointments.show-results', $appointment))->assertOk()
+                ->assertSee('Evaluation checklist')->assertSee('name="review_confirmed"', false);
+            $this->postJson($url, ['action' => 'complete_and_archive'])->assertUnprocessable()->assertJsonValidationErrors('review_confirmed');
+            $this->postJson($url, ['action' => 'complete_and_archive', 'review_confirmed' => 1, 'remarks' => '', 'recommendations' => ''])
+                ->assertUnprocessable()->assertJsonValidationErrors(['remarks', 'recommendations']);
+            $this->assertFalse($appointment->fresh()->is_archived);
+            $this->assertNull($appointment->fresh()->reviewed_at);
+            $this->postJson($url, ['action' => 'save', 'remarks' => 'Draft notes.'])->assertOk();
+            $this->assertNull($appointment->fresh()->reviewed_at);
+            $this->postJson($url, ['action' => 'save', 'review_confirmed' => 1, 'remarks' => 'Confirmed notes.', 'recommendations' => 'For Counseling'])->assertOk();
+            $this->assertTrue($appointment->fresh()->evaluationIsComplete());
+            $this->postJson($url, ['action' => 'complete_and_archive', 'review_confirmed' => 1])->assertOk();
+            $appointment->refresh();
+            $this->get(route($role.'.guidance-appointments.show-results', $appointment))->assertOk()
+                ->assertSee('Reviewed by')->assertSee('Reviewed on')->assertSee('Archived on')
+                ->assertSee(auth()->user()->name)->assertSee($appointment->archived_at->timezone('Asia/Manila')->format('M d, Y g:i A'))
+                ->assertDontSee('Edit remarks');
+        }
+    }
+
     public function test_counselor_can_edit_and_clear_remarks_from_the_results_page(): void
     {
         $this->login('admin');
@@ -321,7 +348,7 @@ class GuidanceReportTest extends TestCase
             ->assertSee('border: 4px double #000', false)
             ->assertSee('window.print()', false);
         $this->get(route('admin.guidance-appointments.show-results', $appointment))
-            ->assertOk()->assertSee('target="_blank"', false)->assertSee('Print Certificate')
+            ->assertOk()->assertSee('target="_blank"', false)->assertSee('Print Assessment Result')
             ->assertDontSee('Print Report');
 
         $appointment->update(['status' => 'Approved']);
@@ -342,7 +369,7 @@ class GuidanceReportTest extends TestCase
             $url = route('admin.'.$category.'.certificate', $appointment);
 
             $this->get(route('admin.guidance-appointments.show-results', $appointment))
-                ->assertOk()->assertSee($url, false)->assertSee('Print Certificate')->assertDontSee('Print Report');
+                ->assertOk()->assertSee(route($category === 'career' ? 'admin.guidance-appointments.career-report' : 'admin.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']), false)->assertSee('Print Assessment Result')->assertDontSee('Print Report');
             $this->get($url)->assertOk()
                 ->assertSee('Certificate of '.$label)
                 ->assertSee('certificate of '.strtolower($label).' completion')
@@ -410,7 +437,7 @@ class GuidanceReportTest extends TestCase
     {
         $this->login();
         $appointment = $this->appointment();
-        $pdf = $this->get('/admin/guidance/report/download/'.$appointment->getKey().'?format=pdf')->assertOk()->assertDownload()->assertHeader('Content-Type', 'application/pdf');
+        $pdf = $this->get('/admin/guidance/report/download/'.$appointment->getKey().'?format=pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF-', $pdf->getContent());
         $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $pdf->getContent()), 'The standard report should fit on one A4 page.');
         $response = $this->get('/admin/guidance/report/download/'.$appointment->getKey().'?format=docx')->assertOk()->assertDownload()->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');

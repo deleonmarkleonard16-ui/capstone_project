@@ -4,6 +4,7 @@
         <h3 class="h5 text-warning"><i class="bi bi-clipboard2-check me-2"></i>Counselor Evaluation</h3>
         <p class="text-muted small">Review the student's results above, fill in your remarks and recommendation, then choose an action.</p>
         <form method="post"
+              data-evaluation-form
               action="{{ route(auth()->user()->role.'.guidance-appointments.evaluate', $appointment) }}"
               @if($evaluationInModal ?? false) data-review-evaluate @endif>
             @csrf
@@ -53,8 +54,22 @@
                     @endforeach
                 @endif
             </div>
+            <div class="border rounded p-3 mb-3 bg-light">
+                <h4 class="h6">Evaluation checklist</h4>
+                <ul class="small mb-3" aria-live="polite">
+                    <li data-evaluation-check="remarks">Remarks: review the notes above.</li>
+                    <li data-evaluation-check="recommendation">Recommendation: select a disposition.</li>
+                    <li data-evaluation-check="confirmation">Review confirmation: pending.</li>
+                </ul>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="review_confirmed" value="1" id="review-confirmed-{{ $appointment->getKey() }}"
+                           @checked(old('review_confirmed', $appointment->evaluationIsComplete()))>
+                    <label class="form-check-label" for="review-confirmed-{{ $appointment->getKey() }}">I reviewed the assessment results, remarks, and recommendation, including any default text.</label>
+                </div>
+                <p class="small text-muted mt-2 mb-0">You can save a draft without confirmation. Complete this checklist before archiving or marking a batch assessment as reviewed.</p>
+            </div>
             <div class="d-flex gap-2 flex-wrap">
-                <button type="submit" name="action" value="save" class="btn btn-outline-primary">
+                <button type="submit" name="action" value="save" class="btn btn-outline-primary" formnovalidate>
                     <i class="bi bi-floppy me-1"></i>Save Remarks and Recommendation
                 </button>
                 @unless($appointment->batch_id)

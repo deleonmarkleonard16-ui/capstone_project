@@ -49,6 +49,36 @@ class UnifiedArchiveFilterTest extends TestCase
         ]);
     }
 
+    public function test_archive_pages_are_independent_preserve_filters_and_use_actual_record_years(): void
+    {
+        foreach (['testing', 'good-moral', 'exit-form'] as $service) {
+            for ($index = 0; $index < 23; $index++) {
+                $entry = $this->serviceRequest($service);
+                $entry->update(['created_at' => '2032-04-15 09:00:00']);
+            }
+        }
+        for ($index = 0; $index < 22; $index++) $this->batch('Psychological Assessment', ['created_at' => '2032-04-15 09:00:00']);
+        $older = $this->serviceRequest('exit-form');
+        $older->update(['created_at' => '2021-02-01 00:00:00']);
+        foreach (['admin', 'staff'] as $role) {
+            $this->actingAs(User::factory()->create(['role' => $role]));
+            $base = ['year' => 2032, 'month' => 4, 'search' => ''];
+            $page = $this->get(route($role.'.archive', $base))->assertOk()->assertViewHas('archiveYears', [2032, 2021]);
+            foreach (['testingRequests', 'goodMoralRequests', 'exitFormRequests'] as $name) {
+                $page->assertViewHas($name, fn ($rows) => $rows->total() === 23 && $rows->count() === 20);
+            }
+            $page->assertViewHas('testingBatches', fn ($rows) => $rows->total() === 22 && $rows->count() === 20);
+            $this->get(route($role.'.archive', $base + ['testing_page' => 2, 'testing_batches_page' => 2, 'good_moral_page' => 2, 'exit_form_page' => 2]))
+                ->assertOk()->assertViewHas('testingRequests', fn ($rows) => $rows->currentPage() === 2 && $rows->count() === 3)
+                ->assertViewHas('testingBatches', fn ($rows) => $rows->currentPage() === 2 && $rows->count() === 2)
+                ->assertViewHas('goodMoralRequests', fn ($rows) => $rows->count() === 3)
+                ->assertViewHas('exitFormRequests', fn ($rows) => $rows->count() === 3);
+            $this->get(route($role.'.archive', $base + ['testing_page' => 2]))->assertOk()
+                ->assertViewHas('goodMoralRequests', fn ($rows) => $rows->currentPage() === 1 && $rows->count() === 20);
+            $page->assertSee('year=2032', false)->assertSee('month=4', false)->assertSee('Testing requests:')->assertSee('of 23');
+        }
+    }
+
     public function test_both_roles_can_filter_archived_batches_by_test_type_and_open_them(): void
     {
         $individual = $this->serviceRequest('testing');

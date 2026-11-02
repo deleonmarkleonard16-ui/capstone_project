@@ -218,8 +218,8 @@ class GuidanceBatchService
             $locked = GuidanceTestBatch::whereKey($batch->getKey())->lockForUpdate()->firstOrFail();
             abort_unless($locked->status === 'Under review', 409, 'The batch is not waiting for review.');
 
-            $pendingReviews = $locked->appointments()->whereHas('response')->whereNull('reviewed_at')->exists()
-                || $locked->makeupAppointments()->whereHas('response')->whereNull('reviewed_at')->exists();
+            $pendingReviews = $locked->appointments()->whereHas('response')->get()->contains(fn ($appointment) => !$appointment->evaluationIsComplete())
+                || $locked->makeupAppointments()->whereHas('response')->get()->contains(fn ($appointment) => !$appointment->evaluationIsComplete());
             abort_unless(!$pendingReviews, 409, 'Review and evaluate every submitted assessment before archiving this batch.');
 
             $archivedAt = now();

@@ -101,14 +101,16 @@ class DocumentExportTest extends TestCase
         }
     }
 
-    public function test_session_print_is_scoped_and_auto_prints_with_requested_columns(): void
+    public function test_session_print_is_scoped_in_pdf_and_explicit_html_previews(): void
     {
         $this->login();
         $cycle = $this->cycle();
         $session = AdmissionSession::create(['admission_cycle_id' => $cycle->id, 'session_name' => 'Morning', 'start_time' => now(), 'room' => '101', 'start_number' => 1, 'end_number' => 10]);
         $this->applicant($cycle, ['admission_session_id' => $session->id, 'first_name' => 'Assigned']);
         $this->applicant($cycle, ['first_name' => 'Unassigned']);
-        $this->get('/admin/admission/print-masterlist?session_id='.$session->id)->assertOk()->assertSee('Assigned')->assertDontSee('Unassigned')->assertSee('Full Name')->assertSee('First Choice')->assertSee('Second Choice')->assertSee('GWA')->assertDontSee('Application Number')->assertDontSee('Proctor Verification')->assertSee('window.onload = function() { window.print(); };', false);
+        $pdf = $this->get('/admin/admission/print-masterlist?session_id='.$session->id)->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $pdf->getContent());
+        $this->get('/admin/admission/export?type=session&format=html&auto_print=1&session_id='.$session->id)->assertOk()->assertSee('Assigned')->assertDontSee('Unassigned')->assertSee('Full Name')->assertSee('First Choice')->assertSee('Second Choice')->assertSee('GWA')->assertDontSee('Application Number')->assertDontSee('Proctor Verification')->assertSee('window.onload = function() { window.print(); };', false);
         $this->get('/admin/admission/export?type=session')->assertRedirect('/admin/exports')->assertSessionHas('error');
     }
 
@@ -215,7 +217,7 @@ class DocumentExportTest extends TestCase
         foreach ([['good-moral', 'pending', false], ['good-moral', 'approved', false], ['good-moral', 'ready', false], ['good-moral', 'ready', true], ['exit-form', 'ready', false], ['exit-form', 'completed', false], ['exit-form', 'completed', true]] as [$module, $status, $eligible]) {
             $record = $this->requestRecord($module, ['status' => $status, ...($eligible ? ['receipt_data' => base64_encode('receipt')] : [])]);
             $response = $this->get('/staff/'.$module.'/export?type=certificate&request_id='.$record->id);
-            if ($eligible) $response->assertOk()->assertSee('MARIA SANTOS')->assertSee('Guidance Counselor')->assertSee('border: 4px double #222', false);
+            if ($eligible) $response->assertOk()->assertSee('MARIA SANTOS')->assertSee('Guidance Counselor')->assertSee('class="certificate-brand"', false);
             else $response->assertRedirect('/staff/exports')->assertSessionHas('error');
         }
         $goodMoral = $this->requestRecord();
@@ -282,6 +284,33 @@ class DocumentExportTest extends TestCase
         $this->get('/admin/good-moral/export?type=certificate&request_id='.$record->id.'&format=docx')->assertRedirect('/admin/exports')->assertSessionHas('error', 'Unable to generate the document. Please contact the system administrator or try another format.');
     }
 
+    public function test_report_preview_preserves_filters_counts_and_download_choices_for_both_roles(): void
+    {
+        $included = $this->requestRecord('good-moral');
+        $excluded = $this->requestRecord('good-moral', ['course' => 'BSOA']);
+        foreach (['admin', 'staff'] as $role) {
+            $this->login($role);
+            $parameters = ['type' => 'queue', 'course' => 'BSIT', 'status' => 'completed', 'format' => 'html', 'preview' => 1];
+            $preview = $this->get(route($role.'.good-moral.export', $parameters))->assertOk()
+                ->assertViewIs('exports.preview')->assertSee('Record count: 1')
+                ->assertSee('Active Filters')->assertSee('course: BSIT')->assertSee('Preview export actions')
+                ->assertSee('Download DOCX')->assertSee('Download CSV')->assertSee('id="report-preview"', false)
+                ->assertViewHas('document', fn ($document) => $document['records']->modelKeys() === [$included->id]);
+            $dom = new \DOMDocument();
+            @$dom->loadHTML($preview->getContent());
+            $xpath = new \DOMXPath($dom);
+            $downloadUrl = $xpath->query('//a[normalize-space(text())="Download CSV"]')->item(0)->getAttribute('href');
+            parse_str(parse_url($downloadUrl, PHP_URL_QUERY), $query);
+            $this->assertSame('BSIT', $query['course']);
+            $this->assertSame('completed', $query['status']);
+            $this->assertSame('csv', $query['format']);
+            $this->get($downloadUrl)->assertOk()->assertSee($included->reference)->assertDontSee($excluded->reference);
+            $changeUrl = $xpath->query('//a[normalize-space(text())="Change report / filters"]')->item(0)->getAttribute('href');
+            $this->get($changeUrl)->assertOk()->assertSee('Preview report')
+                ->assertSee('value="BSIT" selected', false)->assertSee('name="preview" value="1"', false);
+        }
+    }
+
     public function test_institutional_analytics_exports_use_shared_formats_and_empty_guards(): void
     {
         $this->login();
@@ -308,7 +337,9 @@ class DocumentExportTest extends TestCase
         }
         $cycle = $this->cycle();
         $applicant = $this->applicant($cycle, ['batch_group' => 'Batch A']);
-        $this->get('/admin/admission/report?'.http_build_query(['cycle_id' => $cycle->id, 'batch_id' => 'Batch A', 'type' => 'summary']))->assertOk()->assertSee($applicant->application_number);
+        $activeCycle = $this->cycle();
+        $activeCycle->update(['is_active' => true, 'is_archived' => false, 'status' => 'Active']);
+        $this->get('/admin/admission/report?'.http_build_query(['cycle_id' => $cycle->id, 'batch_id' => 'Batch A', 'type' => 'summary', 'format' => 'html']))->assertOk()->assertSee($applicant->application_number);
     }
 
     public function test_csv_neutralizes_formulas(): void
@@ -328,16 +359,16 @@ class DocumentExportTest extends TestCase
         $appointment = GuidanceAppointment::create(['applicant_id' => $applicant->id, 'service_request_id' => $request->id, 'request_code' => 'G-BUND', 'test_type' => 'career', 'test_category' => 'career', 'test_types' => ['bfpi', 'career'], 'student_status' => 'student', 'status' => 'Completed', 'payment_slip_path' => '', 'batch_id' => $batch->getKey()]);
         $appointment->response()->create(['applicant_id' => $applicant->id, 'answers' => [], 'score_summary' => ['tests' => [
             'bfpi' => ['scores' => ['Openness' => 35]],
-            'career' => ['scores' => ['Social' => 20, 'Artistic' => 15, 'Realistic' => 10]],
+            'career' => ['scores' => ['Social' => 5, 'Artistic' => 4, 'Realistic' => 3]],
         ]]]);
         foreach (['html', 'pdf', 'docx', 'csv'] as $format) {
             $response = $this->get('/admin/personality/export?'.http_build_query(['type' => 'batch', 'batch_name' => $batch->batch_name, 'course' => 'BSIT', 'format' => $format]))->assertOk();
             if ($format === 'pdf') $this->assertStringStartsWith('%PDF-', $response->getContent());
             elseif ($format === 'docx') $this->assertStringStartsWith('PK', $response->getContent());
-            else $response->assertSee('Openness: 35')->assertDontSee('Social: 20');
+            else $response->assertSee('Openness: 35')->assertDontSee('Social: 5');
         }
         $this->get('/admin/personality/export?batch_name=Other')->assertRedirect('/admin/exports');
-        $this->get('/admin/career/export?type=completion&status=completed')->assertOk()->assertSee('Social: 20')->assertDontSee('Openness: 35');
+        $this->get('/admin/career/export?type=completion&status=completed')->assertOk()->assertSee('Social: 5')->assertDontSee('Openness: 35');
         foreach (['html', 'pdf', 'docx', 'csv'] as $format) {
             $this->get(route('admin.guidance-appointments.career-report', ['appointment' => $appointment->getKey(), 'format' => $format]))->assertOk();
         }

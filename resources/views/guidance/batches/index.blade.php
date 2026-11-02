@@ -32,7 +32,7 @@
 @php($activeCount = $batch->appointments->where('status','In-Progress')->count())
 @php($submittedCount = $roster->where('attendance_status','Completed')->count())
 @php($absentCount = $batch->appointments->where('attendance_status','Absent')->count())
-@php($pendingReviewCount = $roster->filter(fn ($person) => $person->response && !$person->reviewed_at)->count())
+@php($pendingReviewCount = $roster->filter(fn ($person) => $person->response && !$person->evaluationIsComplete())->count())
 <details class="card p-3 mb-3" data-batch="{{ $batch->getKey() }}">
 <summary><strong>{{ $batch->batch_name }}</strong> · {{ $batch->course }} · {{ $batch->test_type }} <span class="badge text-bg-primary">Ready: {{ $batch->appointments->where('attendance_status','Ready')->count() }}/{{ $batch->appointments->count() }}</span> <span class="badge text-bg-secondary">{{ $batch->status }}</span></summary>
 <div class="d-flex flex-wrap gap-2 my-3">

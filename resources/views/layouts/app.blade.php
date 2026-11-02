@@ -388,6 +388,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @stack('scripts')
 @if($user)
 <script src="{{ asset('js/workspace-ui.js') }}" defer></script>
+<script src="{{ asset('js/guidance-evaluation.js') }}" defer></script>
 @endif
 </body>
 </html>

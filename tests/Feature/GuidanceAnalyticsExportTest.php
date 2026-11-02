@@ -50,6 +50,20 @@ class GuidanceAnalyticsExportTest extends TestCase
         }
     }
 
+    public function test_analytics_previews_offer_exports_without_automatic_printing_for_both_roles(): void
+    {
+        $this->record();
+        foreach (['admin', 'staff'] as $role) {
+            $this->actingAs(User::factory()->create(['role' => $role]));
+            foreach (['summary', 'records'] as $type) {
+                $this->get(route($role.'.analytics.export', ['type' => $type, 'format' => 'html', 'preview' => 1, 'auto_print' => 1]))
+                    ->assertOk()->assertViewIs('exports.preview')->assertSee('Preview export actions')
+                    ->assertSee('Download CSV')->assertSee('Download DOCX')->assertSee('Active Filters')
+                    ->assertViewHas('document', fn ($document) => !$document['autoPrint'] && $document['reportType'] === $type);
+            }
+        }
+    }
+
     public function test_docx_uses_official_header_and_footer_and_keeps_summary_and_record_data(): void
     {
         $record = $this->record();

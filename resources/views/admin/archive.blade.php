@@ -41,7 +41,7 @@
                 <label class="form-label form-label-sm text-muted small">Year</label>
                 <select name="year" class="form-select form-select-sm">
                     <option value="">All years</option>
-                    @foreach([2027, 2026, 2025, 2024] as $y)
+                    @foreach($archiveYears as $y)
                         <option value="{{ $y }}" @selected(request('year') == $y)>{{ $y }}</option>
                     @endforeach
                 </select>
@@ -165,6 +165,9 @@
                 </tbody>
             </table>
         </div>
+        @include('admin.partials.archive-pagination', ['records' => $testingBatches, 'label' => 'Testing batches', 'section' => 'testing-archive'])
+        @include('admin.partials.archive-pagination', ['records' => $testingRequests, 'label' => 'Testing requests', 'section' => 'testing-archive'])
+
     </div>
 </div>
 
@@ -193,7 +196,7 @@
                 <label class="form-label form-label-sm text-muted small">Year</label>
                 <select name="year" class="form-select form-select-sm">
                     <option value="">All years</option>
-                    @foreach([2027, 2026, 2025, 2024] as $y)
+                    @foreach($archiveYears as $y)
                         <option value="{{ $y }}" @selected(request('year') == $y)>{{ $y }}</option>
                     @endforeach
                 </select>
@@ -271,6 +274,8 @@
                 </tbody>
             </table>
         </div>
+        @include('admin.partials.archive-pagination', ['records' => $goodMoralRequests, 'label' => 'Good Moral requests', 'section' => 'good-moral-archive'])
+
     </div>
 </div>
 
@@ -299,7 +304,7 @@
                 <label class="form-label form-label-sm text-muted small">Year</label>
                 <select name="year" class="form-select form-select-sm">
                     <option value="">All years</option>
-                    @foreach([2027, 2026, 2025, 2024] as $y)
+                    @foreach($archiveYears as $y)
                         <option value="{{ $y }}" @selected(request('year') == $y)>{{ $y }}</option>
                     @endforeach
                 </select>
@@ -377,6 +382,8 @@
                 </tbody>
             </table>
         </div>
+        @include('admin.partials.archive-pagination', ['records' => $exitFormRequests, 'label' => 'Exit Form requests', 'section' => 'exit-form-archive'])
+
     </div>
 </div>
 

@@ -8,19 +8,16 @@
         $certificateModule = 'career';
         $pageTitle = 'Career Assessment Results';
         $pageSubtitle = 'Official RIASEC trait scoring summary and career interest interpretation.';
-        $badgeLabel = 'Career assessment report / PDF';
         $docHeader = 'CONFIDENTIAL CAREER ASSESSMENT REPORT';
     } elseif (str_contains($testType, 'personality') || $testType === 'bfpi') {
         $certificateModule = 'personality';
         $pageTitle = 'Personality Assessment Results';
         $pageSubtitle = 'Official Big Five Personality Inventory scoring summary and trait evaluation.';
-        $badgeLabel = 'Personality assessment report / PDF';
         $docHeader = 'CONFIDENTIAL PERSONALITY ASSESSMENT REPORT';
     } else {
         $certificateModule = 'psychological';
         $pageTitle = 'Psychological Assessment Results';
         $pageSubtitle = 'Official scoring summary and interpretation for Guidance Counselor review.';
-        $badgeLabel = 'Official psychological assessment report';
         $docHeader = 'CONFIDENTIAL PSYCHOLOGICAL ASSESSMENT REPORT';
     }
     $printAssessmentUrl = $certificateModule === 'career'
@@ -29,13 +26,6 @@
 @endphp
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
     <div>
-        @if($appointment->test_category === 'psychological' || in_array($appointment->test_type, ['dass21', 'phq9', 'gad7'], true))
-            <a class="badge bg-primary text-white text-decoration-none mb-2 p-2" href="{{ route(auth()->user()->role.'.guidance.report.preview', $appointment) }}">{{ $badgeLabel }}</a>
-        @elseif($appointment->test_category === 'career')
-            <a class="badge bg-primary text-white text-decoration-none mb-2 p-2" href="{{ route(auth()->user()->role.'.guidance-appointments.career-report', $appointment) }}">{{ $badgeLabel }}</a>
-        @else
-            <span class="badge bg-primary text-white mb-2 p-2">{{ $badgeLabel }}</span>
-        @endif
         <h1 class="h3 mb-1">{{ $pageTitle }}</h1>
         <p class="text-muted mb-0">{{ $pageSubtitle }}</p>
     </div>

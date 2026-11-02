@@ -35,11 +35,20 @@ body.staff-interface {
 .staff-interface .btn-outline-secondary { --bs-btn-color: #52627a; --bs-btn-border-color: #d7dfeb; --bs-btn-hover-bg: #edf1f7; --bs-btn-hover-color: #17305f; --bs-btn-hover-border-color: #cbd6e6; }
 .staff-interface .btn:focus-visible, .staff-interface summary:focus-visible, .staff-interface a:focus-visible { outline: 3px solid #b59122; outline-offset: 3px; }
 .staff-interface .badge { border-radius: 6px; font-weight: 600; line-height: 1.35; }
-.staff-interface .table .badge.bg-success { background: #e6f4ee !important; color: #176343; }
+/* Keep each pastel badge's text paired with its background, even with Bootstrap text utilities. */
+.staff-interface .table .badge.bg-success { background: #e6f4ee !important; color: #176343 !important; }
 .staff-interface .table .badge.bg-warning { background: #fff3cf !important; color: #795400 !important; }
-.staff-interface .table .badge.bg-danger { background: #fcebea !important; color: #9c3030; }
-.staff-interface .table .badge.bg-secondary { background: #edf0f5 !important; color: #536176; }
-.staff-interface .table .badge.bg-primary { background: #e9effb !important; color: #16428a; }
+.staff-interface .table .badge.bg-danger { background: #fcebea !important; color: #9c3030 !important; }
+.staff-interface .table .badge.bg-secondary { background: #edf0f5 !important; color: #536176 !important; }
+.staff-interface .table .badge.bg-primary { background: #e9effb !important; color: #16428a !important; }
+.staff-interface .table .badge.bg-info { background: #cff4fc !important; color: #055160 !important; }
+.staff-interface .badge.bg-success-subtle { color: #0a3622 !important; }
+.staff-interface .badge.bg-danger-subtle { color: #58151c !important; }
+.staff-interface .badge.bg-primary-subtle { color: #052c65 !important; }
+.staff-interface .badge.bg-secondary-subtle { color: #2b2f32 !important; }
+.staff-interface .badge.bg-info-subtle { color: #055160 !important; }
+.staff-interface .badge.bg-warning-subtle { color: #664d03 !important; }
+.staff-interface .table [data-course-badge] { font-size: .75rem; padding: .4em .65em; }
 .staff-interface .table { --bs-table-bg: #fff; --bs-table-border-color: #edf0f5; --bs-table-hover-bg: #f0f5fc; margin-bottom: 0; font-size: .82rem; }
 .staff-interface .table > thead > tr > th { background: #f7f9fc; color: #53657f; font-size: .69rem; font-weight: 700; letter-spacing: .035em; vertical-align: middle; padding: .9rem .8rem; border-bottom: 1px solid #dde5f0; }
 .staff-interface .table > tbody > tr > td { padding: .85rem .8rem; vertical-align: middle; }

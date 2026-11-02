@@ -206,7 +206,7 @@
 
                         {{-- 1ST COURSE CHOICE with Qualification Highlighting --}}
                         <td data-course-cell="{{ $applicant->id }}-1" @if($eval['c1_status'] === 'qualified') style="background-color: #d1fae5 !important;" @elseif($eval['c1_status'] === 'not_qualified') style="background-color: #fee2e2 !important;" @endif>
-                            <span data-course-badge="{{ $applicant->id }}-1" class="badge {{ $eval['c1_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c1_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
+                            <span data-course-badge="{{ $applicant->id }}-1" class="badge {{ $eval['c1_status'] === 'qualified' ? 'bg-success' : ($eval['c1_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
                                   title="{{ \App\Support\CourseCatalog::label($applicant->course_choice_1 ?: $applicant->course_choice) }}">
                                 {{ $applicant->course_choice_1 ?: $applicant->course_choice }}
                             </span>
@@ -218,7 +218,7 @@
                                 $c2Display = $applicant->course_choice_2 ?: $applicant->second_course_choice;
                             @endphp
                             @if($c2Display && $c2Display !== 'N/A' && $c2Display !== 'None')
-                                <span data-course-badge="{{ $applicant->id }}-2" class="badge {{ $eval['c2_status'] === 'qualified' ? 'bg-success text-white' : ($eval['c2_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
+                                <span data-course-badge="{{ $applicant->id }}-2" class="badge {{ $eval['c2_status'] === 'qualified' ? 'bg-success' : ($eval['c2_status'] === 'not_qualified' ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-light text-dark border') }}"
                                       title="{{ \App\Support\CourseCatalog::label($c2Display) }}">
                                     {{ $c2Display }}
                                 </span>
@@ -785,7 +785,7 @@
                 cell.style.removeProperty('background-color');
                 if (status === 'qualified') {
                     cell.style.setProperty('background-color', '#d1fae5', 'important');
-                    badge.className = 'badge bg-success text-white';
+                    badge.className = 'badge bg-success';
                 } else if (status === 'not_qualified') {
                     cell.style.setProperty('background-color', '#fee2e2', 'important');
                     badge.className = 'badge bg-danger-subtle text-danger border border-danger-subtle';

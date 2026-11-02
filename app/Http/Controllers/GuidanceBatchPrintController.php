@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\GuidanceTestBatch;
 use App\Services\CareerAssessmentReportService;
+use App\Services\DocumentExportService;
 use App\Services\GuidanceCategories;
 use App\Services\PersonalityAssessmentReportService;
 use App\Services\PsychologicalReportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class GuidanceBatchPrintController extends Controller
 {
@@ -43,7 +45,7 @@ class GuidanceBatchPrintController extends Controller
             }
             $reports[] = array_merge($document, [
                 'embedded' => true,
-                'format' => 'batch',
+                'format' => 'pdf',
                 'autoPrint' => false,
                 'administeredBy' => $request->user()->name,
                 'administeredPosition' => $request->user()->roleLookup?->name
@@ -58,8 +60,24 @@ class GuidanceBatchPrintController extends Controller
             ])->with('error', 'This batch has no scored assessment reports available to print.');
         }
 
-        return response()->view('guidance.batches.print', [
-            'batch' => $batch, 'reports' => $reports, 'skipped' => $roster->count() - count($reports),
-        ])->header('Cache-Control', 'private, no-store')->header('X-Content-Type-Options', 'nosniff');
+        try {
+            $bytes = app(DocumentExportService::class)->render([
+                'view' => 'guidance.batches.print', 'orientation' => 'portrait',
+                'batch' => $batch, 'reports' => $reports,
+            ], 'pdf');
+        } catch (\Throwable $exception) {
+            Log::error('Batch assessment PDF generation failed', ['batch_id' => $batch->getKey(), 'exception' => $exception]);
+
+            return redirect()->route($request->user()->role.'.guidance-batches.index', [
+                'archived' => 1, 'category' => $category, 'q' => $batch->batch_name,
+            ])->with('error', 'Unable to generate the batch PDF. Please try again.');
+        }
+
+        return response($bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="DMSGTA-Batch-'.$batch->getKey().'-Assessments.pdf"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

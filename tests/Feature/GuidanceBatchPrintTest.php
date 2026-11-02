@@ -6,6 +6,7 @@ use App\Models\Applicant;
 use App\Models\GuidanceAppointment;
 use App\Models\GuidanceTestBatch;
 use App\Models\User;
+use App\Services\DocumentExportService;
 use App\Services\GuidanceCategories;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -57,6 +58,24 @@ class GuidanceBatchPrintTest extends TestCase
 
     public function test_admin_and_staff_print_all_scored_batch_and_makeup_reports_in_one_document(): void
     {
+        $this->mock(DocumentExportService::class, function ($mock) {
+            $mock->shouldReceive('render')->withArgs(function ($document, $format) {
+                $this->assertSame('pdf', $format);
+                $this->assertCount(2, $document['reports']);
+                $html = view($document['view'], $document)->render();
+                $this->assertStringContainsString('Original Santos', $html);
+                $this->assertStringContainsString('Makeup Santos', $html);
+                $this->assertStringNotContainsString('Absent Santos', $html);
+                $this->assertStringNotContainsString('Unrelated Santos', $html);
+                $this->assertStringContainsString('Assessment Rubric &amp; Interpretation', $html);
+                $this->assertSame(1, substr_count($html, '<!doctype html>'));
+                $this->assertStringNotContainsString('window.print()', $html);
+                $this->assertSame(1, substr_count($html, '<img class="assessment-letterhead"'));
+                $this->assertStringContainsString('.assessment-result-details { page-break-before: always; }', $html);
+
+                return true;
+            })->andReturn('%PDF-test');
+        });
         foreach (array_keys(GuidanceCategories::LABELS) as $category) {
             $batch = $this->batch($category);
             $this->appointment($batch, 'Original', $category);
@@ -68,18 +87,39 @@ class GuidanceBatchPrintTest extends TestCase
                 $this->actingAs(User::factory()->create(['role' => $role]));
                 $response = $this->get(route($role.'.guidance-batches.print', $batch))
                     ->assertOk()->assertHeader('Cache-Control', 'no-store, private')
-                    ->assertSee('Original Santos')->assertSee('Makeup Santos')
-                    ->assertDontSee('Absent Santos')->assertDontSee('Unrelated Santos')
-                    ->assertSee('2 assessment report(s). 1 roster record(s) without printable scored results.')
-                    ->assertSee('Print this batch')
-                    ->assertSee('Assessment Rubric &amp; Interpretation', false)
-                    ->assertViewHas('reports', fn ($reports) => count($reports) === 2);
-                $this->assertSame(1, substr_count($response->getContent(), '<!doctype html>'));
-                $this->assertSame(1, substr_count($response->getContent(), 'window.print(); });'));
+                    ->assertHeader('Content-Type', 'application/pdf')
+                    ->assertHeader('Content-Disposition', 'inline; filename="DMSGTA-Batch-'.$batch->getKey().'-Assessments.pdf"');
+                $this->assertStringStartsWith('%PDF-', $response->getContent());
                 $this->get(route($role.'.guidance-batches.index', ['archived' => 1, 'category' => $category]))
                     ->assertOk()->assertSee(route($role.'.guidance-batches.print', $batch));
             }
         }
+    }
+
+    public function test_real_batch_pdf_has_separate_report_and_appendix_pages_for_all_test_types(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'staff']));
+        foreach (array_keys(GuidanceCategories::LABELS) as $category) {
+            $batch = $this->batch($category);
+            $this->appointment($batch, 'Original', $category);
+            $this->appointment($batch, 'Makeup', $category, true);
+            $response = $this->get(route('staff.guidance-batches.print', $batch))
+                ->assertOk()->assertHeader('Content-Type', 'application/pdf');
+            $this->assertStringStartsWith('%PDF-', $response->getContent());
+            $this->assertGreaterThanOrEqual(4, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()));
+        }
+    }
+
+    public function test_pdf_failure_returns_to_archived_batch_with_a_message(): void
+    {
+        $batch = $this->batch();
+        $this->appointment($batch, 'Original', 'psychological');
+        $this->actingAs(User::factory()->create(['role' => 'staff']));
+        $this->mock(DocumentExportService::class, function ($mock) {
+            $mock->shouldReceive('render')->once()->andThrow(new \RuntimeException('PDF failed'));
+        });
+        $this->get(route('staff.guidance-batches.print', $batch))
+            ->assertRedirect()->assertSessionHas('error', 'Unable to generate the batch PDF. Please try again.');
     }
 
     public function test_print_requires_authentication_correct_role_and_an_archived_testing_batch(): void

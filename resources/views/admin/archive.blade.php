@@ -1,6 +1,8 @@
 @extends('layouts.app')
 @section('content')
-@php($archiveRole = auth()->user()->role)
+@php
+    $archiveRole = auth()->user()->role;
+@endphp
 
 {{-- ═══════════════════════════════════════════════════════════════
      ADMIN UNIFIED ARCHIVE PAGE — Matching Screenshot 3 exactly

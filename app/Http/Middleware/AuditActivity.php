@@ -23,8 +23,8 @@ class AuditActivity
         $user = $request->user();
 
         if (! $user || ! in_array($user->role, ['admin', 'staff'], true)
-            || ! in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)
-            || $response->getStatusCode() >= 400) {
+            || (! in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)
+                && $response->getStatusCode() < 400)) {
             return $response;
         }
 

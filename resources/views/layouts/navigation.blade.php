@@ -130,7 +130,7 @@
 
                 {{-- ── 2. TESTING REQUEST (Parent Accordion) ── --}}
                 <details class="sb-group"
-                         @if($activeGuidanceModule && in_array($activeGuidanceModule,['psychological','personality','career'])) open @endif>
+                         @if(request()->routeIs($role.'.guidance.*', $role.'.guidance-appointments.*') || ($activeGuidanceModule && in_array($activeGuidanceModule,['psychological','personality','career']))) open @endif>
                     <summary>
                         <span><i class="bi bi-file-earmark-text me-1"></i> Request Testing</span>
                         <span class="d-flex align-items-center gap-2">
@@ -138,6 +138,9 @@
                         </span>
                     </summary>
                     <div class="sb-sub">
+                        <a class="sidebar-link {{ request()->routeIs($role.'.guidance.*', $role.'.guidance-appointments.*') ? 'active' : '' }}" href="{{ route($role.'.guidance.index') }}">
+                            <i class="bi bi-inboxes"></i> All Requests
+                        </a>
                         <a class="sidebar-link {{ request()->routeIs("{$role}.psychological.*") ? 'active' : '' }}"
                            href="{{ route("{$role}.psychological.index") }}"
                            data-module-navigation="psychological">

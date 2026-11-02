@@ -9,7 +9,17 @@ const TOTAL_ITEMS = parseInt(root.dataset.totalItems, 10) || 80;
 let stream, pixels, points = [], applicant, generation = 0;
 const stop = () => { stream?.getTracks().forEach(track=>track.stop()); };
 window.addEventListener('pagehide', stop);
+function progress(step) {
+    for (let index = 1; index <= 4; index++) {
+        const card = byId(`step-ind-${index}`);
+        if (!card) continue;
+        card.dataset.state = index < step ? 'complete' : index === step ? 'current' : 'upcoming';
+        card.ariaCurrent = index === step ? 'step' : 'false';
+    }
+}
+progress(1);
 function clearIdentity() {
+    progress(1);
     applicant = null;
     form.removeAttribute('action');
     byId('record').disabled = true;
@@ -41,6 +51,7 @@ async function identify(code, version) {
         byId('applicant-app-no').textContent = applicant.application_number;
         byId('identity-placeholder').classList.add('d-none');
         byId('identity-panel').classList.remove('d-none');
+        progress(3);
         form.action = applicant.url;
         byId('record').disabled = form.hidden;
         message.textContent = 'QR verified. Select the four corner markers and review the detected answers before saving.';
@@ -69,9 +80,11 @@ async function capture(source, width, height, version) {
     const qr = window.jsQR(pixels.data, pixels.width, pixels.height, {inversionAttempts:'attemptBoth'});
     if (!qr?.data?.trim()) throw new Error('QR not detected. Capture or upload a clearer image with the complete QR visible. Saving is disabled.');
     message.textContent = 'Verifying the QR on this paper...';
+    progress(2);
     await identify(qr.data.trim(), version);
 }
 function reset() {
+    progress(applicant ? 3 : 1);
     points = []; byId('confirm-match').checked = false; form.hidden = true; byId('record').disabled = true; byId('answer-review').replaceChildren();
     if (pixels) context.putImageData(pixels,0,0);
     message.textContent = 'Select the top-left marker, then top-right, bottom-right, bottom-left.';
@@ -108,11 +121,17 @@ canvas.onclick = event => {
             select.value = result.answer ?? ''; label.append(select); byId('answer-review').append(label);
         }
         form.hidden = false; byId('record').disabled = !applicant;
+        progress(applicant ? 3 : 1);
         message.textContent = `${answers.filter(row=>!row.answer).length} of ${TOTAL_ITEMS} rows require review. Review all answers before saving. A verified paper QR is required.`;
     } catch(error) { message.textContent = error.message; points = []; }
 };
+form.addEventListener('change', () => {
+    const reviewed = [...form.querySelectorAll('select')].every(select => select.value !== '');
+    progress(applicant && byId('confirm-match').checked && reviewed ? 4 : applicant ? 3 : 1);
+});
 form.addEventListener('submit', event => {
     if (!applicant) { event.preventDefault(); return; }
+    progress(4);
     // Use empty values for explicitly reviewed blank answers; Laravel converts them to null.
     for (const select of form.querySelectorAll('select')) if (select.value === 'blank') { select.selectedOptions[0].value = ''; select.required = false; }
     byId('record').disabled = true; stop();

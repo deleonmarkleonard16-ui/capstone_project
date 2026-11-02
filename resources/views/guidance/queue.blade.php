@@ -29,7 +29,16 @@
             @endif
         @else<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Awaiting receipt upload</span>@endif
     </td>
-    <td><div data-status-badge><strong>{{ $appointment->status }}</strong></div>@include('guidance.security-controls')
+    @php
+        $statusTone = match($appointment->status) {
+            'Pending Payment', 'Under review' => 'warning',
+            'Receipt Uploaded', 'Approved', 'In-Progress' => 'primary',
+            'Completed' => 'success',
+            'Rejected', 'Cancelled' => 'danger',
+            default => 'secondary',
+        };
+    @endphp
+    <td><div data-status-badge><span class="badge bg-{{ $statusTone }}">{{ $appointment->status }}</span></div>@include('guidance.security-controls')
         @if($appointment->appointment_at)<p class="small">Appointment: {{ $appointment->appointment_at->timezone('Asia/Manila')->format('M d, Y g:i A') }} (Philippine time)</p>@endif
         @if($appointment->status === 'Receipt Uploaded' && !$archived)
         <form method="post" action="{{ route(auth()->user()->role.'.guidance-appointments.verify', $appointment) }}">@csrf<button class="btn btn-primary btn-sm" @disabled(!$appointment->hasReceipt() || $appointment->awaitsScoringConfiguration())><i class="bi bi-qr-code me-1"></i>Verify &amp; Generate QR</button>@if($appointment->awaitsScoringConfiguration())<p class="small text-muted mt-2">Scoring configuration pending.</p>@endif</form>
@@ -37,6 +46,9 @@
         @if($appointment->archived_at)<p class="small text-muted">Archived {{ $appointment->archived_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</p>@endif
     </td>
     <td>
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-row-actions aria-expanded="false" aria-label="Actions for {{ $appointment->applicant->full_name }}">Actions</button>
+            <div class="dropdown-menu dropdown-menu-end ui-row-actions">
         <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-eye me-1"></i>Review Details</button><br>
         @if($appointment->status === 'Under review' && $appointment->response)
             <button type="button" class="btn btn-sm btn-warning mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-pencil-square me-1"></i>Review &amp; Evaluate</button><br>
@@ -57,8 +69,17 @@
         @else
             <span class="text-muted">Awaiting submission</span>
         @endif
+            </div>
+        </div>
     </td>
 </tr>
-@empty<tr><td colspan="5" class="text-muted text-center py-4">No requests match these filters.</td></tr>@endforelse
+@empty
+<tr><td colspan="5"><div class="ui-empty-state">
+    <i class="bi bi-inbox" aria-hidden="true"></i>
+    <h3>No requests match these filters.</h3>
+    <p>Try a different name, status, or date range to find a request.</p>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url()->current() }}">Clear filters</a>
+</div></td></tr>
+@endforelse
 </tbody></table></div>
 {{ $appointments->links('pagination::bootstrap-5') }}

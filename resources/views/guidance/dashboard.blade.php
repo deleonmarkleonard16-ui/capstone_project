@@ -2,7 +2,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
     <div>
-        <h1 class="h3 mb-1">{{ $archived ? 'Request Testing Archives' : 'Request Testing Queue' }}</h1>
+        <h1 class="h3 mb-1">{{ $archived ? 'Guidance Request Archives' : 'Guidance Request Queue' }}</h1>
         <p class="text-muted mb-0">Review receipts, issue QR assessment passes, monitor security, and evaluate completed assessments.</p>
     </div>
 </div>
@@ -22,7 +22,7 @@
     <div class="row g-3 mb-4">
         @foreach($summaryCards as [$label, $total, $color, $icon])
             <div class="col-6 col-xl-3">
-                <div class="card page-card h-100 border-start border-4 border-{{ $color }}">
+                <div class="card page-card h-100 ui-summary-card" style="--summary-accent:var(--bs-{{ $color }})">
                     <div class="card-body p-3 d-flex justify-content-between align-items-center">
                         <div><div class="small text-muted text-uppercase fw-semibold">{{ $label }}</div><div class="h3 mb-0 mt-1 text-{{ $color }}">{{ $total }}</div></div>
                         <span class="rounded-circle bg-{{ $color }} bg-opacity-10 text-{{ $color }} p-3"><i class="bi {{ $icon }} fs-5"></i></span>

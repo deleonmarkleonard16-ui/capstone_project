@@ -27,8 +27,11 @@
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        @unless($isLocked)
+            <a class="btn btn-primary btn-sm" href="{{ route('admin.admission.encoding-sheet') }}"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Manage Applicants</a>
+        @endunless
         {{-- ── REFRESH DATA BUTTON ── --}}
-        <button class="btn btn-primary btn-sm" id="refreshMasterlistBtn" type="button" title="Reload applicant list without a full page reload">
+        <button class="btn btn-outline-secondary btn-sm" id="refreshMasterlistBtn" type="button" title="Reload applicant list without a full page reload">
             <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
         </button>
     </div>
@@ -298,8 +301,13 @@
                 @empty
                     <tr>
                         <td colspan="15" class="text-center text-muted py-5">
-                            <i class="bi bi-inbox fs-2 d-block mb-2 opacity-25"></i>
-                            No applicants found for {{ $cycle->displayName }}.
+                            <div class="ui-empty-state">
+                                <i class="bi bi-people" aria-hidden="true"></i>
+                                <h3>No applicants found for {{ $cycle->displayName }}.</h3>
+                                <p>Adjust the filters or open the encoding sheet to manage applicant entries.</p>
+                                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.admission.masterlist', ['cycle_id' => $cycle->id]) }}">Clear filters</a>
+                                @unless($isLocked)<a class="btn btn-primary btn-sm" href="{{ route('admin.admission.encoding-sheet') }}">Open Encoding Sheet</a>@endunless
+                            </div>
                         </td>
                     </tr>
                 @endforelse
@@ -339,6 +347,7 @@
                     @endif
 
                     <div class="row g-3">
+                        <div class="col-12 ui-form-section"><h3>Personal information</h3><p>Required fields are marked with an asterisk (*).</p></div>
                         <div class="col-md-4">
                             <label class="form-label form-label-sm fw-semibold">Application Number</label>
                             <input name="application_number" value="{{ $applicant->application_number }}"
@@ -359,6 +368,7 @@
                             <input name="middle_name" value="{{ $applicant->middle_name }}"
                                    class="form-control form-control-sm" @disabled($isLocked)>
                         </div>
+                        <div class="col-12 ui-form-section"><h3>Program preferences</h3><p>Review the applicant's first and second course choices.</p></div>
                         <div class="col-md-4">
                             <label class="form-label form-label-sm fw-semibold">1st Course Choice</label>
                             <select name="course_choice" class="form-select form-select-sm" required @disabled($isLocked)>
@@ -404,6 +414,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-12 ui-form-section"><h3>Academic details</h3><p>Enter the GWA and interview score. Exam results are computed automatically.</p></div>
                         <div class="col-md-2">
                             <label class="form-label form-label-sm fw-semibold">GWA</label>
                             <input type="number" step="0.01" min="75" max="100"
@@ -613,6 +624,7 @@
 
     async function refresh(silent = false) {
         btn.disabled = true;
+        if (!silent) window.WorkspaceUI?.setLoading(document.querySelector('#applicants-tbody')?.closest('.table-responsive'), true);
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Refreshing…';
 
         try {
@@ -645,12 +657,14 @@
         } catch (err) {
             if (!silent) showToast('Refresh failed: ' + err.message, 'danger');
         } finally {
+            window.WorkspaceUI?.setLoading(document.querySelector('#applicants-tbody')?.closest('.table-responsive'), false);
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh Data';
         }
     }
 
     function showToast(msg, type) {
+        if (window.WorkspaceUI) { window.WorkspaceUI.notify(msg, type); return; }
         const container = document.getElementById('toast-container')
             || (() => {
                 const c = document.createElement('div');

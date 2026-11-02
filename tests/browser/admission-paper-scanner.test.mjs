@@ -36,6 +36,8 @@ test('captured paper QR displays verified name, session and batch and targets it
     assert.equal(app.element('applicant-session').textContent, 'Session 1');
     assert.equal(app.element('applicant-batch').textContent, 'Batch 2');
     assert.equal(app.element('answers').action, '/encode/Juan');
+    assert.equal(app.element('step-ind-2').dataset.state, 'complete');
+    assert.equal(app.element('step-ind-3').dataset.state, 'current');
 });
 
 test('a new paper without a readable QR clears the previous owner and disables saving', async () => {
@@ -48,6 +50,7 @@ test('a new paper without a readable QR clears the previous owner and disables s
     assert.equal(app.element('applicant-name').textContent, '');
     assert.equal(app.element('record').disabled, true);
     assert.equal(app.element('confirm-match').checked, false);
+    assert.equal(app.element('step-ind-1').dataset.state, 'current');
     assert.match(app.element('message').textContent, /QR not detected/);
 });
 

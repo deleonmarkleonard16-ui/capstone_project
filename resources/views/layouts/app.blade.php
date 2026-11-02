@@ -201,11 +201,8 @@
     <link href="{{ asset('css/executive-responsive.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/confirmation-dialog.css') }}">
     @stack('styles')
+    <link rel="stylesheet" href="{{ asset('css/workspace-ui.css') }}">
 </head>
-<body class="@yield('body_class')">
-@if(request()->routeIs('login'))
-    @include('partials.psu-intro')
-@endif
 @php
     $isGuestRoute = ($isGuestView ?? false)
         || request()->routeIs(
@@ -247,9 +244,17 @@
         ->first(fn ($m) => request()->routeIs("{$role}.{$m}", "{$role}.{$m}.*"));
 @endphp
 
+<body class="@yield('body_class') {{ $user ? 'staff-interface' : '' }}">
+@if(request()->routeIs('login'))
+    @include('partials.psu-intro')
+@endif
+
 {{-- ═══ TOP BRAND BAR ═══ --}}
 <header class="top-brand {{ $user ? 'has-sidebar' : 'guest' }} sticky-top">
     <div class="{{ $user ? 'container-fluid px-3' : 'container' }} brand-bar flex items-center justify-between px-3 md:px-6 py-2 d-flex align-items-center justify-content-between gap-2 w-100">
+        @if($user)
+            <button type="button" class="btn btn-outline-secondary sidebar-toggle d-none d-lg-inline-flex align-items-center justify-content-center" data-sidebar-toggle aria-controls="appSidebar" aria-expanded="true" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="bi bi-layout-sidebar" aria-hidden="true"></i></button>
+        @endif
         <div class="brand-identity d-flex align-items-center gap-2">
             <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" class="brand-logo flex-shrink-0">
             <div class="brand-copy flex-grow-1">
@@ -304,19 +309,23 @@
 <main class="{{ request()->routeIs('admin.analytics', 'staff.analytics', 'admin.admission.analytics') ? 'executive-main' : '' }} py-4 {{ $user ? 'has-sidebar' : '' }}">
     <div class="{{ $user ? 'container-fluid px-3 px-lg-4' : 'container' }}">
 
+        @if($user)
+            @include('partials.workspace-breadcrumbs')
+        @endif
+
         {{-- Flash messages --}}
         @if (session('success'))
-            <div class="alert alert-success d-flex align-items-center gap-2">
+            <div class="alert alert-success d-flex align-items-center gap-2" role="status">
                 <i class="bi bi-check-circle-fill"></i> {{ session('success') }}
             </div>
         @endif
         @if (session('error'))
-            <div class="alert alert-danger d-flex align-items-center gap-2">
+            <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
                 <i class="bi bi-exclamation-triangle-fill"></i> {{ session('error') }}
             </div>
         @endif
         @if (session('warning'))
-            <div class="alert alert-warning">{{ session('warning') }}</div>
+            <div class="alert alert-warning" role="alert">{{ session('warning') }}</div>
         @endif
         @if ($errors->any())
             <div class="alert alert-danger">
@@ -332,7 +341,7 @@
         <div class="{{ $user ? 'friendly-shell' : '' }}">
             @if ($user && request()->routeIs('admin.admission.*') && !request()->routeIs('admin.admission.masterlist', 'admin.admission.encoding-sheet'))
                 <div class="d-flex justify-content-end mb-2">
-                    <button class="btn btn-primary btn-sm" type="button" onclick="window.location.reload()" title="Reload this Admission Test page">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="window.location.reload()" title="Reload this Admission Test page">
                         <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
                     </button>
                 </div>
@@ -377,5 +386,8 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 <script src="{{ asset('js/confirmation-dialog.js') }}"></script>
 @stack('scripts')
+@if($user)
+<script src="{{ asset('js/workspace-ui.js') }}" defer></script>
+@endif
 </body>
 </html>

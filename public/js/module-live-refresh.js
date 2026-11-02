@@ -50,7 +50,9 @@
             if (response.ok && (data.success !== false)) {
                 window.location.reload();
             } else {
-                alert(data.message || 'Action failed. Please refresh and try again.');
+                const message = data.message || 'Action failed. Please refresh and try again.';
+                if (window.WorkspaceUI) window.WorkspaceUI.notify(message, 'danger');
+                else alert(message);
                 button.disabled = false;
             }
         } catch (err) {

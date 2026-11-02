@@ -1,4 +1,4 @@
-<details class="card page-card shadow-sm mb-3" open>
+<details class="card page-card shadow-sm mb-3" @if($errors->any()) open @endif>
     <summary class="p-3 fw-semibold">Program Settings <span class="small text-muted fw-normal ms-2">Enrollment seats and interview selection · Click to expand / collapse</span></summary>
     <div class="card-body pt-0">
         <p class="small text-muted">Enrollment seats and interview limits are separate settings. Interview selection still follows the applicable exam eligibility rules.</p>

@@ -11,6 +11,7 @@
                         @if ($method !== 'POST')
                             @method($method)
                         @endif
+                        <div class="col-12 ui-form-section"><h2>Application details</h2><p>Required fields are marked with an asterisk (*).</p></div>
                         <div class="col-md-6">
                             <label class="form-label">Application Number</label>
                             <input type="text" class="form-control" name="application_number" value="{{ old('application_number', $applicant->application_number) }}" required>
@@ -19,6 +20,7 @@
                             <label class="form-label">Status</label>
                             <input type="text" class="form-control" name="status" value="{{ old('status', $applicant->status ?: 'approved') }}" required>
                         </div>
+                        <div class="col-12 ui-form-section"><h2>Personal information</h2><p>Enter the applicant's name as it appears on their records.</p></div>
                         <div class="col-md-4">
                             <label class="form-label">First Name</label>
                             <input type="text" class="form-control" name="first_name" value="{{ old('first_name', $applicant->first_name) }}" required>
@@ -39,6 +41,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div class="col-12 ui-form-section"><h2>Contact details</h2><p>Provide available contact information.</p></div>
                         <div class="col-md-4">
                             <label class="form-label">Email</label>
                             <input type="email" class="form-control" name="email" value="{{ old('email', $applicant->email) }}">

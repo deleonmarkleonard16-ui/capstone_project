@@ -27,29 +27,29 @@
      data-total-items="{{ $totalItems ?? 80 }}">
 
     {{-- ── 4-STEP PROGRESS INDICATOR ── --}}
-    <div class="row g-2 mb-4">
-        <div class="col-md-3">
+    <div class="row g-2 mb-4" aria-label="Answer sheet scanning progress">
+        <div class="col-6 col-md-3">
             <div class="p-3 border rounded-3 bg-white shadow-sm h-100 step-card border-primary" id="step-ind-1">
                 <div class="small text-muted fw-bold">STEP 1</div>
                 <div class="fw-bold"><i class="bi bi-qr-code-scan me-1 text-primary"></i> Scan Exam Paper</div>
                 <div class="small text-muted">Capture or upload the full sheet</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="col-12 p-3 border rounded-3 bg-white shadow-sm h-100 step-card" id="step-ind-2">
                 <div class="small text-muted fw-bold">STEP 2</div>
                 <div class="fw-bold"><i class="bi bi-person-check me-1 text-primary"></i> QR Verification</div>
                 <div class="small text-muted">Identify name, session &amp; batch</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="col-12 p-3 border rounded-3 bg-white shadow-sm h-100 step-card" id="step-ind-3">
                 <div class="small text-muted fw-bold">STEP 3</div>
-                <div class="fw-bold"><i class="bi bi-bounding-box me-1 text-primary"></i> Capture OMR Grid</div>
-                <div class="small text-muted">Align 4 black corner markers</div>
+                <div class="fw-bold"><i class="bi bi-bounding-box me-1 text-primary"></i> Review Answers</div>
+                <div class="small text-muted">Align markers &amp; review bubbles</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="col-12 p-3 border rounded-3 bg-white shadow-sm h-100 step-card" id="step-ind-4">
                 <div class="small text-muted fw-bold">STEP 4</div>
                 <div class="fw-bold"><i class="bi bi-check2-circle me-1 text-success"></i> Score &amp; Record</div>
@@ -60,8 +60,8 @@
 
     <div class="row g-4">
         {{-- Left Column: Camera / Capture --}}
-        <div class="col-lg-6">
-            <div class="card page-card shadow-sm h-100">
+        <div class="col-lg-5">
+            <div class="card page-card shadow-sm">
                 <div class="card-header bg-white py-3">
                     <h2 class="h6 mb-0 fw-bold"><i class="bi bi-camera me-1"></i> Live Webcam &amp; Document Feed</h2>
                 </div>
@@ -96,8 +96,8 @@
         </div>
 
         {{-- Right Column: Examinee Confirmation & OMR Recognition --}}
-        <div class="col-lg-6">
-            <div class="card page-card shadow-sm mb-4">
+        <div class="col-lg-7">
+            <div class="card page-card shadow-sm mb-4 omr-identity">
                 <div class="card-header bg-white py-3">
                     <h2 class="h6 mb-0 fw-bold"><i class="bi bi-qr-code-scan me-1"></i> Answer Sheet QR Verification</h2>
                 </div>
@@ -160,5 +160,5 @@
 </div>
 
 <script src="{{ asset('js/vendor/jsqr/jsQR.js') }}"></script>
-<script type="module" src="{{ asset('js/admission-paper-scanner.js') }}?v=2"></script>
+<script type="module" src="{{ asset('js/admission-paper-scanner.js') }}?v=3"></script>
 @endsection

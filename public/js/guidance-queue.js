@@ -13,6 +13,10 @@
             controller = new AbortController();
             const current = ++generation;
             loading = true;
+            if (manual) {
+                window.WorkspaceUI?.setLoading(results, true);
+                status.textContent = 'Loading matching requests...';
+            }
             url = next;
             const open = [...results.querySelectorAll('details[open][data-review]')].map(item => item.dataset.review);
             try {
@@ -29,7 +33,10 @@
             } catch (error) {
                 if (error.name !== 'AbortError') status.textContent = error.message;
             } finally {
-                if (current === generation) loading = false;
+                if (current === generation) {
+                    loading = false;
+                    window.WorkspaceUI?.setLoading(results, false);
+                }
             }
         }
         function search() {

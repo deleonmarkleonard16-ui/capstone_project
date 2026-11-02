@@ -55,7 +55,7 @@ class AuditActivity
                 'method' => $request->method(),
                 'route' => $routeName,
                 'subject' => $subject ?: null,
-                'response_status' => $response->getStatusCode(),
+                'response_status' => $request->attributes->get('audit_response_status', $response->getStatusCode()),
                 'ip_address' => $request->ip(),
                 'created_at' => now(),
             ]);

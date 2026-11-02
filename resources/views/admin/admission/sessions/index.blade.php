@@ -303,7 +303,7 @@
                                 <h6 class="fw-bold mb-1">No sessions in this batch</h6>
                                 <p class="small text-muted mb-3">Add Session A, Session B, and more inside this batch.</p>
                                 @unless($cycle->isCompleted())
-                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal">
+                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSessionModal" data-batch-id="{{ $batch->id }}" data-batch-name="{{ $batch->batch_name }}">
                                         <i class="bi bi-plus-circle me-1"></i> Create Test Session
                                     </button>
                                 @endunless

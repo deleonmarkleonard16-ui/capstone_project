@@ -150,6 +150,8 @@ class AdmissionSessionController extends Controller
                 $number = $start + $conflictIndex;
                 $assignedTo = $targets[$conflictIndex]->session_label ?: 'another session';
 
+                $request->attributes->set('audit_response_status', 422);
+
                 return redirect()->route('admin.admission.sessions.index')->withInput()->withErrors([
                     'start_number' => "Masterlist #{$number} is already assigned to {$assignedTo}. Choose a range that does not overlap an existing session.",
                 ]);
@@ -178,6 +180,13 @@ class AdmissionSessionController extends Controller
             return redirect()->route('admin.admission.sessions.index')
                 ->with('success', "Session '{$session->session_name}' created successfully. {$targets->count()} applicant(s) assigned (Masterlist Range: #{$start}–#{$end}).");
         } catch (\Throwable $e) {
+            // Preserve the failed outcome for auditing even though the form redirects.
+            $request->attributes->set('audit_response_status', match (true) {
+                $e instanceof \Illuminate\Validation\ValidationException => 422,
+                $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface => $e->getStatusCode(),
+                default => 500,
+            });
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Failed to create session: ' . $e->getMessage());

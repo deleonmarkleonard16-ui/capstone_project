@@ -6,6 +6,7 @@ use App\Models\AdmissionApplicant;
 use App\Models\AdmissionBatch;
 use App\Models\AdmissionCycle;
 use App\Models\AdmissionSession;
+use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -453,6 +454,55 @@ class AdmissionCheckinTest extends TestCase
         $this->assertEquals(80, $applicant->exam_score);
     }
 
+    public function test_empty_batch_session_buttons_supply_the_batch_id(): void
+    {
+        $this->login('admin');
+        $cycle = AdmissionCycle::create([
+            'name' => 'Empty Batch', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+        $batch = $cycle->batches()->create([
+            'batch_name' => 'Batch 3', 'batch_date' => '2026-11-02',
+        ]);
+
+        $response = $this->get(route('admin.admission.sessions.index'))->assertOk();
+        $document = new \DOMDocument();
+        @$document->loadHTML($response->getContent());
+        $buttons = (new \DOMXPath($document))->query('//button[@data-bs-target="#createSessionModal"]');
+        $this->assertCount(3, $buttons);
+        foreach ($buttons as $button) {
+            $this->assertSame((string) $batch->id, $button->getAttribute('data-batch-id'));
+            $this->assertSame($batch->batch_name, $button->getAttribute('data-batch-name'));
+        }
+    }
+
+    public function test_session_creation_without_a_batch_is_audited_as_failed(): void
+    {
+        $this->login('admin');
+        AdmissionCycle::create([
+            'name' => 'Missing Batch', 'academic_year' => '2026-2027', 'is_active' => true,
+            'status' => AdmissionCycle::STATUS_ACTIVE,
+        ]);
+
+        $this->from(route('admin.admission.sessions.index'))
+            ->post(route('admin.admission.sessions.store'), [
+                'session_name' => 'Session A', 'start_time' => '09:00',
+                'start_number' => 1, 'end_number' => 5,
+            ])
+            ->assertRedirect(route('admin.admission.sessions.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseCount('admission_sessions', 0);
+        $log = AuditLog::where('route', 'admin.admission.sessions.store')->sole();
+        $this->assertSame(422, $log->response_status);
+        $this->get(route('admin.audit-logs', ['status' => 'failed']))
+            ->assertOk()
+            ->assertViewHas('logs', fn ($logs) => $logs->contains('id', $log->id));
+        $this->get(route('admin.audit-logs', ['status' => 'success']))
+            ->assertOk()
+            ->assertViewHas('logs', fn ($logs) => ! $logs->contains('id', $log->id));
+    }
+
     public function test_session_creation_stores_inputted_date_and_does_not_default_to_today(): void
     {
         $this->login('admin');
@@ -480,6 +530,7 @@ class AdmissionCheckinTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.admission.sessions.index'));
+        $this->assertSame(302, AuditLog::where('route', 'admin.admission.sessions.store')->sole()->response_status);
         $session = AdmissionSession::where('session_name', 'Session November Batch')->first();
         $this->assertNotNull($session);
         $this->assertEquals('2026-11-20', $session->start_time->format('Y-m-d'));
@@ -617,6 +668,7 @@ class AdmissionCheckinTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('start_number');
+        $this->assertSame(422, AuditLog::where('route', 'admin.admission.sessions.store')->sole()->response_status);
         $this->followRedirects($response)
             ->assertOk()
             ->assertSee('Masterlist #10 is already assigned to Session A.');

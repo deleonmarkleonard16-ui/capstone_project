@@ -186,6 +186,40 @@ class GuidanceReportTest extends TestCase
         }
     }
 
+    public function test_archived_results_are_read_only_and_reject_direct_evaluation_updates(): void
+    {
+        foreach (['admin', 'staff'] as $role) {
+            $this->login($role);
+            foreach (['psychological', 'personality', 'career'] as $category) {
+                $appointment = $this->appointment([]);
+                $appointment->update([
+                    'test_category' => $category, 'is_archived' => true, 'archived_at' => now(),
+                    'remarks' => 'Final counselor notes.', 'recommendations' => 'For Counseling',
+                ]);
+                $original = $appointment->fresh()->getAttributes();
+                $this->get(route($role.'.guidance-appointments.show-results', $appointment))->assertOk()
+                    ->assertSee('Final counselor notes.')->assertSee('For Counseling')
+                    ->assertDontSee('Edit remarks')->assertDontSee('name="remarks"', false)
+                    ->assertDontSee('name="recommendations"', false)->assertDontSee('Counselor Evaluation');
+                foreach (['save', 'archive', 'complete_and_archive', 'move_to_review'] as $action) {
+                    $this->postJson(route($role.'.guidance-appointments.evaluate', $appointment), [
+                        'action' => $action, 'remarks' => 'Changed notes.', 'recommendations' => 'Changed recommendation.',
+                    ])->assertConflict();
+                    $this->assertSame($original, $appointment->fresh()->getAttributes());
+                }
+                // Older archive records may have only the archive timestamp.
+                $appointment->update(['is_archived' => false, 'status' => 'Under review']);
+                $this->get(route($role.'.guidance-appointments.show-results', $appointment))->assertOk()
+                    ->assertDontSee('Edit remarks')->assertDontSee('name="remarks"', false)
+                    ->assertDontSee('Counselor Evaluation');
+                $this->postJson(route($role.'.guidance-appointments.evaluate', $appointment), [
+                    'action' => 'save', 'remarks' => '', 'recommendations' => '',
+                ])->assertConflict();
+                $this->assertSame('Final counselor notes.', $appointment->fresh()->remarks);
+            }
+        }
+    }
+
     public function test_counselor_can_edit_and_clear_remarks_from_the_results_page(): void
     {
         $this->login('admin');

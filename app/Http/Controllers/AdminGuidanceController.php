@@ -160,6 +160,8 @@ class AdminGuidanceController extends Controller
         DB::transaction(function () use ($request, $appointment, $data) {
             $locked = GuidanceAppointment::whereKey($appointment->getKey())->lockForUpdate()->firstOrFail();
 
+            abort_if($locked->is_archived || $locked->archived_at, 409, 'Archived assessment evaluations are read-only.');
+
             $update = [
                 'remarks' => array_key_exists('remarks', $data) ? $data['remarks'] : $locked->remarks,
                 'recommendations' => array_key_exists('recommendations', $data) ? $data['recommendations'] : $locked->recommendations,

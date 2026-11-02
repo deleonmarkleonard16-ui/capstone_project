@@ -1,4 +1,4 @@
-@if($appointment->status === 'Under review')
+@if($appointment->status === 'Under review' && !$appointment->is_archived && !$appointment->archived_at)
     <section class="col-12 no-print" aria-label="Counselor evaluation">
         <hr>
         <h3 class="h5 text-warning"><i class="bi bi-clipboard2-check me-2"></i>Counselor Evaluation</h3>

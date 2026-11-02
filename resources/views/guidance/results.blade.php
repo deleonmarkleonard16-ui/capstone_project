@@ -249,7 +249,7 @@
             @endphp
         </section>
         <div class="mt-4 pt-4 border-top">
-            @if($appointment->status === 'Under review')
+            @if($appointment->status === 'Under review' && !$appointment->is_archived && !$appointment->archived_at)
                 @include('guidance.partials.counselor-evaluation')
                 <div class="d-none d-print-block">
                     <h4 class="h6 fw-bold">Counselor Remarks &amp; Recommendations:</h4>
@@ -264,12 +264,14 @@
             @else
             <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
                 <h4 class="h6 fw-bold mb-0">Counselor Remarks &amp; Recommendations:</h4>
+                @unless($appointment->is_archived || $appointment->archived_at)
                 <button class="btn btn-sm btn-outline-primary no-print" type="button"
                         data-bs-toggle="collapse" data-bs-target="#counselor-remarks-form"
                         aria-expanded="{{ $errors->hasAny(['remarks', 'recommendations']) ? 'true' : 'false' }}"
                         aria-controls="counselor-remarks-form">
                     <i class="bi bi-pencil-square me-1" aria-hidden="true"></i> Edit remarks
                 </button>
+                @endunless
             </div>
 
             @if(session('success'))
@@ -289,6 +291,7 @@
                 @endif
             </div>
 
+            @unless($appointment->is_archived || $appointment->archived_at)
             <div id="counselor-remarks-form" class="collapse {{ $errors->hasAny(['remarks', 'recommendations']) ? 'show' : '' }} no-print mb-4">
                 <form method="POST" action="{{ route(auth()->user()->role.'.guidance-appointments.evaluate', $appointment) }}" class="border rounded p-3">
                     @csrf
@@ -313,6 +316,7 @@
                     </div>
                 </form>
             </div>
+            @endunless
 
             @endif
 

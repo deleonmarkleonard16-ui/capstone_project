@@ -1,3 +1,15 @@
+@php
+    $officialReport = count($certificates) === 0;
+    $officialPageWidth = $orientation === 'portrait' ? 210 : 297;
+    $officialPageHeight = $orientation === 'portrait' ? 297 : 210;
+    $officialTopMargin = $orientation === 'portrait' ? 50 : 75;
+    $officialBottomMargin = $orientation === 'portrait' ? 30 : 45;
+    $officialAsset = static fn (string $name) => 'data:image/png;base64,'.base64_encode(file_get_contents(public_path('images/admission/download-letterhead'.$name.'.png')));
+    $officialHeader = $officialAsset('-header');
+    $officialFooter = $officialAsset('-footer');
+    $officialPage = $orientation === 'portrait' ? $officialAsset('') : null;
+@endphp
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -51,22 +63,24 @@
             body { margin: 0; } th { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             .certificate-brand, .certificate-footer { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
         }
+        @if($officialReport) @include('exports.partials.official-report-css') @endif
     </style>
 </head>
 <body>
-    @if(($module ?? null) === 'admission')
-        @php
-            $letterheadPath = public_path('images/admission/download-letterhead.png');
-            $letterheadSrc = is_file($letterheadPath) ? 'data:image/png;base64,'.base64_encode(file_get_contents($letterheadPath)) : '';
-        @endphp
-        @if($letterheadSrc)<img class="admission-letterhead" src="{{ $letterheadSrc }}" alt="">@endif
+    @if($officialReport)
+        @if($orientation === 'portrait')
+            <img class="official-report-page" src="{{ $officialPage }}" alt="Official PSU San Carlos City Campus letterhead">
+        @else
+            <img class="official-report-header" src="{{ $officialHeader }}" alt="Official PSU San Carlos City Campus letterhead">
+            <img class="official-report-footer" src="{{ $officialFooter }}" alt="Official campus footer">
+        @endif
+        @if($format === 'html')<img class="screen-official-letterhead header" src="{{ $officialHeader }}" alt="Official PSU San Carlos City Campus letterhead">@endif
     @endif
     @if($format === 'html')
         <div class="no-print"><button type="button" onclick="window.print()">Print document</button></div>
     @endif
     @if(count($certificates) === 0)
         <header class="document-header">
-            @unless($evaluationSummary ?? false)<h1>{{ \App\Services\DocumentExportService::UNIVERSITY }}</h1>@endunless
             <div>{{ $office }}</div>
             <h2>{{ $title }}</h2>
         </header>
@@ -110,6 +124,7 @@
         </table>
         @include('exports.signatures')
     @endif
+    @if($officialReport && $format === 'html')<img class="screen-official-letterhead footer" src="{{ $officialFooter }}" alt="Official campus footer">@endif
     @if($autoPrint && $format === 'html')
         <script>window.onload = function() { window.print(); };</script>
     @endif

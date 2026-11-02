@@ -76,25 +76,28 @@ class DocumentExportService
         }
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(10);
-        $isAdmission = ($document['module'] ?? null) === 'admission';
+        $portrait = $document['orientation'] === 'portrait';
+        $contentWidth = $portrait ? 10432 : 15364;
+        $imageWidth = $contentWidth / 20;
         $section = $word->addSection([
             'orientation' => $document['orientation'],
-            'marginTop' => $isAdmission ? 2200 : 720,
-            'marginBottom' => $isAdmission ? 1200 : 720,
-            'marginLeft' => 720,
-            'marginRight' => 720,
-            'headerHeight' => $isAdmission ? 120 : 720,
-            'footerHeight' => $isAdmission ? 120 : 720,
+            'marginTop' => $portrait ? 2835 : 4252,
+            'marginBottom' => $portrait ? 1701 : 2551,
+            'marginLeft' => 737,
+            'marginRight' => 737,
+            'headerHeight' => 120,
+            'footerHeight' => 120,
         ]);
         $header = $section->addHeader();
         $letterheadHeader = public_path('images/admission/download-letterhead-header.png');
-        if ($isAdmission && is_file($letterheadHeader)) {
-            $header->addImage($letterheadHeader, ['width' => 700, 'height' => 164, 'alignment' => 'center']);
+        if (is_file($letterheadHeader)) {
+            $header->addImage($letterheadHeader, ['width' => $imageWidth, 'alignment' => 'center']);
             $header->addText(self::UNIVERSITY, ['size' => 1, 'color' => 'FFFFFF'], ['spaceAfter' => 0]);
         } else {
             $header->addText(self::UNIVERSITY, ['bold' => true, 'color' => '17305F'], ['alignment' => 'center']);
             $header->addText($document['office'], [], ['alignment' => 'center']);
         }
+        $section->addText($document['office'], ['size' => 9], ['alignment' => 'center']);
         $section->addText($document['title'], ['bold' => true, 'size' => 14], ['alignment' => 'center']);
         foreach ($document['metadata'] as $label => $value) {
             $section->addText($label.': '.$value, ['size' => 9]);
@@ -116,9 +119,9 @@ class DocumentExportService
             $section->addText('Guidance Counselor', [], ['alignment' => 'right']);
         }
         if ($document['columns'] !== []) {
-            $table = $section->addTable(['borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60]);
+            $table = $section->addTable(['layout' => 'fixed', 'width' => 100, 'unit' => 'pct', 'borderSize' => 6, 'borderColor' => '999999', 'cellMargin' => 60]);
             $table->addRow(null, ['tblHeader' => true]);
-            $width = (int) (14000 / count($document['columns']));
+            $width = (int) ($contentWidth / count($document['columns']));
             foreach ($document['columns'] as $column) {
                 $table->addCell($width, ['bgColor' => 'E8EDF5'])->addText($column, ['bold' => true, 'size' => 8]);
             }
@@ -130,8 +133,8 @@ class DocumentExportService
         }
         $footer = $section->addFooter();
         $letterheadFooter = public_path('images/admission/download-letterhead-footer.png');
-        if ($isAdmission && is_file($letterheadFooter)) {
-            $footer->addImage($letterheadFooter, ['width' => 700, 'height' => 94, 'alignment' => 'center']);
+        if (is_file($letterheadFooter)) {
+            $footer->addImage($letterheadFooter, ['width' => $imageWidth, 'alignment' => 'center']);
         }
         $footer->addPreserveText('DMSGTA | Page {PAGE} of {NUMPAGES}', ['size' => 8], ['alignment' => 'center']);
 

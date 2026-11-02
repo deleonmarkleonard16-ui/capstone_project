@@ -295,6 +295,7 @@ class DocumentExportTest extends TestCase
                 ->assertViewIs('exports.preview')->assertSee('Record count: 1')
                 ->assertSee('Active Filters')->assertSee('course: BSIT')->assertSee('Preview export actions')
                 ->assertSee('Download DOCX')->assertSee('Download CSV')->assertSee('id="report-preview"', false)
+                ->assertViewHas('previewHtml', fn ($html) => str_contains($html, 'Official PSU San Carlos City Campus letterhead') && str_contains($html, 'screen-official-letterhead footer'))
                 ->assertViewHas('document', fn ($document) => $document['records']->modelKeys() === [$included->id]);
             $dom = new \DOMDocument();
             @$dom->loadHTML($preview->getContent());

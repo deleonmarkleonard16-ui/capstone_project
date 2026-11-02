@@ -249,6 +249,19 @@
             @endphp
         </section>
         <div class="mt-4 pt-4 border-top">
+            @if($appointment->status === 'Under review')
+                @include('guidance.partials.counselor-evaluation')
+                <div class="d-none d-print-block">
+                    <h4 class="h6 fw-bold">Counselor Remarks &amp; Recommendations:</h4>
+                    <div style="white-space: pre-line;">{{ $appointment->remarks }}</div>
+                    @if(filled($appointment->recommendations))
+                        <div><strong>Recommendation:</strong> {{ $appointment->recommendations }}</div>
+                    @endif
+                </div>
+                @if(session('success'))
+                    <div class="alert alert-success py-2 no-print" role="status">{{ session('success') }}</div>
+                @endif
+            @else
             <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
                 <h4 class="h6 fw-bold mb-0">Counselor Remarks &amp; Recommendations:</h4>
                 <button class="btn btn-sm btn-outline-primary no-print" type="button"
@@ -300,6 +313,8 @@
                     </div>
                 </form>
             </div>
+
+            @endif
 
             <div class="row pt-4 text-center">
                 <div class="col-6 offset-6">

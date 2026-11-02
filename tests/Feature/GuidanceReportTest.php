@@ -106,7 +106,7 @@ class GuidanceReportTest extends TestCase
                 ->assertOk()
                 ->assertSee($title)
                 ->assertSee($subtitle)
-                ->assertSee($badge)
+                ->assertDontSee($badge)
                 ->assertSee($header)
                 ->assertSee('Print Assessment Result')
                 ->assertSee(route($category === 'career' ? 'admin.guidance-appointments.career-report' : 'admin.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']))
@@ -116,6 +116,50 @@ class GuidanceReportTest extends TestCase
                 ->assertDontSee('Export PDF')
                 ->assertDontSee('Export DOCX')
                 ->assertDontSee('Export CSV');
+        }
+    }
+
+    public function test_submission_results_support_counselor_evaluation_and_archiving_for_each_category(): void
+    {
+        foreach (['admin', 'staff'] as $role) {
+            $this->login($role);
+            foreach (['psychological' => 'Fit for deployment with Reservation', 'personality' => 'Satisfactory', 'career' => 'For Career Counseling'] as $category => $recommendation) {
+                $appointment = $this->appointment([]);
+                $appointment->update(['status' => 'Under review', 'test_category' => $category, 'remarks' => 'Existing notes.', 'recommendations' => $recommendation]);
+                $appointment->serviceRequest->update(['status' => 'under_review', 'tests' => [$category]]);
+                $resultsUrl = route($role.'.guidance-appointments.show-results', $appointment);
+                $evaluateUrl = route($role.'.guidance-appointments.evaluate', $appointment);
+
+                $this->get($resultsUrl)->assertOk()
+                    ->assertSee('Counselor Evaluation')->assertSee('Existing notes.')
+                    ->assertSee('type="radio" name="recommendations"', false)
+                    ->assertSee($recommendation)->assertSee('checked', false)
+                    ->assertSee('Save Remarks and Recommendation')->assertSee('Save &amp; Move to Archive', false)
+                    ->assertDontSee('Edit remarks')->assertDontSee('data-review-evaluate', false);
+                foreach ([$role.'.guidance-appointments.index', $role.'.'.$category.'.index'] as $queueRoute) {
+                    $this->get(route($queueRoute, ['status' => $queueRoute === $role.'.guidance-appointments.index' ? 'Under review' : 'under_review']))->assertOk()
+                        ->assertSee($resultsUrl, false)->assertSee('Review Student Submission')
+                        ->assertDontSee('Review Details</button>', false);
+                }
+
+                $this->from($resultsUrl)->post($evaluateUrl, [
+                    'action' => 'save', 'remarks' => 'Updated counselor notes.', 'recommendations' => $recommendation,
+                ])->assertRedirect($resultsUrl)->assertSessionHasNoErrors();
+                $appointment->refresh();
+                $this->assertSame('Under review', $appointment->status);
+                $this->assertFalse($appointment->is_archived);
+                $this->assertSame('Updated counselor notes.', $appointment->remarks);
+                $this->assertSame($recommendation, $appointment->recommendations);
+
+                $this->from($resultsUrl)->post($evaluateUrl, [
+                    'action' => 'complete_and_archive', 'remarks' => 'Final notes.', 'recommendations' => $recommendation,
+                ])->assertRedirect($resultsUrl)->assertSessionHasNoErrors();
+                $appointment->refresh();
+                $this->assertSame('Completed', $appointment->status);
+                $this->assertTrue($appointment->is_archived);
+                $this->assertSame('completed', $appointment->serviceRequest->fresh()->status);
+                $this->get($resultsUrl)->assertOk()->assertSee('Final notes.')->assertDontSee('Counselor Evaluation');
+            }
         }
     }
 

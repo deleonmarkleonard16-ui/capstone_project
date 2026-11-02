@@ -85,69 +85,7 @@
     </section>
     @endif
 
-    @if($appointment->status === 'Under review')
-    <section class="col-12" aria-label="Counselor evaluation">
-        <hr>
-        <h3 class="h5 text-warning"><i class="bi bi-clipboard2-check me-2"></i>Counselor Evaluation</h3>
-        <p class="text-muted small">Review the student's results above, fill in your remarks and recommendation, then choose an action.</p>
-        <form method="post"
-              action="{{ route(auth()->user()->role.'.guidance-appointments.evaluate', $appointment) }}"
-              data-review-evaluate>
-            @csrf
-            <div class="mb-3">
-                <label class="form-label fw-bold" for="eval-remarks-{{ $appointment->getKey() }}">
-                    IV. Remarks <span class="text-muted fw-normal">(Counselor notes)</span>
-                </label>
-                <textarea class="form-control" id="eval-remarks-{{ $appointment->getKey() }}" name="remarks" rows="4"
-                          placeholder="Enter your clinical remarks here…">{{ old('remarks', $appointment->remarks) }}</textarea>
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold">V. Recommendation</label>
-                @if($appointment->test_category === 'psychological')
-                    @foreach(\App\Services\PsychologicalReportService::RECOMMENDATIONS as $option)
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="recommendations"
-                                   id="rec-{{ $appointment->getKey() }}-{{ $loop->index }}"
-                                   value="{{ $option }}"
-                                   @checked(old('recommendations', $appointment->recommendations) === $option)>
-                            <label class="form-check-label" for="rec-{{ $appointment->getKey() }}-{{ $loop->index }}">{{ $option }}</label>
-                        </div>
-                    @endforeach
-                @elseif($appointment->test_category === 'personality')
-                    @foreach(['For Further Development', 'Satisfactory', 'Needs Improvement', 'For Counseling'] as $option)
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="recommendations"
-                                   id="rec-{{ $appointment->getKey() }}-{{ $loop->index }}"
-                                   value="{{ $option }}"
-                                   @checked(old('recommendations', $appointment->recommendations) === $option)>
-                            <label class="form-check-label" for="rec-{{ $appointment->getKey() }}-{{ $loop->index }}">{{ $option }}</label>
-                        </div>
-                    @endforeach
-                @else
-                    @foreach(['Highly Interested / Strong Affinity', 'Moderately Interested', 'Mildly Interested', 'For Career Counseling'] as $option)
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="recommendations"
-                                   id="rec-{{ $appointment->getKey() }}-{{ $loop->index }}"
-                                   value="{{ $option }}"
-                                   @checked(old('recommendations', $appointment->recommendations) === $option)>
-                            <label class="form-check-label" for="rec-{{ $appointment->getKey() }}-{{ $loop->index }}">{{ $option }}</label>
-                        </div>
-                    @endforeach
-                @endif
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-                <button type="submit" name="action" value="save" class="btn btn-outline-primary">
-                    <i class="bi bi-floppy me-1"></i>{{ $appointment->batch_id ? 'Save Remarks & Recommendation' : 'Save Remarks Only' }}
-                </button>
-                @unless($appointment->batch_id)
-                <button type="submit" name="action" value="complete_and_archive" class="btn btn-success">
-                    <i class="bi bi-archive me-1"></i>Save &amp; Move to Archive
-                </button>
-                @endunless
-            </div>
-        </form>
-    </section>
-    @endif
+    @include('guidance.partials.counselor-evaluation', ['evaluationInModal' => true])
 
     {{-- ═══ ARCHIVED VIEW actions ═══ --}}
     @if($appointment->is_archived && $appointment->response)

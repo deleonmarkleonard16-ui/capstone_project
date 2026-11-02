@@ -49,10 +49,9 @@
         <div class="dropdown">
             <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" data-row-actions aria-expanded="false" aria-label="Actions for {{ $appointment->applicant->full_name }}">Actions</button>
             <div class="dropdown-menu dropdown-menu-end ui-row-actions">
+        @unless($appointment->response && in_array($appointment->status, ['Under review', 'Completed'], true))
         <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-eye me-1"></i>Review Details</button><br>
-        @if($appointment->status === 'Under review' && $appointment->response)
-            <button type="button" class="btn btn-sm btn-warning mb-2" data-guidance-review="{{ route(auth()->user()->role.'.guidance-appointments.review', $appointment) }}"><i class="bi bi-pencil-square me-1"></i>Review &amp; Evaluate</button><br>
-        @endif
+        @endunless
         @if($appointment->is_archived && $appointment->response)
             <a class="btn btn-sm btn-success mb-2" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Result</a><br>
             @if($appointment->test_category === 'psychological')
@@ -64,6 +63,8 @@
             @else
                 <a class="btn btn-sm btn-outline-success" href="{{ route(auth()->user()->role.'.personality.certificate', ['appointment' => $appointment->getKey()]) }}" target="_blank" rel="noopener"><i class="bi bi-award me-1"></i>Print Certificate</a>
             @endif
+        @elseif($appointment->response && in_array($appointment->status, ['Under review', 'Completed'], true))
+            <a class="btn btn-sm btn-success" href="{{ route(auth()->user()->role.'.guidance-appointments.show-results', $appointment) }}"><i class="bi bi-file-earmark-text me-1"></i>Review Student Submission</a>
         @elseif(!$appointment->response)
             <span class="text-muted">Awaiting submission</span>
         @endif

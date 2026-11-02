@@ -192,8 +192,11 @@ class GuidanceBatchTest extends TestCase
         foreach ($appointments as $appointment) {
             $reviewUrl = route('staff.guidance-appointments.review', $appointment);
             $html = $this->getJson($reviewUrl)->assertOk()->json('html');
-            $this->assertStringContainsString('Save Remarks &amp; Recommendation', $html);
+            $this->assertStringContainsString('Save Remarks and Recommendation', $html);
             $this->assertStringNotContainsString('Save &amp; Move to Archive', $html);
+            $this->get(route('staff.guidance-appointments.show-results', $appointment))->assertOk()
+                ->assertSee('Counselor Evaluation')->assertSee('Save Remarks and Recommendation', false)
+                ->assertDontSee('Save &amp; Move to Archive', false);
             $this->postJson(route('staff.guidance-appointments.evaluate', $appointment), [
                 'action' => 'save',
                 'remarks' => 'Reviewed for batch archive.',

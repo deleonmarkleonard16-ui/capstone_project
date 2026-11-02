@@ -1,5 +1,6 @@
 @extends('layouts.app')
 @section('content')
+@php($archiveRole = auth()->user()->role)
 
 {{-- ═══════════════════════════════════════════════════════════════
      ADMIN UNIFIED ARCHIVE PAGE — Matching Screenshot 3 exactly
@@ -26,14 +27,14 @@
                 </p>
             </div>
             <div>
-                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.psychological.analytics') }}">
+                <a class="btn btn-outline-primary btn-sm" href="{{ route($archiveRole.'.psychological.analytics') }}">
                     Testing Request Analytics
                 </a>
             </div>
         </div>
 
         {{-- Filters --}}
-        <form method="get" action="{{ route('admin.archive') }}" class="row g-2 align-items-end my-3">
+        <form method="get" action="{{ route($archiveRole.'.archive') }}" class="row g-2 align-items-end my-3">
             <div class="col-md-2">
                 <label class="form-label form-label-sm text-muted small">Year</label>
                 <select name="year" class="form-select form-select-sm">
@@ -79,7 +80,7 @@
             </div>
             <div class="col-md-1 d-flex gap-1">
                 <button class="btn btn-primary btn-sm flex-fill">Apply</button>
-                <a href="{{ route('admin.archive') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+                <a href="{{ route($archiveRole.'.archive') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
             </div>
         </form>
 
@@ -121,7 +122,7 @@
                                 @php $appointment = $req->guidanceAppointments()->first(); @endphp
                                 @if($appointment)
                                     <a class="btn btn-sm btn-outline-primary"
-                                       href="{{ route('admin.guidance-appointments.career-report', $appointment) }}">
+                                       href="{{ route($archiveRole.'.guidance-appointments.career-report', $appointment) }}">
                                         View Report
                                     </a>
                                 @else
@@ -133,7 +134,7 @@
                         </td>
                         <td>
                             <a class="btn btn-sm btn-outline-secondary"
-                               href="{{ route('admin.requests.details', $req) }}">
+                               href="{{ route($archiveRole.'.requests.details', $req) }}">
                                 Open
                             </a>
                         </td>
@@ -164,14 +165,14 @@
                 </p>
             </div>
             <div>
-                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.good-moral.analytics') }}">
+                <a class="btn btn-outline-primary btn-sm" href="{{ route($archiveRole.'.good-moral.analytics') }}">
                     Good Moral Analytics
                 </a>
             </div>
         </div>
 
         {{-- Filters --}}
-        <form method="get" action="{{ route('admin.archive') }}" class="row g-2 align-items-end my-3">
+        <form method="get" action="{{ route($archiveRole.'.archive') }}" class="row g-2 align-items-end my-3">
             <div class="col-md-2">
                 <label class="form-label form-label-sm text-muted small">Year</label>
                 <select name="year" class="form-select form-select-sm">
@@ -208,7 +209,7 @@
             </div>
             <div class="col-md-1 d-flex gap-1">
                 <button class="btn btn-primary btn-sm flex-fill">Apply</button>
-                <a href="{{ route('admin.archive') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+                <a href="{{ route($archiveRole.'.archive') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
             </div>
         </form>
 
@@ -242,7 +243,7 @@
                         <td>{{ $req->claimed_at ? $req->claimed_at->timezone('Asia/Manila')->format('M d, Y g:i A') : ($req->updated_at ? $req->updated_at->timezone('Asia/Manila')->format('M d, Y g:i A') : '—') }}</td>
                         <td>
                             <a class="btn btn-sm btn-outline-secondary"
-                               href="{{ route('admin.requests.details', $req) }}">
+                               href="{{ route($archiveRole.'.requests.details', $req) }}">
                                 Open
                             </a>
                         </td>
@@ -273,14 +274,14 @@
                 </p>
             </div>
             <div>
-                <a class="btn btn-outline-primary btn-sm" href="{{ route('admin.exit-form.analytics') }}">
+                <a class="btn btn-outline-primary btn-sm" href="{{ route($archiveRole.'.exit-form.analytics') }}">
                     Exit Form Analytics
                 </a>
             </div>
         </div>
 
         {{-- Filters --}}
-        <form method="get" action="{{ route('admin.archive') }}" class="row g-2 align-items-end my-3">
+        <form method="get" action="{{ route($archiveRole.'.archive') }}" class="row g-2 align-items-end my-3">
             <div class="col-md-2">
                 <label class="form-label form-label-sm text-muted small">Year</label>
                 <select name="year" class="form-select form-select-sm">
@@ -317,7 +318,7 @@
             </div>
             <div class="col-md-1 d-flex gap-1">
                 <button class="btn btn-primary btn-sm flex-fill">Apply</button>
-                <a href="{{ route('admin.archive') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+                <a href="{{ route($archiveRole.'.archive') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
             </div>
         </form>
 
@@ -351,7 +352,7 @@
                         <td>{{ $req->claimed_at ? $req->claimed_at->timezone('Asia/Manila')->format('M d, Y g:i A') : ($req->updated_at ? $req->updated_at->timezone('Asia/Manila')->format('M d, Y g:i A') : '—') }}</td>
                         <td>
                             <a class="btn btn-sm btn-outline-secondary"
-                               href="{{ route('admin.requests.details', $req) }}">
+                               href="{{ route($archiveRole.'.requests.details', $req) }}">
                                 Open
                             </a>
                         </td>

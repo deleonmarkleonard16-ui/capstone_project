@@ -199,8 +199,8 @@
                 @endif
 
                 {{-- ── 6. ARCHIVE ── --}}
-                <a class="sidebar-link {{ (request()->routeIs('admin.archive') && request()->query('section') !== 'admission') || request()->routeIs('staff.guidance-appointments.archive') ? 'active' : '' }}"
-                   href="{{ route($isAdmin ? 'admin.archive' : 'staff.guidance-appointments.archive') }}">
+                <a class="sidebar-link {{ request()->routeIs($role.'.archive') && request()->query('section') !== 'admission' ? 'active' : '' }}"
+                   href="{{ route($role.'.archive') }}">
                     <i class="bi bi-archive-fill"></i> Archive
                 </a>
 

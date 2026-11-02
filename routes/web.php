@@ -178,6 +178,7 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::get('/notifications/{notification}/review', [\App\Http\Controllers\GuidanceNotificationController::class, 'review'])->name('notifications.review');
     Route::get('/requests/{serviceRequest}/details', [\App\Http\Controllers\GuidanceNotificationController::class, 'details'])->name('requests.details');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/archive', [\App\Http\Controllers\AdminArchiveController::class, 'index'])->name('archive');
     Route::get('/analytics', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->name('analytics');
     Route::get('/analytics/export/pdf', [\App\Http\Controllers\AnalyticsController::class, 'exportPdf'])->name('analytics.export.pdf');
     Route::get('/analytics/export/excel', [\App\Http\Controllers\AnalyticsController::class, 'exportExcel'])->name('analytics.export.excel');
@@ -311,7 +312,6 @@ Route::middleware(['auth', PreventBackHistory::class, 'role:admin'])->prefix('ad
     Route::post('/system-settings/courses/{course}/toggle', [$settings, 'toggleCourse'])->name('settings.course.toggle');
     Route::post('/system-settings/users/{user?}', [$settings, 'user'])->name('settings.user');
     Route::delete('/system-settings/users/{user}', [$settings, 'destroyUser'])->name('settings.user.destroy');
-    Route::get('/archive', [\App\Http\Controllers\AdminArchiveController::class, 'index'])->name('archive');
     Route::view('/admission-cycle', 'staff.admission-cycle')->name('admission-cycle');
     Route::get('/admission-evaluation', [AdmissionEvaluationController::class, 'index'])->name('admission-evaluation.index');
     Route::post('/admission-evaluation', [AdmissionEvaluationController::class, 'store'])->name('admission-evaluation.store');

@@ -1,3 +1,4 @@
+@unless($embedded ?? false)
 <!doctype html>
 <html lang="en">
 <head>
@@ -8,6 +9,7 @@
 </head>
 <body>
     @include('guidance.partials.assessment-letterhead')
+@endunless
     @if($format === 'html')
         <nav class="no-print" aria-label="Assessment actions">
             <a href="{{ route(auth()->user()->role.'.guidance.report.download', ['appointment' => $appointment->getKey(), 'format' => 'pdf']) }}" target="_blank" rel="noopener">View / Print PDF</a>
@@ -40,5 +42,7 @@
     </article>
     @include('guidance.partials.assessment-result-details')
     @if($autoPrint && $format === 'html')<script>window.onload = function () { window.print(); };</script>@endif
+@unless($embedded ?? false)
 </body>
 </html>
+@endunless

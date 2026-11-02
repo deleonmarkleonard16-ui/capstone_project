@@ -18,6 +18,7 @@
 @include('staff.partials.course-filter')
 
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+@if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 
 <p class="text-muted">Attendance refreshes every 5 seconds while no form or review is open.</p>
@@ -37,6 +38,9 @@
 <div class="d-flex flex-wrap gap-2 my-3">
 <a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{{ route(auth()->user()->role.'.guidance-batches.qr', $batch) }}"><i class="bi bi-qr-code me-1"></i>View / Project Batch QR</a>
 <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#batch-details-{{ $batch->getKey() }}">Review Batch Details</button>
+@if($archived && $batch->isArchived() && in_array($batch->test_type, \App\Services\GuidanceCategories::LABELS, true))
+<a class="btn btn-outline-success" target="_blank" rel="noopener" href="{{ route(auth()->user()->role.'.guidance-batches.print', $batch) }}"><i class="bi bi-printer me-1"></i>Print this batch</a>
+@endif
 @unless($archived)
 @if($batch->status === 'Pending Registration')
 <form method="post" action="{{ route(auth()->user()->role.'.guidance-batches.action', $batch) }}">@csrf<input type="hidden" name="action" value="start"><button class="btn btn-primary">Start Batch Assessment</button></form>

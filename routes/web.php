@@ -49,6 +49,7 @@ Route::middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->group(fu
             Route::post('/', [$batch, 'store'])->name('store');
             Route::post('/{batch}/action', [$batch, 'action'])->name('action');
             Route::get('/{batch}/qr', [$batch, 'qr'])->name('qr');
+            Route::get('/{batch}/print', \App\Http\Controllers\GuidanceBatchPrintController::class)->name('print');
         });
     }
 });

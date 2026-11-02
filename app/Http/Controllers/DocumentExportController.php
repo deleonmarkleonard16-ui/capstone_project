@@ -79,12 +79,13 @@ class DocumentExportController extends Controller
             }
             $document['format'] = $format;
             $document['autoPrint'] = $format === 'html' && (bool) ($filters['auto_print'] ?? false);
-            if ($format === 'html' && $request->boolean('preview')) $document['autoPrint'] = false;
-            $bytes = app(DocumentExportService::class)->render($document, $format);
             if ($format === 'html' && $request->boolean('preview')) {
-                return response()->view('exports.preview', ['document' => $document, 'previewHtml' => $bytes])
+                $document['autoPrint'] = false;
+
+                return response()->view('exports.preview', ['document' => $document])
                     ->header('Cache-Control', 'private, no-store');
             }
+            $bytes = app(DocumentExportService::class)->render($document, $format);
             $mime = match ($format) {
                 'pdf' => 'application/pdf',
                 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

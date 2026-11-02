@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('content')
 <h1 class="h3 mb-3">Document Exports</h1>
-<p>Select a report and its filters to download or preview an official document.</p>
+<p>Select a report and its filters to review the data before printing or downloading.</p>
 @foreach($modules as $module => $types)
 @php
     $selected = request('module') === $module ? request()->all() : [];
@@ -26,7 +26,7 @@
             <div class="col-md-3"><label class="form-label">Request ID (individual document)</label><input type="number" min="1" name="request_id" value="{{ $selected['request_id'] ?? '' }}" class="form-control"></div>
             <div class="col-md-3"><label class="form-label">Status</label><input name="status" value="{{ $selected['status'] ?? '' }}" class="form-control" placeholder="All statuses"></div>
         @endif
-        <div class="col-12"><button class="btn btn-primary">Preview report</button></div>
+        <div class="col-12"><button type="submit" class="btn btn-primary">Preview report</button></div>
     </form>
 </div></div>
 @endforeach

@@ -295,11 +295,19 @@ class DocumentExportTest extends TestCase
                 ->assertViewIs('exports.preview')->assertSee('Record count: 1')
                 ->assertSee('Active Filters')->assertSee('course: BSIT')->assertSee('Preview export actions')
                 ->assertSee('Download DOCX')->assertSee('Download CSV')->assertSee('id="report-preview"', false)
-                ->assertViewHas('previewHtml', fn ($html) => str_contains($html, 'Official PSU San Carlos City Campus letterhead') && str_contains($html, 'screen-official-letterhead footer'))
+                ->assertDontSee('<iframe id="report-preview"', false)->assertDontSee('Official PSU San Carlos City Campus letterhead')
+                ->assertSee('Report data')->assertSee($included->reference)->assertDontSee($excluded->reference)
                 ->assertViewHas('document', fn ($document) => $document['records']->modelKeys() === [$included->id]);
             $dom = new \DOMDocument();
             @$dom->loadHTML($preview->getContent());
             $xpath = new \DOMXPath($dom);
+            $printLink = $xpath->query('//a[normalize-space(text())="Print preview"]')->item(0);
+            $this->assertSame('_blank', $printLink->getAttribute('target'));
+            parse_str(parse_url($printLink->getAttribute('href'), PHP_URL_QUERY), $printQuery);
+            $this->assertSame('pdf', $printQuery['format']);
+            $this->assertSame('0', $printQuery['preview']);
+            $this->assertSame('BSIT', $printQuery['course']);
+            $this->get($printLink->getAttribute('href'))->assertOk()->assertHeader('Content-Type', 'application/pdf');
             $downloadUrl = $xpath->query('//a[normalize-space(text())="Download CSV"]')->item(0)->getAttribute('href');
             parse_str(parse_url($downloadUrl, PHP_URL_QUERY), $query);
             $this->assertSame('BSIT', $query['course']);
@@ -309,6 +317,25 @@ class DocumentExportTest extends TestCase
             $changeUrl = $xpath->query('//a[normalize-space(text())="Change report / filters"]')->item(0)->getAttribute('href');
             $this->get($changeUrl)->assertOk()->assertSee('Preview report')
                 ->assertSee('value="BSIT" selected', false)->assertSee('name="preview" value="1"', false);
+        }
+    }
+
+    public function test_data_previews_do_not_generate_official_documents(): void
+    {
+        $this->mock(DocumentExportService::class, fn ($mock) => $mock->shouldNotReceive('render'));
+        $cycle = $this->cycle();
+        $applicant = $this->applicant($cycle);
+        $record = $this->requestRecord();
+        $this->login();
+        $this->get(route('admin.admission.export', ['type' => 'summary', 'cycle_id' => $cycle->id, 'format' => 'html', 'preview' => 1]))
+            ->assertOk()->assertViewIs('exports.preview')->assertSee($applicant->application_number)
+            ->assertDontSee('Official PSU San Carlos City Campus letterhead');
+        foreach (['admin', 'staff'] as $role) {
+            $this->login($role);
+            $this->get(route($role.'.good-moral.export', ['type' => 'queue', 'format' => 'html', 'preview' => 1]))
+                ->assertOk()->assertViewIs('exports.preview')->assertSee($record->reference);
+            $this->get(route($role.'.analytics.export', ['type' => 'summary', 'format' => 'html', 'preview' => 1]))
+                ->assertOk()->assertViewIs('exports.preview')->assertSee('Total Requests');
         }
     }
 

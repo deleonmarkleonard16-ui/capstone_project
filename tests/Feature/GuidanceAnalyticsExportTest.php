@@ -59,6 +59,7 @@ class GuidanceAnalyticsExportTest extends TestCase
                 $this->get(route($role.'.analytics.export', ['type' => $type, 'format' => 'html', 'preview' => 1, 'auto_print' => 1]))
                     ->assertOk()->assertViewIs('exports.preview')->assertSee('Preview export actions')
                     ->assertSee('Download CSV')->assertSee('Download DOCX')->assertSee('Active Filters')
+                    ->assertDontSee('<iframe id="report-preview"', false)->assertDontSee('Official PSU San Carlos City Campus letterhead')->assertSee('Report data')
                     ->assertViewHas('document', fn ($document) => !$document['autoPrint'] && $document['reportType'] === $type);
             }
         }

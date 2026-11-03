@@ -29,7 +29,7 @@
     <li class="nav-item flex-shrink-0">
         <a class="nav-link {{ request('tab') === 'staff' ? 'active fw-bold' : '' }}"
            href="{{ route(auth()->user()->role.'.settings.index', ['tab' => 'staff']) }}">
-            <i class="bi bi-person-gear me-1"></i><span class="tab-label">Guidance Staff Account Management</span>
+            <i class="bi bi-person-gear me-1"></i><span class="tab-label">Account Management</span>
         </a>
     </li>
 </ul>

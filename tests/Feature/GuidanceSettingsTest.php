@@ -19,7 +19,7 @@ class GuidanceSettingsTest extends TestCase
         $this->actingAs($staff)->get(route('admin.settings.index'))->assertForbidden();
         $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]);
         $this->actingAs($admin)->get(route('admin.settings.index'))->assertOk()
-            ->assertSee('Course / Program Management')->assertSee('Guidance Staff Account Management')
+            ->assertSee('Course / Program Management')->assertSee('Account Management')
             ->assertDontSee('Security parameters')->assertDontSee('Active academic term');
     }
 

@@ -214,7 +214,6 @@
                             <div class="d-flex align-items-center gap-3 mb-4">
                                 <img src="{{ asset('images/psu-logo.png') }}" alt="PSU logo" style="width: 64px; height: 64px; object-fit: contain;">
                                 <div>
-                                    <p class="text-uppercase text-primary fw-bold mb-0" style="font-size: 0.78rem; letter-spacing: 0.08em;">Staff Access</p>
                                     <h2 class="h4 fw-bold text-slate-800 mb-0" style="color: #0f172a;">Sign in to continue</h2>
                                 </div>
                             </div>

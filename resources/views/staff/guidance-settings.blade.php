@@ -248,7 +248,7 @@
     </form>
 
     <h2 class="h5 section-title mb-2">Registered Admin and Staff Accounts</h2>
-    <p class="text-muted small mb-3">You can only change your own password. Leave it blank to keep your current password. Disabled accounts remain preserved in historical audit logs.</p>
+    <p class="text-muted small mb-3">You can only change your own email address and password. Leave the password blank to keep your current password. Disabled accounts remain preserved in historical audit logs.</p>
 
     <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
@@ -297,7 +297,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label form-label-sm fw-semibold">Email</label>
-                                <input type="email" name="email" value="{{ $staff->email }}" class="form-control form-control-sm" required>
+                                <input type="email" name="email" value="{{ $staff->email }}" class="form-control form-control-sm" @readonly(!$staff->is(auth()->user())) required>
                             </div>
                             @if($staff->is(auth()->user()))
                             <div class="col-md-3">

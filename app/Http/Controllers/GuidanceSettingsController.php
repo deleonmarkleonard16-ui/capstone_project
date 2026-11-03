@@ -109,6 +109,8 @@ class GuidanceSettingsController extends Controller
             'password' => ['nullable', 'string', 'min:8'],
         ]);
 
+        abort_if(! $user->is($request->user()) && $data['email'] !== $user->email, 403, 'You cannot change another account\'s email address.');
+
         if ($user->is($request->user()) && ! (bool) $data['is_active']) {
             return back()->with('error', 'You cannot disable the account you are currently using.');
         }

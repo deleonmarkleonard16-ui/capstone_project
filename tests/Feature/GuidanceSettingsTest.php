@@ -58,7 +58,7 @@ class GuidanceSettingsTest extends TestCase
         $this->assertSame('Guidance Staff', $staff->fresh()->name);
     }
 
-    public function test_new_admin_cannot_reset_staff_or_other_admin_passwords(): void
+    public function test_new_admin_cannot_change_staff_or_other_admin_credentials(): void
     {
         Mail::fake();
         $admin = User::factory()->create(['role' => 'admin', 'password' => 'admin-password']);
@@ -76,11 +76,23 @@ class GuidanceSettingsTest extends TestCase
                 'password' => 'replacement-secret-123',
             ])->assertForbidden();
             $this->assertSame($originalPassword, $target->fresh()->password);
+
+            $originalEmail = $target->email;
+            $this->actingAs($newAdmin)->post(route('admin.settings.user', $target), [
+                'name' => 'Changed Name', 'email' => 'changed-email@example.test', 'is_active' => '0',
+            ])->assertForbidden();
+            $this->assertSame($originalEmail, $target->fresh()->email);
+            $this->assertSame($target->name, $target->fresh()->name);
+            $this->assertTrue($target->fresh()->is_active);
         }
 
         $response = $this->actingAs($newAdmin)->get(route('admin.settings.index', ['tab' => 'staff']))
             ->assertOk()->assertDontSee('Brevo')->assertDontSee('Reset Password');
         $this->assertSame(1, substr_count($response->getContent(), 'name="password"'));
+        foreach ([$admin, $staff] as $target) {
+            $response->assertSee('value="'.$target->email.'" class="form-control form-control-sm" readonly required', false);
+        }
+        $response->assertSee('value="'.$newAdmin->email.'" class="form-control form-control-sm"  required', false);
     }
 
     public function test_admin_can_change_their_own_password_and_edit_staff_without_resetting_it(): void
@@ -95,10 +107,11 @@ class GuidanceSettingsTest extends TestCase
         $this->assertSame($originalPassword, $staff->fresh()->password);
 
         $this->post(route('admin.settings.user', $admin), [
-            'name' => $admin->name, 'email' => $admin->email, 'is_active' => '1',
+            'name' => $admin->name, 'email' => 'updated-admin@example.test', 'is_active' => '1',
             'password' => 'replacement-secret-123',
         ])->assertRedirect()->assertSessionHas('success');
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('replacement-secret-123', $admin->fresh()->password));
+        $this->assertSame('updated-admin@example.test', $admin->fresh()->email);
     }
 
     public function test_account_email_does_not_double_encode_temporary_password(): void

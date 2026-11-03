@@ -136,6 +136,7 @@
                         <option value="">All interview records</option>
                         <option value="scored" @selected(request('interview_filter') === 'scored')>Scored</option>
                         <option value="pending" @selected(request('interview_filter') === 'pending')>Pending</option>
+                        <option value="qualified_for_enrollment" @selected(request('interview_filter') === 'qualified_for_enrollment')>Qualified for Enrollment</option>
                     </select>
                 </div>
                 <div class="col-md-3">

@@ -190,6 +190,25 @@ class AdmissionReportsTest extends TestCase
         ]);
     }
 
+    public function test_masterlist_filters_enrollment_qualifiers_using_cycle_wide_rankings(): void
+    {
+        $this->actingAs(User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id')]));
+        $cycle = AdmissionCycle::create(['name' => 'Enrollment Filter', 'academic_year' => '2026-2027', 'is_active' => true, 'status' => 'Active']);
+        $qualified = $this->applicant($cycle, 'FILTER-QUALIFIED', 'BSIT', 6, 90, 90);
+        $this->applicant($cycle, 'FILTER-WAITLISTED', 'BSIT', 5, 80, 80);
+        $this->applicant($cycle, 'FILTER-PENDING', 'BSIT', null, null, null);
+        DB::table('admission_course_quotas')->insert(['admission_cycle_id' => $cycle->id, 'course_code' => 'BSIT', 'seats' => 1, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->get(route('admin.admission.masterlist', ['interview_filter' => 'qualified_for_enrollment']))
+            ->assertOk()
+            ->assertSee('value="qualified_for_enrollment" selected', false)
+            ->assertViewHas('applicants', fn ($applicants) => $applicants->pluck('id')->all() === [$qualified->id]);
+
+        // Searching for a waitlisted applicant must not promote them into the available seat.
+        $this->get(route('admin.admission.masterlist', ['interview_filter' => 'qualified_for_enrollment', 'search' => 'FILTER-WAITLISTED']))
+            ->assertOk()->assertViewHas('applicants', fn ($applicants) => $applicants->total() === 0);
+    }
+
     private function applicant(AdmissionCycle $cycle, string $number, string $course, ?int $stanine, ?int $total, ?int $interview): AdmissionApplicant
     {
         $applicant = AdmissionApplicant::create([

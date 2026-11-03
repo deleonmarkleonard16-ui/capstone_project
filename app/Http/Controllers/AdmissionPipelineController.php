@@ -263,6 +263,7 @@ class AdmissionPipelineController extends Controller
         $examFilter = trim((string) $request->query('exam_filter', ''));
         $interviewFilter = trim((string) $request->query('interview_filter', ''));
         $stanine = $request->query('stanine');
+        $outcomes = app(\App\Services\AdmissionReportService::class)->outcomes($cycle);
 
         // Assign ranks across the entire cycle before applying display filters.
         $ranks = $cycle->applicants()->orderByDesc('total_score')
@@ -304,6 +305,11 @@ class AdmissionPipelineController extends Controller
             $query->whereNotNull('interview_score');
         } elseif ($interviewFilter === 'pending') {
             $query->whereNull('interview_score');
+        } elseif ($interviewFilter === 'qualified_for_enrollment') {
+            $qualifiedIds = collect($outcomes)
+                ->filter(fn ($outcome) => $outcome['remark'] === 'Qualified for Enrollment')
+                ->keys()->all();
+            $query->whereIn('id', $qualifiedIds);
         }
 
         if ($stanine === 'below_3') {
@@ -351,7 +357,7 @@ class AdmissionPipelineController extends Controller
             'reportPrograms' => $reportPrograms,
             'reportCutoffs' => app(\App\Services\AdmissionReportService::class)->cutoffs($cycle),
             'courseQuotas' => $courseQuotas,
-            'outcomes' => app(\App\Services\AdmissionReportService::class)->outcomes($cycle),
+            'outcomes' => $outcomes,
             'batchGroups' => $batchGroups,
             'sessionOptions' => $sessionOptions,
         ]);

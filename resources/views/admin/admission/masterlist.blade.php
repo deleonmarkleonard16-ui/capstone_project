@@ -30,10 +30,6 @@
         @unless($isLocked)
             <a class="btn btn-primary btn-sm" href="{{ route('admin.admission.encoding-sheet') }}"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Manage Applicants</a>
         @endunless
-        {{-- ── REFRESH DATA BUTTON ── --}}
-        <button class="btn btn-outline-secondary btn-sm" id="refreshMasterlistBtn" type="button" title="Reload applicant list without a full page reload">
-            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
-        </button>
     </div>
 </div>
 
@@ -558,7 +554,6 @@
 @endforeach
 
 
-{{-- ── REFRESH DATA: AJAX re-fetch without full page reload ── --}}
 <div class="modal fade" id="rangeAllocationModal" tabindex="-1" aria-labelledby="rangeAllocationModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -619,13 +614,8 @@
 @push('scripts')
 <script>
 (function () {
-    const btn = document.getElementById('refreshMasterlistBtn');
-    if (!btn) return;
-
     async function refresh(silent = false) {
-        btn.disabled = true;
         if (!silent) window.WorkspaceUI?.setLoading(document.querySelector('#applicants-tbody')?.closest('.table-responsive'), true);
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Refreshing…';
 
         try {
             const url  = new URL(window.location.href);
@@ -658,8 +648,6 @@
             if (!silent) showToast('Refresh failed: ' + err.message, 'danger');
         } finally {
             window.WorkspaceUI?.setLoading(document.querySelector('#applicants-tbody')?.closest('.table-responsive'), false);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i> Refresh Data';
         }
     }
 
@@ -807,8 +795,6 @@
             button.innerHTML = '<i class="bi bi-check-lg"></i>';
         }
     });
-
-    btn.addEventListener('click', () => refresh(false));
 
     // Auto-refresh every 60 seconds (silent)
     setInterval(() => refresh(true), 60000);

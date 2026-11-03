@@ -76,9 +76,6 @@
                 </p>
             </div>
             <div class="d-flex gap-2 align-items-center">
-                <button class="btn btn-primary btn-sm" type="button" onclick="window.location.reload()" title="Reload this encoding sheet">
-                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh Data
-                </button>
                 <a class="btn btn-primary btn-sm"
                    href="{{ route('admin.admission.encoding-sheet.export', ['cycle_id' => $cycle->id]) }}">
                     <i class="bi bi-file-earmark-excel me-1"></i> Export Applicants

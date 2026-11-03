@@ -70,13 +70,15 @@ class AdmissionReportExportService
         }
         $section->addText(self::TITLES[$type], ['bold' => true, 'size' => 13], ['alignment' => 'center']);
         $section->addText('Admission Cycle: '.$cycle->displayName.' | Academic Year: '.$cycle->academic_year.' | Batch: '.($batch ?: 'All').' | Records: '.$roster['count'], ['size' => 8], ['alignment' => 'center']);
-        $section->addText('Generated: '.now()->format('F j, Y g:i A'), ['size' => 8], ['alignment' => 'center']);
+        if ($type !== 'final-enrollment-qualified') {
+            $section->addText('Generated: '.now()->format('F j, Y g:i A'), ['size' => 8], ['alignment' => 'center']);
+        }
         $columns = $this->columns($type);
         foreach ($roster['groups'] as $course => $items) {
             $section->addTextBreak();
             $meta = $type === 'interview-qualifiers' || $type === 'interview-non-qualifiers'
                 ? ' | Top limit: '.($roster['cutoffs'][$course] ?? 'All')
-                : (str_starts_with($type, 'final-') ? ' | Seats: '.($roster['quotas'][$course] ?? 0) : '');
+                : ($type === 'final-enrollment-waitlisted' ? ' | Seats: '.($roster['quotas'][$course] ?? 0) : '');
             $section->addText($course.' - '.count($items).' applicant(s)'.$meta, ['bold' => true, 'size' => 9]);
             $table = $section->addTable(['borderSize' => 4, 'borderColor' => 'B7C2D4', 'cellMargin' => 20, 'layout' => 'autofit', 'width' => 100 * 50, 'unit' => 'pct']);
             $table->addRow(null, ['tblHeader' => true]);
@@ -114,6 +116,8 @@ class AdmissionReportExportService
 
     public function columns(string $type): array
     {
+        if ($type === 'final-enrollment-qualified') return ['Full Name', 'Course'];
+
         $columns = ['No.', 'Application No.', 'Full Name', 'Course', 'Sex', 'Special Group', 'CMFL', 'GWA', 'Exam', 'Stanine', 'Interview', 'Total'];
         if ($type === 'psu-cat-qualifiers') {
             array_splice($columns, 1, 1);
@@ -127,6 +131,8 @@ class AdmissionReportExportService
     public function values(array $item, string $type): array
     {
         $a = $item['applicant'];
+        if ($type === 'final-enrollment-qualified') return [$a->full_name, (string) $a->course_choice];
+
         $values = [(string) $item['rank'], (string) $a->application_number, $a->full_name, (string) $a->course_choice,
             (string) ($a->sex ?? '-'), (string) ($a->special_group ?? '-'), (string) ($a->cmfl ?? '-'),
             $this->score($a->gwa), $this->score($a->exam_score), (string) ($a->stanine_score ?? '-'),

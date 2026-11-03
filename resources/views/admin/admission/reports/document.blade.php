@@ -70,12 +70,12 @@
 <section class="report-heading">
     <strong>Guidance &amp; Admission Office</strong>
     <h1>{{ \App\Services\AdmissionReportExportService::TITLES[$type] }}</h1>
-    <div class="meta">Admission Cycle: {{ $cycle->displayName }} | Academic Year: {{ $cycle->academic_year }} | Batch: {{ $batch ?: 'All' }} | Records: {{ $roster['count'] }}<br>Generated: {{ now()->format('F j, Y g:i A') }}</div>
+    <div class="meta">Admission Cycle: {{ $cycle->displayName }} | Academic Year: {{ $cycle->academic_year }} | Batch: {{ $batch ?: 'All' }} | Records: {{ $roster['count'] }}@if($type !== 'final-enrollment-qualified')<br>Generated: {{ now()->format('F j, Y g:i A') }}@endif</div>
 </section>
 @forelse($roster['groups'] as $course => $items)
     <h2>{{ $course }} - {{ count($items) }} applicant(s)
         @if(str_starts_with($type, 'interview-')) | Top limit: {{ $roster['cutoffs'][$course] ?? 'All' }}
-        @elseif(str_starts_with($type, 'final-')) | Seats: {{ $roster['quotas'][$course] ?? 0 }} @endif
+        @elseif($type === 'final-enrollment-waitlisted') | Seats: {{ $roster['quotas'][$course] ?? 0 }} @endif
     </h2>
     @php($columns = app(\App\Services\AdmissionReportExportService::class)->columns($type))
     <table class="roster-table">

@@ -209,6 +209,43 @@ class AdmissionReportsTest extends TestCase
             ->assertOk()->assertViewHas('applicants', fn ($applicants) => $applicants->total() === 0);
     }
 
+    public function test_enrollment_qualifier_exports_only_show_names_and_courses(): void
+    {
+        $cycle = AdmissionCycle::create(['name' => 'Public Qualifiers', 'academic_year' => '2026-2027', 'is_active' => true, 'status' => 'Active']);
+        $applicant = $this->applicant($cycle, 'PRIVATE-APPLICATION', 'BSIT', 6, 90, 90);
+        $applicant->update(['first_name' => 'Juan', 'last_name' => 'Dela Cruz']);
+        DB::table('admission_course_quotas')->insert(['admission_cycle_id' => $cycle->id, 'course_code' => 'BSIT', 'seats' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $type = 'final-enrollment-qualified';
+        $roster = app(AdmissionReportService::class)->roster($cycle, $type);
+        $export = app(\App\Services\AdmissionReportExportService::class);
+        $this->assertSame(['Full Name', 'Course'], $export->columns($type));
+        $this->assertSame([$applicant->full_name, 'BSIT'], $export->values($roster['groups']['BSIT'][0], $type));
+        $html = view('admin.admission.reports.document', compact('cycle', 'type', 'roster') + ['batch' => null])->render();
+        foreach (['Generated:', 'Seats:', 'Application No.', '<th>Interview</th>', '<th>Total</th>', 'PRIVATE-APPLICATION'] as $hidden) {
+            $this->assertStringNotContainsString($hidden, $html);
+        }
+        $this->assertStringContainsString('class="page-letterhead"', $html);
+        $this->assertStringContainsString($applicant->full_name, $html);
+        $this->assertStringStartsWith('%PDF-', $export->render($cycle, $type, $roster, 'pdf', null));
+
+        $path = tempnam(sys_get_temp_dir(), 'qualifier_test_');
+        try {
+            file_put_contents($path, $export->render($cycle, $type, $roster, 'docx', null));
+            $zip = new \ZipArchive();
+            $this->assertTrue($zip->open($path));
+            $xml = $zip->getFromName('word/document.xml');
+            $this->assertNotFalse($zip->locateName('word/header1.xml'));
+            $this->assertNotFalse($zip->locateName('word/footer1.xml'));
+            $zip->close();
+            $this->assertStringContainsString($applicant->full_name, $xml);
+            foreach (['Generated:', 'Seats:', 'Application No.', 'PRIVATE-APPLICATION', '>Interview<', '>Total<'] as $hidden) {
+                $this->assertStringNotContainsString($hidden, $xml);
+            }
+        } finally {
+            if (is_file($path)) unlink($path);
+        }
+    }
+
     private function applicant(AdmissionCycle $cycle, string $number, string $course, ?int $stanine, ?int $total, ?int $interview): AdmissionApplicant
     {
         $applicant = AdmissionApplicant::create([

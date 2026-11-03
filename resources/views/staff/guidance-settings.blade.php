@@ -196,7 +196,7 @@
 {{-- ── STAFF ACCOUNTS TAB ── --}}
 <div class="card page-card shadow-sm p-4">
     <h2 class="h5 section-title mb-2">Create Admin or Staff Account</h2>
-    <p class="text-muted small">A secure password is generated automatically and sent through Brevo after you re-verify and approve the account.</p>
+    <p class="text-muted small">A secure password is generated automatically and emailed to the new account after you re-verify and approve it.</p>
     <form id="create-account-form" method="post" action="{{ route(auth()->user()->role.'.settings.user') }}" class="row g-2 align-items-end mb-4">
         @csrf
         <div class="col-lg-3">
@@ -230,7 +230,7 @@
                     <div class="modal-body">
                         <div class="alert alert-info small">
                             Approving <strong id="approval-role">Staff</strong>: <strong id="approval-name">—</strong>
-                            (<span id="approval-email">—</span>). Brevo will email the generated password immediately.
+                            (<span id="approval-email">—</span>). Login credentials will be sent to this email address after approval.
                         </div>
                         <label class="form-label fw-semibold" for="admin-password">Your admin password</label>
                         <input id="admin-password" form="create-account-form" type="password" name="admin_password" class="form-control" required autocomplete="current-password">
@@ -248,7 +248,7 @@
     </form>
 
     <h2 class="h5 section-title mb-2">Registered Admin and Staff Accounts</h2>
-    <p class="text-muted small mb-3">Leave password blank to retain existing credentials. Disabled accounts remain preserved in historical audit logs.</p>
+    <p class="text-muted small mb-3">You can only change your own password. Leave it blank to keep your current password. Disabled accounts remain preserved in historical audit logs.</p>
 
     <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
@@ -299,10 +299,12 @@
                                 <label class="form-label form-label-sm fw-semibold">Email</label>
                                 <input type="email" name="email" value="{{ $staff->email }}" class="form-control form-control-sm" required>
                             </div>
+                            @if($staff->is(auth()->user()))
                             <div class="col-md-3">
-                                <label class="form-label form-label-sm fw-semibold">Reset Password</label>
+                                <label class="form-label form-label-sm fw-semibold">Change Your Password</label>
                                 <input type="password" name="password" minlength="8" class="form-control form-control-sm" autocomplete="new-password" placeholder="Leave blank to keep (min. 8 chars)">
                             </div>
+                            @endif
                             <div class="col-md-2">
                                 <div class="form-check form-switch mb-0">
                                     <input class="form-check-input" type="checkbox" role="switch" name="is_active" value="1" id="staff-active-{{ $staff->id }}" @checked($staff->is_active)>

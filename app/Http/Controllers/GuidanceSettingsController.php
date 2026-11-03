@@ -100,6 +100,8 @@ class GuidanceSettingsController extends Controller
             return $this->createUser($request);
         }
 
+        abort_if(! $user->is($request->user()) && $request->filled('password'), 403, 'You cannot reset another account\'s password.');
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user?->id)],
@@ -187,7 +189,7 @@ class GuidanceSettingsController extends Controller
             $account->delete();
 
             return back()->withInput($request->except('admin_password'))
-                ->with('error', 'Brevo could not send the credentials within 10 seconds. The account was not created. Please verify the Render mail settings and try again.');
+                ->with('error', 'The email could not be sent to '.$account->email.'. The account was not created. Please try again.');
         }
 
         return redirect()->route('admin.settings.index', ['tab' => 'staff'])

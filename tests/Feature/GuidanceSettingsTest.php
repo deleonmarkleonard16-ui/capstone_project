@@ -37,7 +37,7 @@ class GuidanceSettingsTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $staff->id, 'is_active' => 0]);
     }
 
-    public function test_admin_creates_staff_and_resets_credentials(): void
+    public function test_admin_creates_staff_but_cannot_reset_their_credentials(): void
     {
         Mail::fake();
         $admin = User::factory()->create(['role_id' => Role::where('slug', 'admin')->value('id'), 'password' => 'admin-password']);
@@ -50,10 +50,55 @@ class GuidanceSettingsTest extends TestCase
         $this->assertTrue($staff->is_active);
         $this->assertTrue($staff->password_setup_required);
         Mail::assertSent(\App\Mail\AccountCreatedMail::class, fn ($mail) => $mail->hasTo('staff@example.test'));
+        $originalPassword = $staff->password;
         $this->actingAs($admin)->post(route('admin.settings.user', $staff), [
             'name' => 'Updated Staff', 'email' => $staff->email, 'password' => 'replacement-secret-123', 'is_active' => '1',
-        ])->assertRedirect();
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('replacement-secret-123', $staff->fresh()->password));
+        ])->assertForbidden();
+        $this->assertSame($originalPassword, $staff->fresh()->password);
+        $this->assertSame('Guidance Staff', $staff->fresh()->name);
+    }
+
+    public function test_new_admin_cannot_reset_staff_or_other_admin_passwords(): void
+    {
+        Mail::fake();
+        $admin = User::factory()->create(['role' => 'admin', 'password' => 'admin-password']);
+        $staff = User::factory()->create(['role' => 'staff']);
+        $this->actingAs($admin)->post(route('admin.settings.user'), [
+            'name' => 'New Admin', 'email' => 'new-admin@example.test', 'role' => 'admin',
+            'admin_password' => 'admin-password',
+        ])->assertRedirect()->assertSessionHas('success', 'Admin account approved. Login credentials were sent to new-admin@example.test.');
+        $newAdmin = User::where('email', 'new-admin@example.test')->firstOrFail();
+
+        foreach ([$admin, $staff] as $target) {
+            $originalPassword = $target->password;
+            $this->actingAs($newAdmin)->post(route('admin.settings.user', $target), [
+                'name' => $target->name, 'email' => $target->email, 'is_active' => '1',
+                'password' => 'replacement-secret-123',
+            ])->assertForbidden();
+            $this->assertSame($originalPassword, $target->fresh()->password);
+        }
+
+        $response = $this->actingAs($newAdmin)->get(route('admin.settings.index', ['tab' => 'staff']))
+            ->assertOk()->assertDontSee('Brevo')->assertDontSee('Reset Password');
+        $this->assertSame(1, substr_count($response->getContent(), 'name="password"'));
+    }
+
+    public function test_admin_can_change_their_own_password_and_edit_staff_without_resetting_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $staff = User::factory()->create(['role' => 'staff']);
+        $originalPassword = $staff->password;
+        $this->actingAs($admin)->post(route('admin.settings.user', $staff), [
+            'name' => 'Updated Staff', 'email' => $staff->email, 'is_active' => '1', 'password' => '',
+        ])->assertRedirect()->assertSessionHas('success');
+        $this->assertSame('Updated Staff', $staff->fresh()->name);
+        $this->assertSame($originalPassword, $staff->fresh()->password);
+
+        $this->post(route('admin.settings.user', $admin), [
+            'name' => $admin->name, 'email' => $admin->email, 'is_active' => '1',
+            'password' => 'replacement-secret-123',
+        ])->assertRedirect()->assertSessionHas('success');
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('replacement-secret-123', $admin->fresh()->password));
     }
 
     public function test_account_email_does_not_double_encode_temporary_password(): void
@@ -79,7 +124,7 @@ class GuidanceSettingsTest extends TestCase
             'email' => 'retry@example.test',
             'role' => 'staff',
             'admin_password' => 'admin-password',
-        ])->assertRedirect()->assertSessionHas('error');
+        ])->assertRedirect()->assertSessionHas('error', 'The email could not be sent to retry@example.test. The account was not created. Please try again.');
 
         $this->assertDatabaseMissing('users', ['email' => 'retry@example.test']);
     }

@@ -203,6 +203,7 @@ foreach (['staff', 'admin'] as $role) Route::middleware(['auth', PreventBackHist
     Route::get('/guidance/report', [\App\Http\Controllers\AdminGuidanceController::class, 'report'])->name('guidance.report');
     Route::get('/guidance/report/preview/{appointment}', [\App\Http\Controllers\GuidanceReportController::class, 'preview'])->whereNumber('appointment')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('guidance.report.preview');
     Route::get('/guidance/report/download/{appointment}', [\App\Http\Controllers\GuidanceReportController::class, 'download'])->whereNumber('appointment')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('guidance.report.download');
+    Route::get('/guidance/answer-sheet/{appointment}', \App\Http\Controllers\AssessmentAnswerSheetController::class)->whereNumber('appointment')->middleware(\App\Http\Middleware\PrivateGuidanceResponse::class)->name('guidance.answer-sheet');
     Route::get('/documents/report', [\App\Http\Controllers\DocumentRequestController::class, 'report'])->name('documents.report');
     Route::get('/guidance-testing/submissions/{submission}', [GuidanceAssessmentController::class, 'staffReview'])->name('guidance.submission.show');
     Route::patch('/guidance-testing/submissions/{submission}/notes', [GuidanceAssessmentController::class, 'staffNotes'])->name('guidance.submission.notes');

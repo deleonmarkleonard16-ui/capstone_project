@@ -30,6 +30,9 @@
         <p class="text-muted mb-0">{{ $pageSubtitle }}</p>
     </div>
     <div class="d-flex gap-2">
+        @if($appointment->response && in_array($appointment->status, ['Completed', 'Under review'], true))
+            <a class="btn btn-outline-success" href="{{ route(auth()->user()->role.'.guidance.answer-sheet', $appointment) }}"><i class="bi bi-download me-1"></i>Download Answer Sheet</a>
+        @endif
         <a href="{{ route(auth()->user()->role.'.guidance-appointments.completed') }}" class="btn btn-outline-secondary">← Completed List</a>
         <a class="btn btn-primary" href="{{ $printAssessmentUrl }}" target="_blank" rel="noopener">
             <i class="bi bi-printer me-1" aria-hidden="true"></i> Print Assessment Result

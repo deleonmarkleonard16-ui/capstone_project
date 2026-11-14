@@ -33,6 +33,7 @@ class AssessmentAnswerSheetTest extends TestCase
         foreach (['Ana Sample', 'Internship', 'OR-123', 'Female', '4-A', 'DO NOT WRITE IN THIS SECTION'] as $text) $this->assertStringContainsString($text, $html);
         $pdf = app(DocumentExportService::class)->render($document, 'pdf');
         $this->assertStringStartsWith('%PDF-', $pdf);
+        $this->assertMatchesRegularExpression('/\/MediaBox\s*\[\s*0(?:\.0+)?\s+0(?:\.0+)?\s+306(?:\.0+)?\s+792(?:\.0+)?\s*\]/', $pdf);
         $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $pdf));
     }
 

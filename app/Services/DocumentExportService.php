@@ -37,7 +37,7 @@ class DocumentExportService
         $options->set('defaultFont', 'DejaVu Sans');
         $pdf = new Dompdf($options);
         $pdf->loadHtml(view($document['view'] ?? 'exports.document', $document)->render(), 'UTF-8');
-        $pdf->setPaper('A4', $document['orientation']);
+        $pdf->setPaper($document['paperSize'] ?? 'A4', $document['orientation']);
         $pdf->render();
         $bytes = $pdf->output();
         if ($bytes === '') {

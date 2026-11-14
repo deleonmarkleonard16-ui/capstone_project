@@ -44,6 +44,8 @@ class AssessmentAnswerSheetService
 
         return [
             'view' => 'guidance.answer-sheet', 'orientation' => 'portrait', 'sheets' => $sheets,
+            // Half of US Letter, split lengthwise: 4.25 x 11 inches, in PDF points.
+            'paperSize' => [0, 0, 306, 792],
             'fields' => [
                 'Name' => trim(implode(' ', array_filter([$appointment->first_name, $appointment->middle_name, $appointment->last_name]))),
                 'Date' => $appointment->response?->created_at?->timezone('Asia/Manila')->format('F j, Y'),

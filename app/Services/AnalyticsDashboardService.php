@@ -60,17 +60,27 @@ class AnalyticsDashboardService
 
     public function redFlagIntervention(int $limit = 50): array
     {
-        $responses = GuidanceTestResponse::with([
+        if ($limit <= 0) {
+            return [];
+        }
+        $courseOptions = CourseCatalog::allOptions();
+        $responses = GuidanceTestResponse::select(['guidance_test_response_id', 'guidance_appointment_id', 'applicant_id', 'score_summary', 'created_at'])->with([
                 'appointment.serviceRequest',
                 'appointment.applicant',
+                'appointment.batch',
+                'appointment.sourceBatch',
                 'applicant',
             ])
-            ->latest('guidance_test_response_id')
-            ->get();
+            ->lazyByIdDesc(100, 'guidance_test_response_id');
 
         $flags = [];
+        $role = auth()->user()?->role ?? 'admin';
 
         foreach ($responses as $response) {
+            // Each response/scale pair is unique; later responses cannot change the newest flags.
+            if (count($flags) >= $limit) {
+                break;
+            }
             $summaries    = $response->testSummaries();
             $appointment  = $response->appointment;
             $applicant    = $response->applicant ?? $appointment?->applicant;
@@ -82,7 +92,7 @@ class AnalyticsDashboardService
             );
             $studentId    = $appointment?->student_number
                 ?: ($applicant?->application_number ?: ($sr?->student_number ?: 'Not Provided'));
-            $course       = $appointment ? $appointment->courseLabel()
+            $course       = $appointment ? $appointment->courseLabel($courseOptions)
                 : ($sr?->courseLabel() ?? 'Unspecified');
             $date         = $response->created_at
                 ? $response->created_at->timezone('Asia/Manila')->format('M d, Y h:i A')
@@ -90,7 +100,6 @@ class AnalyticsDashboardService
 
             $counselingStatus = $appointment?->counseling_status ?? 'Pending Review';
             $counselingNotes  = $appointment?->counseling_notes ?? '';
-            $role             = auth()->user()?->role ?? 'admin';
             $viewUrl          = $appointment
                 ? route($role . '.guidance-appointments.show-results', $appointment)
                 : '#';

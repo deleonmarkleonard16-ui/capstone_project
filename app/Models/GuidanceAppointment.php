@@ -106,10 +106,10 @@ class GuidanceAppointment extends Model
         return $this->attributes['request_code'] ?? ($this->serviceRequest?->reference ?? '');
     }
 
-    public function courseLabel(): string
+    public function courseLabel(?array $courseOptions = null): string
     {
         $course = $this->origin_course ?? $this->batch?->course ?? $this->sourceBatch?->course ?? $this->serviceRequest?->course;
-        return $course ? (\App\Support\CourseCatalog::allOptions()[$course] ?? $course) : 'Not specified';
+        return $course ? (($courseOptions ?? \App\Support\CourseCatalog::allOptions())[$course] ?? $course) : 'Not specified';
     }
 
     public function getFirstNameAttribute(): string

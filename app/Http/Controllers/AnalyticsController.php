@@ -135,18 +135,22 @@ class AnalyticsController extends Controller
      */
     public function dashboard(Request $request, AnalyticsDashboardService $dashboardService)
     {
-        app(GuidanceAssessmentSessionService::class)->expireDue();
-
-        $metrics = $this->compileExecutiveMetrics();
+        $profiler = new \App\Support\AnalyticsProfiler();
+        $profiler->measure('expire_sessions', fn () => app(GuidanceAssessmentSessionService::class)->expireDue());
+        $metrics = $profiler->measure('executive_metrics', fn () => $this->compileExecutiveMetrics());
 
         // Merge service datasets: Action Center, Intervention, Proctoring Feed, Demographics, Document/Fee Analytics, Controls
-        $metrics['actionCenter']       = $dashboardService->actionCenterCounts();
-        $metrics['interventionFlags']  = $dashboardService->redFlagIntervention(50);
-        $metrics['proctoring']         = $dashboardService->proctoringFeed();
-        $metrics['demographics']       = $dashboardService->demographicAnalytics();
-        $metrics['documentFees']       = $dashboardService->documentFeeAnalytics();
-        $metrics['controls']           = $dashboardService->systemControls();
-        return view('admin.analytics', $metrics);
+        $metrics['actionCenter'] = $profiler->measure('action_center', fn () => $dashboardService->actionCenterCounts());
+        $metrics['interventionFlags'] = $profiler->measure('intervention_flags', fn () => $dashboardService->redFlagIntervention(50));
+        $metrics['proctoring'] = $profiler->measure('proctoring', fn () => $dashboardService->proctoringFeed());
+        // These values were already calculated for the executive charts.
+        $metrics['demographics'] = [
+            'maleCount' => $metrics['maleCount'], 'femaleCount' => $metrics['femaleCount'],
+            'programParticipation' => $metrics['programTestingVolume'], 'officialPrograms' => $metrics['officialPrograms'],
+        ];
+        $metrics['documentFees'] = $profiler->measure('document_fees', fn () => $dashboardService->documentFeeAnalytics());
+        $metrics['controls'] = $profiler->measure('controls', fn () => $dashboardService->systemControls());
+        return $profiler->measure('render', fn () => response()->view('admin.analytics', $metrics));
     }
 
     /**
@@ -271,7 +275,10 @@ class AnalyticsController extends Controller
         $completedTests = GuidanceAppointment::where('status', 'Completed')->count();
 
         // Psychometric Severity Distributions & Red Flags
-        $responses = GuidanceTestResponse::with(['appointment.serviceRequest', 'appointment.applicant'])->get();
+        $courseOptions = CourseCatalog::allOptions();
+        $responses = GuidanceTestResponse::select(['guidance_test_response_id', 'guidance_appointment_id', 'applicant_id', 'score_summary', 'created_at'])
+            ->with(['applicant', 'appointment.serviceRequest', 'appointment.applicant', 'appointment.batch', 'appointment.sourceBatch'])
+            ->lazyById(200, 'guidance_test_response_id');
 
         $severityDistribution = [
             'Normal / Minimal' => 0,
@@ -298,6 +305,7 @@ class AnalyticsController extends Controller
         ];
 
         $redFlags = [];
+        $role = auth()->user()?->role ?? 'admin';
 
         foreach ($responses as $response) {
             $summaries = $response->testSummaries();
@@ -307,7 +315,7 @@ class AnalyticsController extends Controller
 
             $studentName = mb_strtoupper($applicant?->full_name ?? ($serviceRequest ? trim($serviceRequest->first_name . ' ' . $serviceRequest->last_name) : 'Anonymous Student'));
             $studentId = $appointment?->student_number ?: ($applicant?->application_number ?: ($serviceRequest?->student_number ?: 'Not Provided'));
-            $course = $appointment ? $appointment->courseLabel() : ($serviceRequest?->courseLabel() ?? 'Unspecified');
+            $course = $appointment ? $appointment->courseLabel($courseOptions) : ($serviceRequest?->courseLabel() ?? 'Unspecified');
 
             // DASS-21
             if (isset($summaries['dass21']['interpretation'])) {
@@ -329,7 +337,7 @@ class AnalyticsController extends Controller
                                 'scale'        => 'DASS-21 ' . ucfirst($dim),
                                 'severity'     => $sev,
                                 'date'         => $response->created_at ? $response->created_at->timezone('Asia/Manila')->format('M d, Y') : 'N/A',
-                                'view_url'     => $appointment ? route(auth()->user()->role . '.guidance-appointments.show-results', $appointment) : '#',
+                                'view_url'     => $appointment ? route($role . '.guidance-appointments.show-results', $appointment) : '#',
                             ];
                         }
                     }
@@ -354,7 +362,7 @@ class AnalyticsController extends Controller
                         'scale'        => 'PHQ-9 Mood Assessment',
                         'severity'     => $phqSev,
                         'date'         => $response->created_at ? $response->created_at->timezone('Asia/Manila')->format('M d, Y') : 'N/A',
-                        'view_url'     => $appointment ? route(auth()->user()->role . '.guidance-appointments.show-results', $appointment) : '#',
+                        'view_url'     => $appointment ? route($role . '.guidance-appointments.show-results', $appointment) : '#',
                     ];
                 }
             }
@@ -376,7 +384,7 @@ class AnalyticsController extends Controller
                         'scale'        => 'GAD-7 Generalized Anxiety',
                         'severity'     => 'Severe',
                         'date'         => $response->created_at ? $response->created_at->timezone('Asia/Manila')->format('M d, Y') : 'N/A',
-                        'view_url'     => $appointment ? route(auth()->user()->role . '.guidance-appointments.show-results', $appointment) : '#',
+                        'view_url'     => $appointment ? route($role . '.guidance-appointments.show-results', $appointment) : '#',
                     ];
                 }
             }

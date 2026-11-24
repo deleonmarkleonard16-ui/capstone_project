@@ -86,6 +86,9 @@ async function capture(source, width, height, version) {
 function reset() {
     progress(applicant ? 3 : 1);
     points = []; byId('confirm-match').checked = false; form.hidden = true; byId('record').disabled = true; byId('answer-review').replaceChildren();
+    byId('confirm-blanks').checked = false;
+    byId('blank-confirmation').hidden = true;
+    byId('blank-items').textContent = '';
     if (pixels) context.putImageData(pixels,0,0);
     message.textContent = 'Select the top-left marker, then top-right, bottom-right, bottom-left.';
 }
@@ -116,21 +119,43 @@ canvas.onclick = event => {
             const label = document.createElement('label'); label.className = 'col-6 col-md-3';
             label.textContent = `Item ${result.item}: ${result.reason}`;
             const select = document.createElement('select'); select.name = `answers[${result.item}]`; select.required = true;
+            select.dataset.detectedBlank = String(result.reason.startsWith('Blank'));
+            select.dataset.item = String(result.item);
             select.className = `form-select ${result.answer ? '' : 'border-warning'}`;
             for (const [value,text] of [['','Review required'],['blank','Confirmed blank'],...Array.from('ABCD',letter=>[letter,letter])]) select.add(new Option(text,value));
             select.value = result.answer ?? ''; label.append(select); byId('answer-review').append(label);
         }
         form.hidden = false; byId('record').disabled = !applicant;
+        updateBlankConfirmation();
         progress(applicant ? 3 : 1);
         message.textContent = `${answers.filter(row=>!row.answer).length} of ${TOTAL_ITEMS} rows require review. Review all answers before saving. A verified paper QR is required.`;
     } catch(error) { message.textContent = error.message; points = []; }
 };
-form.addEventListener('change', () => {
+function blankSelections() {
+    return [...form.querySelectorAll('select')].filter(select =>
+        select.value === 'blank' || (select.dataset.detectedBlank === 'true' && select.value === ''));
+}
+function updateBlankConfirmation() {
+    const blanks = blankSelections();
+    byId('blank-confirmation').hidden = blanks.length === 0;
+    byId('blank-items').textContent = blanks.map(select => select.dataset.item).join(', ');
+    byId('confirm-blanks').checked = blanks.length > 0 && blanks.every(select => select.value === 'blank');
+}
+form.addEventListener('change', event => {
+    if (event.target === byId('confirm-blanks')) {
+        for (const select of blankSelections()) select.value = event.target.checked ? 'blank' : '';
+    }
+    updateBlankConfirmation();
     const reviewed = [...form.querySelectorAll('select')].every(select => select.value !== '');
     progress(applicant && byId('confirm-match').checked && reviewed ? 4 : applicant ? 3 : 1);
 });
 form.addEventListener('submit', event => {
     if (!applicant) { event.preventDefault(); return; }
+    if (!byId('confirm-match').checked || [...form.querySelectorAll('select')].some(select => select.value === '')) {
+        event.preventDefault();
+        message.textContent = 'Confirm the blank answers and review every remaining item before saving.';
+        return;
+    }
     progress(4);
     // Use empty values for explicitly reviewed blank answers; Laravel converts them to null.
     for (const select of form.querySelectorAll('select')) if (select.value === 'blank') { select.selectedOptions[0].value = ''; select.required = false; }

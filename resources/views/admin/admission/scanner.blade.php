@@ -142,6 +142,16 @@
 
                         <div id="answer-review" class="row g-1 mb-3" style="max-height:220px; overflow-y:auto;"></div>
 
+                        <div id="blank-confirmation" class="alert alert-warning py-2 small mb-3" hidden>
+                            <div class="mb-2">Blank answer items: <strong id="blank-items"></strong></div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirm-blanks">
+                                <label class="form-check-label fw-semibold" for="confirm-blanks">
+                                    I checked the physical paper and confirm that all listed items were left blank by the student.
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="form-check mb-3 small">
                             <input class="form-check-input" type="checkbox" id="confirm-match" required>
                             <label class="form-check-label fw-semibold" for="confirm-match">
@@ -160,5 +170,5 @@
 </div>
 
 <script src="{{ asset('js/vendor/jsqr/jsQR.js') }}"></script>
-<script type="module" src="{{ asset('js/admission-paper-scanner.js') }}?v=3"></script>
+<script type="module" src="{{ asset('js/admission-paper-scanner.js') }}?v=4"></script>
 @endsection

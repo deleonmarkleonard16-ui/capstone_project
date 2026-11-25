@@ -104,22 +104,22 @@
                             'career' => 'RIASEC',
                         ][$testKey] ?? null;
                     @endphp
-                    @for($startItem = 1; $startItem <= $rawItemCount; $startItem += 10)
-                        <div class="raw-item-group">
-                            <h4 class="h6 fw-bold text-uppercase mb-1">
-                                {{ \App\Services\GuidanceTestScoringService::LABELS[$testKey] ?? $testKey }}@if($rawInstrumentLabel) <span class="text-primary">&mdash; {{ $rawInstrumentLabel }}</span>@endif
-                            </h4>
-                            <p class="small text-muted mb-2">Items {{ $startItem }}&ndash;{{ min($startItem + 9, $rawItemCount) }}</p>
+                    <div class="raw-item-group">
+                        <h4 class="h6 fw-bold text-uppercase mb-1" id="raw-items-{{ $testKey }}">
+                            {{ \App\Services\GuidanceTestScoringService::LABELS[$testKey] ?? $testKey }}@if($rawInstrumentLabel) <span class="text-primary">&mdash; {{ $rawInstrumentLabel }}</span>@endif
+                        </h4>
+                        <p class="small text-muted mb-2">{{ $rawItemCount }} items</p>
+                        <div class="raw-item-scroll" tabindex="0" role="region" aria-labelledby="raw-items-{{ $testKey }}">
                             <table class="table table-sm table-bordered mb-0">
                                 <thead><tr><th scope="col">Item</th><th scope="col">Selected choice</th></tr></thead>
                                 <tbody>
-                                    @for($item = $startItem; $item <= min($startItem + 9, $rawItemCount); $item++)
+                                    @for($item = 1; $item <= $rawItemCount; $item++)
                                         <tr><th scope="row" class="fw-normal">{{ $item }}</th><td>{{ $rawAnswers[$item] ?? 'Unanswered' }}</td></tr>
                                     @endfor
                                 </tbody>
                             </table>
                         </div>
-                    @endfor
+                    </div>
                 @endforeach
             </div>
         </div>
@@ -366,8 +366,13 @@
 .raw-item-group { min-width: 0; break-inside: avoid; }
 .raw-item-group h4 { font-size: .85rem; line-height: 1.5; }
 .raw-item-group .table > :not(caption) > * > * { padding: .35rem .6rem; overflow-wrap: anywhere; }
+.raw-item-scroll { max-height: 360px; overflow: auto; }
+.raw-item-scroll thead th { position: sticky; top: 0; z-index: 1; background: #f5f7fb; }
+.raw-item-scroll:focus-visible { outline: 2px solid #0d6efd; outline-offset: 2px; }
 .hard-copy-packet { display: none; }
 @media print {
+    .raw-item-scroll { max-height: none; overflow: visible; }
+    .raw-item-scroll thead th { position: static; }
     .no-print, nav, header, footer, .sidebar { display: none !important; }
     body { background: #fff !important; margin: 0; padding: 0; font-size: 12pt; }
     .print-card { border: none !important; box-shadow: none !important; }

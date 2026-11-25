@@ -90,7 +90,41 @@
             $tests = $appointment->response?->testSummaries() ?? [];
         @endphp
 
-        <h3 class="h5 mb-3 fw-bold text-primary">Assessment Rubric &amp; Interpretation</h3>
+        <div class="mt-4 pt-4 border-top">
+            <h3 class="h5">Raw Item Choices</h3>
+            <div class="raw-item-grid">
+                @foreach($tests as $testKey => $testData)
+                    @php
+                        $rawAnswers = $appointment->response->answers[$testKey] ?? (!$appointment->test_types ? $appointment->response->answers : []);
+                        $rawItemCount = $testData['total_items'] ?? count($rawAnswers);
+                        $rawInstrumentLabel = [
+                            'dass21' => 'DASS-21',
+                            'phq9' => 'PHQ-9',
+                            'gad7' => 'GAD-7',
+                            'career' => 'RIASEC',
+                        ][$testKey] ?? null;
+                    @endphp
+                    @for($startItem = 1; $startItem <= $rawItemCount; $startItem += 10)
+                        <div class="raw-item-group">
+                            <h4 class="h6 fw-bold text-uppercase mb-1">
+                                {{ \App\Services\GuidanceTestScoringService::LABELS[$testKey] ?? $testKey }}@if($rawInstrumentLabel) <span class="text-primary">&mdash; {{ $rawInstrumentLabel }}</span>@endif
+                            </h4>
+                            <p class="small text-muted mb-2">Items {{ $startItem }}&ndash;{{ min($startItem + 9, $rawItemCount) }}</p>
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead><tr><th scope="col">Item</th><th scope="col">Selected choice</th></tr></thead>
+                                <tbody>
+                                    @for($item = $startItem; $item <= min($startItem + 9, $rawItemCount); $item++)
+                                        <tr><th scope="row" class="fw-normal">{{ $item }}</th><td>{{ $rawAnswers[$item] ?? 'Unanswered' }}</td></tr>
+                                    @endfor
+                                </tbody>
+                            </table>
+                        </div>
+                    @endfor
+                @endforeach
+            </div>
+        </div>
+
+        <h3 class="h5 mt-4 pt-4 border-top mb-3 fw-bold text-primary">Assessment Rubric &amp; Interpretation</h3>
 
         @if(empty($tests))
             <div class="alert alert-info">No score summary available for this appointment.</div>
@@ -210,23 +244,10 @@
             @endforeach
         @endif
 
-        <div class="mt-4 pt-4 border-top">
-            <h3 class="h5">Raw Item Choices</h3>
-            @foreach($tests as $testKey => $testData)
-                @php
-                    $rawAnswers = $appointment->response->answers[$testKey] ?? (!$appointment->test_types ? $appointment->response->answers : []);
-                @endphp
-                <h4 class="h6 mt-3">{{ \App\Services\GuidanceTestScoringService::LABELS[$testKey] ?? $testKey }}</h4>
-                <div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Item</th><th>Selected choice</th></tr></thead><tbody>
-                @for($item = 1; $item <= ($testData['total_items'] ?? count($rawAnswers)); $item++)
-                <tr><td>{{ $item }}</td><td>{{ $rawAnswers[$item] ?? 'Unanswered' }}</td></tr>
-                @endfor
-                </tbody></table></div>
-            @endforeach
-            @if(array_intersect(['dass21', 'phq9', 'gad7'], array_keys($tests)))
-                <p class="small text-muted">Psychological Assessment scores shown above are raw subscale sums (0–21), classified using raw-score cutoffs. Screening severity is for counselor review.</p>
-            @endif
-        </div>
+        @if(array_intersect(['dass21', 'phq9', 'gad7'], array_keys($tests)))
+            <p class="small text-muted">Psychological Assessment scores shown above are raw subscale sums (0–21), classified using raw-score cutoffs. Screening severity is for counselor review.</p>
+        @endif
+
         <section class="hard-copy-packet">
             @php
                 foreach ($tests as $testKey => $testData) {
@@ -341,6 +362,10 @@
 </div>
 
 <style>
+.raw-item-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1rem; align-items: start; }
+.raw-item-group { min-width: 0; break-inside: avoid; }
+.raw-item-group h4 { font-size: .85rem; line-height: 1.5; }
+.raw-item-group .table > :not(caption) > * > * { padding: .35rem .6rem; overflow-wrap: anywhere; }
 .hard-copy-packet { display: none; }
 @media print {
     .no-print, nav, header, footer, .sidebar { display: none !important; }
